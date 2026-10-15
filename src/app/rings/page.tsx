@@ -25,7 +25,7 @@ export default async function MyRings() {
             return (
               <div key={r.id} className="card">
                 <Link href={`/design/${r.id}`} style={{ textDecoration: "none" }}>
-                  {thumb ? <img src={`${thumb}?v=${new Date(r.updated_at).getTime()}`} alt={r.name} /> : <div className="ph" />}
+                  {thumb ? <img src={`${thumb}?v=${new Date(r.updated_at).getTime()}`} alt={r.name} /> : <div className="ph" style={{ display: "grid", placeItems: "center" }}><span className="small muted">Open to make a picture</span></div>}
                   <div className="meta">
                     <strong>{r.name}</strong>
                     <span className="small muted">{describeDesign(normalizeDesign(r.data))}</span>

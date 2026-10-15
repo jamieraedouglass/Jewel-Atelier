@@ -1,0 +1,112 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { DropPartSchema, applyPatch, chooseStyle, type Design, type DesignPatch, type PieceType } from "@/lib/design";
+import { compressImage, uid } from "@/lib/media";
+import { createClient } from "@/lib/supabase/client";
+
+type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[] };
+type Props = { userId: string | null; design: Design; onReplace: (d: Design) => void };
+
+/** Upload a photo of a piece; Claude rebuilds it as an editable 3D design. */
+export default function PhotoToDesign({ userId, design, onReplace }: Props) {
+  const input = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<Blob[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+
+  if (!userId) return <p className="muted">Sign in to recreate a piece from a photo.</p>;
+
+  async function pick(list: FileList | null) {
+    if (!list?.length) return;
+    setError(null); setResult(null);
+    try {
+      const out = await Promise.all(Array.from(list).filter((f) => f.type.startsWith("image/")).slice(0, 4).map((f) => compressImage(f)));
+      previews.forEach(URL.revokeObjectURL);
+      setFiles(out);
+      setPreviews(out.map((b) => URL.createObjectURL(b)));
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn't read those photos."); }
+  }
+
+  async function recreate() {
+    setError(null);
+    setBusy("Uploading…");
+    try {
+      const supabase = createClient();
+      const batch = uid(), paths: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const path = `${userId}/piece-${batch}-${i}.jpg`;
+        const { error } = await supabase.storage.from("inspiration").upload(path, files[i], { contentType: "image/jpeg" });
+        if (error) throw new Error(error.message);
+        paths.push(path);
+      }
+      setBusy("Studying the piece… (up to a minute)");
+      const res = await fetch("/api/from-photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notes || undefined }) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't recreate the piece.");
+      setResult(json);
+      apply(json);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't recreate the piece.");
+    } finally { setBusy(null); }
+  }
+
+  function apply(r: Result) {
+    let d = chooseStyle(design, r.type, r.style);
+    const whole = applyPatch(d, { ...r.patch, type: r.type, style: r.style });
+    if (whole !== d) d = whole;
+    else {
+      // one out-of-range value shouldn't throw away the rest: apply field by field, and drop parts one by one
+      for (const [k, v] of Object.entries(r.patch ?? {})) {
+        if (k === "type" || k === "style") continue;
+        if (k === "drop" && v && typeof v === "object") {
+          const parts = ((v as { parts?: unknown[] }).parts ?? []).map((x) => DropPartSchema.safeParse(x)).filter((x) => x.success).map((x) => x.data!);
+          if (parts.length) d = applyPatch(d, { drop: { parts } } as DesignPatch);
+        } else d = applyPatch(d, { [k]: v } as DesignPatch);
+      }
+    }
+    onReplace({ ...d, name: r.title });
+  }
+
+  return (
+    <>
+      <section style={{ display: "grid", gap: 12 }}>
+        <h3>Recreate a piece from a photo</h3>
+        <p className="muted small" style={{ margin: 0 }}>
+          A photo of something your jeweller has made, a screenshot or a sketch. Claude rebuilds it in 3D with real parts, so you can then change any stone, size, metal or layout.
+        </p>
+        <div className="dropzone" role="button" tabIndex={0} onClick={() => input.current?.click()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
+          onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}>
+          <strong>Drop a photo of the piece</strong>
+          <span className="muted small">JPG or PNG · up to 4 photos of the same piece</span>
+        </div>
+        <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => pick(e.target.files)} />
+        {previews.length > 0 && <div className="thumbs">{previews.map((u) => <figure key={u}><img src={u} alt="The piece" /></figure>)}</div>}
+        <label className="field" htmlFor="piece-notes">
+          <span>Notes (optional)</span>
+          <textarea id="piece-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="About 5 cm long. The big drop is a 6 ct pear. Yellow centre is a canary diamond." />
+        </label>
+        <button className="btn primary" type="button" disabled={!files.length || !!busy} onClick={recreate}>{busy ?? "Recreate in 3D"}</button>
+        {error && <p className="error">{error}</p>}
+      </section>
+      {result && (
+        <section className="proposal">
+          <h4>{result.title}</h4>
+          <p className="small" style={{ margin: 0 }}>{result.description}</p>
+          {result.notModelled.length > 0 && (
+            <>
+              <span className="small muted">Not in the 3D model — tell the karigar:</span>
+              <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>{result.notModelled.map((n) => <li key={n}>{n}</li>)}</ul>
+            </>
+          )}
+          <p className="small muted" style={{ margin: 0 }}>It&apos;s now in the 3D view. Open the Design tab to change anything, or click a part of the paused piece.</p>
+          <button className="btn" type="button" onClick={() => apply(result)}>Start over from this photo</button>
+        </section>
+      )}
+    </>
+  );
+}
