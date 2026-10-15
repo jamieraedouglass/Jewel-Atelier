@@ -7,8 +7,8 @@ import { type Design, ringInnerDiameter, sideStoneDims } from "./design";
  * the top of the ring is +Y. Stone "length" runs along Z (north–south on the hand).
  */
 
-type Pt = [number, number]; // [x across the finger, z along the finger]
-type OutlineFn = (t: number) => Pt; // t in [0,1), counter-clockwise, t=0 at +x
+export type Pt = [number, number]; // [x across the finger, z along the finger]
+export type OutlineFn = (t: number) => Pt; // t in [0,1), counter-clockwise, t=0 at +x
 
 /* ---------------- outlines ---------------- */
 
@@ -73,7 +73,7 @@ function polygonFn(poly: Pt[]): OutlineFn {
 
 /* ---------------- stones ---------------- */
 
-function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
+export function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   const n = 160, m = 48, pos: number[] = [], idx: number[] = [];
   const rows: { s: number; y: number }[] = [];
   for (let j = m; j >= 1; j--) { const p = (j / m) * Math.PI / 2; rows.push({ s: Math.cos(p), y: -Math.sin(p) * belly }); }
@@ -93,10 +93,10 @@ function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   return g;
 }
 
-type Tier = { s: number; y: number; twist?: number };
+export type Tier = { s: number; y: number; twist?: number };
 
 /** Faceted stone from stacked outline tiers; flat-shaded so every facet catches light on its own. */
-function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.Vector3[], center: THREE.Vector3, tiers: Tier[], tableY: number, culetY: number) {
+export function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.Vector3[], center: THREE.Vector3, tiers: Tier[], tableY: number, culetY: number) {
   const rings = tiers.map((t) => ring(t.s, t.y, t.twist ?? 0));
   const pos: number[] = [];
   const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
@@ -115,7 +115,7 @@ function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.Vector3
   return g;
 }
 
-function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn, W: number, crown: number) {
+export function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn, W: number, crown: number) {
   const step = shape === "emerald";
   const n = step ? 8 * 4 : 16;
   const ring = (s: number, y: number, twist: number) => {
@@ -144,7 +144,7 @@ function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] 
   return pts;
 }
 
-function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number) {
+export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number) {
   const ol = sideOutline(kind, L, W);
   const span = kind === "baguette" ? L : W;
   const cx = kind === "round" ? W / 2 : span * 0.42;
@@ -159,7 +159,7 @@ function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number) {
   return { g, ol, cx, span, pav };
 }
 
-function roseCutGeo(R: number, H: number) {
+export function roseCutGeo(R: number, H: number) {
   const pos: number[] = [];
   const tri = (a: number[], b: number[], c: number[]) => pos.push(...a, ...b, ...c);
   const apex = [0, H, 0], A: number[][] = [], B: number[][] = [];
@@ -178,14 +178,25 @@ function roseCutGeo(R: number, H: number) {
 
 /* ---------------- metal ---------------- */
 
-const METAL_TONE: Record<Design["metal"], { color: number; roughness: number }> = {
-  "white-gold": { color: 0xd6d5d1, roughness: 0.24 },
-  platinum: { color: 0xcdd0d4, roughness: 0.2 },
+const METAL_BASE: Record<Design["metal"], { color: number; roughness: number }> = {
   "yellow-gold": { color: 0xe6c27a, roughness: 0.22 },
   "rose-gold": { color: 0xe7ac90, roughness: 0.22 },
+  "white-gold": { color: 0xd6d5d1, roughness: 0.24 },
+  platinum: { color: 0xcdd0d4, roughness: 0.2 },
+  "oxidised-silver": { color: 0x8e8a84, roughness: 0.46 },
 };
+/** higher-karat yellow and rose gold is richer and warmer: 22k reads deep, 24k almost orange */
+export function metalTone(d: Pick<Design, "metal" | "purity">) {
+  const base = METAL_BASE[d.metal];
+  if (d.metal !== "yellow-gold" && d.metal !== "rose-gold") return base;
+  const target = d.metal === "yellow-gold" ? 0xf2b13c : 0xeb9c70;
+  const k = { 14: -0.25, 18: 0, 22: 0.6, 24: 0.9 }[d.purity.karat as 14 | 18 | 22 | 24] ?? 0;
+  const c = new THREE.Color(base.color);
+  if (k >= 0) c.lerp(new THREE.Color(target), k); else c.lerp(new THREE.Color(0xe0d2a8), -k);
+  return { color: c.getHex(), roughness: base.roughness };
+}
 
-function textureBump() {
+export function textureBump() {
   if (typeof document === "undefined") return null;
   const c = document.createElement("canvas");
   c.width = 512; c.height = 64;
@@ -201,7 +212,7 @@ function textureBump() {
   return t;
 }
 
-function shankGeo(rin: number, width: number, finish: Design["band"]["finish"]) {
+export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"]) {
   const segs = 220, prof = 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= segs; i++) {
     const th = (i / segs) * Math.PI * 2;
@@ -234,7 +245,7 @@ function shankGeo(rin: number, width: number, finish: Design["band"]["finish"]) 
 
 export function buildRing(d: Design): THREE.Group {
   const root = new THREE.Group();
-  const tone = METAL_TONE[d.metal];
+  const tone = metalTone(d);
   const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.3, clearcoat: 0.3, clearcoatRoughness: 0.1 });
   const bandMetal = metal.clone();
   if (d.band.finish === "textured") {
@@ -244,7 +255,7 @@ export function buildRing(d: Design): THREE.Group {
   // Diamonds: a thin dielectric "glass" skin over mirrored facets. Real-time transmission can't do total
   // internal reflection, so mirrored facets stand in for the hall-of-mirrors look of a step cut.
   const diamond = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0, transparent: true, opacity: 0.22, specularIntensity: 1, envMapIntensity: 3, flatShading: true, depthWrite: false });
-  const mirror = new THREE.MeshPhysicalMaterial({ color: 0xf2f5ff, metalness: 1, roughness: 0, envMapIntensity: 3.6, flatShading: true, iridescence: 0.25, iridescenceIOR: 1.8, iridescenceThicknessRange: [250, 650] });
+  const mirror = new THREE.MeshPhysicalMaterial({ color: 0xf2f5ff, metalness: 1, roughness: 0, envMapIntensity: 4.5, emissive: 0xf2f5ff, emissiveIntensity: 0.12, flatShading: true, iridescence: 0.25, iridescenceIOR: 1.8, iridescenceThicknessRange: [250, 650] });
   const roseMat = new THREE.MeshPhysicalMaterial({ color: 0xf4f6ff, metalness: 1, roughness: 0, envMapIntensity: 4, flatShading: true });
 
   const tube = (pts: THREE.Vector3[], r: number, closed = false) =>
@@ -363,6 +374,7 @@ export function buildRing(d: Design): THREE.Group {
       root.add(grp);
     }
   }
+  root.userData.girdleY = GY;
   return root;
 }
 

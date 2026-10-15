@@ -29,6 +29,13 @@ export async function setThumbnail(id: string, path: string) {
   revalidatePath("/rings");
 }
 
+export async function setPublic(id: string, isPublic: boolean) {
+  const { supabase, user } = await requireUser();
+  if (!user) return;
+  await supabase.from("designs").update({ is_public: isPublic }).eq("id", id).eq("owner", user.id);
+  revalidatePath(`/d/${id}`);
+}
+
 export async function deleteDesign(id: string) {
   const { supabase, user } = await requireUser();
   if (!user) return;

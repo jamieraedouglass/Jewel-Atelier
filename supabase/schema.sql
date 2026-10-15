@@ -7,7 +7,7 @@ create table if not exists public.designs (
   name           text not null default 'Untitled ring',
   data           jsonb not null,
   thumbnail_path text,
-  is_public      boolean not null default true,   -- anyone with the share link can view
+  is_public      boolean not null default false,  -- private until the owner shares a link
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
@@ -18,6 +18,30 @@ create policy "read own or public designs" on public.designs for select using (i
 create policy "insert own designs" on public.designs for insert with check (owner = auth.uid());
 create policy "update own designs" on public.designs for update using (owner = auth.uid());
 create policy "delete own designs" on public.designs for delete using (owner = auth.uid());
+
+-- Daily AI usage per person (stone analysis + design chat) ------------------------
+create table if not exists public.ai_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day     date not null default current_date,
+  calls   int  not null default 0,
+  primary key (user_id, day)
+);
+alter table public.ai_usage enable row level security;
+create policy "see own usage" on public.ai_usage for select using (user_id = auth.uid());
+
+-- Atomically counts one AI call for the signed-in user; returns false once today's limit is reached.
+create or replace function public.use_ai_call(daily_limit int)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare used int;
+begin
+  insert into ai_usage (user_id, day, calls) values (auth.uid(), current_date, 1)
+  on conflict (user_id, day) do update set calls = ai_usage.calls + 1
+  where ai_usage.calls < daily_limit
+  returning calls into used;
+  return used is not null;
+end $$;
+revoke all on function public.use_ai_call(int) from public;
+grant execute on function public.use_ai_call(int) to authenticated;
 
 -- One style profile per person ------------------------------------------------
 create table if not exists public.style_profiles (

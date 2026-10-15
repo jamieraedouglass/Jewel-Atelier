@@ -4,7 +4,7 @@ import { deleteDesign } from "@/app/actions";
 import { describeDesign, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 
-export const metadata = { title: "My rings · Ring Atelier" };
+export const metadata = { title: "My designs · Atelier" };
 
 export default async function MyRings() {
   const { supabase, user } = await requireUser();
@@ -13,11 +13,11 @@ export default async function MyRings() {
   return (
     <main className="page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 40 }}>My rings</h1>
-        <Link href="/design" className="btn primary">New ring</Link>
+        <h1 style={{ fontSize: 40 }}>My designs</h1>
+        <Link href="/design" className="btn primary">New design</Link>
       </div>
       {!rows?.length ? (
-        <p className="muted">No saved rings yet. Start one, upload your stone, and press Save.</p>
+        <p className="muted">Nothing saved yet. Start a design, upload a stone, and press Save.</p>
       ) : (
         <div className="grid">
           {rows.map((r) => {
@@ -32,7 +32,7 @@ export default async function MyRings() {
                   </div>
                 </Link>
                 <div className="meta" style={{ display: "flex", gap: 8, paddingTop: 0 }}>
-                  <Link className="btn" href={`/d/${r.id}`}>Share page</Link>
+                  <Link className="btn" href={`/d/${r.id}`}>View</Link>
                   <form action={deleteDesign.bind(null, r.id)}><button className="btn">Delete</button></form>
                 </div>
               </div>

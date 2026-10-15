@@ -9,10 +9,10 @@ type Msg = { role: "user" | "assistant"; content: string; proposals?: Proposal[]
 type Props = { userId: string | null; design: Design; onApply: (patch: DesignPatch) => void };
 
 const STARTERS = [
-  "What side stones suit this centre stone?",
-  "Make it feel more heirloom",
-  "How do I keep this from catching on sweaters?",
-  "Suggest a version for everyday wear",
+  "Make this more maximalist",
+  "What accents suit this main stone?",
+  "Turn this into a bridal piece",
+  "What should I tell the karigar about construction and weight?",
 ];
 
 function describePatch(p: DesignPatch): string {

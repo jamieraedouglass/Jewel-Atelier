@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ring Atelier",
-  description: "Design a ring around your own stone, in 3D, with an AI design consultant.",
+  title: "Atelier",
+  description: "Design jewellery around your own stones, in 3D, with an AI design consultant.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -21,12 +21,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <header className="topbar">
-          <Link href="/" className="brand">Ring <em>Atelier</em></Link>
+          <Link href="/" className="brand">Jewel <em>Atelier</em></Link>
           <nav className="nav">
-            <Link href="/design">New ring</Link>
+            <Link href="/design">New design</Link>
             {user ? (
               <>
-                <Link href="/rings">My rings</Link>
+                <Link href="/rings">My designs</Link>
                 <Link href="/style">Style profile</Link>
                 <form action="/auth/signout" method="post"><button className="btn" type="submit">Sign out</button></form>
               </>
