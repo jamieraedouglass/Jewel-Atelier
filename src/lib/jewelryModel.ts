@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BEAD_GEMS, type CenterStone, type Design, type Gem, bangleDiameter, ringInnerDiameter, roundDiameter } from "./design";
+import { BEAD_GEMS, type CenterStone, type Design, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
 import { motifPlate, motifShapes } from "./motifModel";
 import { metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
 
@@ -173,7 +173,10 @@ function orient(o: THREE.Object3D, it: Item) {
 }
 
 /** small round stones in cups; beads become spheres */
-function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "rose-cut", items: Item[]) {
+const ASPECT: Record<CenterStone["shape"], number> = { round: 1, oval: 1.3, cushion: 1.1, pear: 1.5, emerald: 1.4, marquise: 2 };
+
+/** `dia` on each item is the stone's width; shaped stones are longer along their local Z by the shape's aspect */
+function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "rose-cut", items: Item[], shape: CenterStone["shape"] = "round") {
   const g = new THREE.Group();
   if (!items.length) return g;
   const o = new THREE.Object3D();
@@ -183,13 +186,14 @@ function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "r
     g.add(im);
     return g;
   }
-  const geo = cutGeometry(cut, "round", 1, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
+  const asp = ASPECT[shape];
+  const geo = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
   const colorless = COLORLESS.has(gem);
   const tint = cut === "polki" ? 0xfff0c8 : colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
   const meshes = [
     new THREE.InstancedMesh(geo, m.mirror(tint, cut === "polki" ? 2.4 : 3.6), items.length),
     new THREE.InstancedMesh(geo, colorless ? m.skin : m.stone({ gem, cut, color, clarity: 0.8 }, 1), items.length),
-    new THREE.InstancedMesh(new THREE.TorusGeometry(0.53, cut === "faceted" ? 0.07 : 0.11, 8, 24).rotateX(Math.PI / 2), m.metal, items.length),
+    new THREE.InstancedMesh(new THREE.TorusGeometry(0.53, cut === "faceted" ? 0.07 : 0.11, 8, 24).rotateX(Math.PI / 2).scale(1, 1, asp), m.metal, items.length),
   ];
   const prongs = cut === "faceted" ? new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 8, 6), m.metal, items.length * 4) : null;
   const M = new THREE.Matrix4();
@@ -198,7 +202,7 @@ function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "r
     meshes.forEach((x) => x.setMatrixAt(i, o.matrix));
     if (prongs) for (let k = 0; k < 4; k++) {
       const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-      M.makeTranslation(Math.cos(a) * 0.5, 0.12, Math.sin(a) * 0.5);
+      M.makeTranslation(Math.cos(a) * 0.5, 0.12, Math.sin(a) * 0.5 * asp);
       prongs.setMatrixAt(i * 4 + k, o.matrix.clone().multiply(M));
     }
   });
@@ -896,12 +900,35 @@ function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
   const outFront = outwardAt(curve, front);
 
   if (st === "tennis") {
-    const n = Math.floor(curve.getLength() / (accentDia + 0.45));
-    group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, Array.from({ length: n }, (_, i) => { const u = wrap(front + i / n); return { pos: curve.getPointAt(u), dia: accentDia, yaw: yawAt(curve, u) }; })));
-    const under = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, 0.45, 8, true), m.metal);
-    under.position.y = -accentDia * 0.45;
+    // each shape at the chosen carat weight; long axes run along the bracelet; the pattern repeats all the way round
+    const pattern = d.accents.shapes;
+    const dims = pattern.map((shape) => {
+      const e = estimateDims(d.accents.gem, d.accents.cut, shape, d.accents.sizeCt);
+      return { shape, W: e.widthMm, L: e.widthMm * ASPECT[shape] };
+    });
+    const gap = 0.45, total = curve.getLength();
+    const seq: typeof dims = [];
+    for (let used = 0, i = 0; ; i++) {
+      const s = dims[i % dims.length];
+      if (used + s.L + gap > total) break;
+      seq.push(s); used += s.L + gap;
+    }
+    // close the loop on a whole repeat of the pattern, then spread the spare length evenly
+    while (seq.length > dims.length && seq.length % dims.length) seq.pop();
+    const spare = (total - seq.reduce((a, s) => a + s.L + gap, 0)) / Math.max(1, seq.length);
+    const byShape = new Map<string, Item[]>();
+    let at = 0;
+    for (const s of seq) {
+      const u = wrap(front + (at + s.L / 2) / total);
+      (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos: curve.getPointAt(u), dia: s.W, yaw: yawAt(curve, u) - Math.PI / 2 });
+      at += s.L + gap + spare;
+    }
+    byShape.forEach((items, shape) => group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
+    const maxW = Math.max(...dims.map((x) => x.W));
+    const under = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.45, maxW * 0.08), 8, true), m.metal);
+    under.position.y = -maxW * 0.45;
     group.add(under);
-    focusSize = accentDia * 7;
+    focusSize = maxW * 7;
   } else if (solid) {
     const thick = st === "kada" ? 3.4 : st === "cuff" ? 1.6 : 1.8;
     const height = st === "cuff" ? 7 : st === "kada" ? 1.3 : 1;

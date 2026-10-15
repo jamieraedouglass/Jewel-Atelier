@@ -57,7 +57,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 /** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -102,7 +102,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     "motif-station": { label: "Custom motif stations", blurb: "Your shape repeated along a chain.", uses: ["motif", "center", "accents", "enamel", "length", "chain", "count"], defaults: { options: { count: 7 } } },
   },
   bracelet: {
-    tennis: { label: "Tennis", blurb: "A full line of matched stones.", uses: ["accents", "wrist"] },
+    tennis: { label: "Tennis", blurb: "A full line of stones: one shape, or a repeating mix like oval–round.", uses: ["accents", "accentShapes", "wrist"] },
     bangle: { label: "Bangle", blurb: "Solid bangle with a centre stone.", uses: [...CORE, "wrist"] },
     kada: { label: "Kada", blurb: "Heavy bangle with stones all round the front.", uses: ["accents", "enamel", "wrist", "center", "setting"] },
     cuff: { label: "Cuff", blurb: "Open cuff with a centre stone and rows of accents.", uses: [...CORE, "accents", "wrist", "layers"], defaults: { options: { layers: 2 } } },
@@ -198,14 +198,19 @@ export const DesignSchema = z
     /** the main stone: a ring's centre, each earring's stone, a pendant, tikka or bangle centre */
     center: CenterStoneSchema.default({}),
     /** small repeated stones: halos, pavé, riviera and tennis lines, chandelier tiers */
-    accents: z.object({ gem: z.enum(GEMS).default("diamond"), color: hex.default("#f4f6fb"), cut: z.enum(["faceted", "polki", "rose-cut"]).default("faceted"), sizeCt: z.number().min(0.005).max(3).default(0.1) }).default({}),
+    accents: z.object({
+      gem: z.enum(GEMS).default("diamond"), color: hex.default("#f4f6fb"), cut: z.enum(["faceted", "polki", "rose-cut"]).default("faceted"),
+      sizeCt: z.number().min(0.005).max(6).default(0.1),
+      /** stone shapes in repeating order, e.g. ["oval", "round"] alternates ovals and rounds (tennis styles) */
+      shapes: z.array(z.enum(SHAPES)).min(1).max(4).default(["round"]),
+    }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),
     /** meenakari enamel on plates and backs */
     enamel: z.object({ enabled: z.boolean().default(false), color: hex.default("#16704c") }).default({}),
     metal: z.enum(METALS).default("white-gold"),
-    /** gold purity and Indian hallmarking (BIS + 6-character HUID) */
-    purity: z.object({ karat: z.union([z.literal(14), z.literal(18), z.literal(22), z.literal(24)]).default(18), bisHallmark: z.boolean().default(true), huid: z.string().max(6).default("") }).default({}),
+    /** gold purity */
+    purity: z.object({ karat: z.union([z.literal(14), z.literal(18), z.literal(22), z.literal(24)]).default(18) }).default({}),
     setting: z.object({ style: z.enum(SETTINGS).default("double-claw"), height: z.number().min(0).max(1).default(0.1) }).default({}),
     /* ring */
     sides: z.object({ kind: z.enum(SIDE_KINDS).default("half-moon"), sizeCt: z.number().min(0.05).max(3).default(0.5) }).default({}),
@@ -347,7 +352,7 @@ export function describeDesign(d: Design): string {
   if (m.uses.includes("layers") && o.layers > 1) parts.push(`${o.layers} rows`);
   if (d.type === "ring") parts.push(`US ${d.ringSize} / Indian ${indianRingSize(d.ringSize)}`);
   if (m.uses.includes("wrist") && ["bangle", "kada", "cuff"].includes(d.style)) parts.push(`size ${o.bangleSize}`);
-  parts.push(metalName(d) + (isGold(d.metal) && d.purity.bisHallmark ? " (BIS hallmarked)" : ""));
+  parts.push(metalName(d));
   return parts.filter(Boolean).join(" · ");
 }
 

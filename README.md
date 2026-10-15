@@ -17,7 +17,6 @@ A private 3D jewellery design studio for jewellers. Upload a stone, build a piec
 - **Indian materials and making.**
   - 14k, 18k, 22k and 24k gold. Higher karats render warmer and deeper.
   - Platinum and oxidised silver.
-  - BIS hallmark and HUID fields.
   - Polki and rose-cut stones, set closed in gold like kundan work.
   - Meenakari enamel in traditional colours.
   - Pearl and bead fringes.

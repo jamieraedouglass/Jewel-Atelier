@@ -2,7 +2,7 @@
 
 import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Design } from "@/lib/design";
@@ -86,9 +86,10 @@ function StudioLights() {
   );
 }
 
-type Props = { design: Design; view?: View; autoRotate?: boolean; className?: string };
+/** `handle` is a plain prop, not a ref: next/dynamic does not forward refs, so a ref would silently stay null. */
+type Props = { design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null> };
 
-const RingCanvas = forwardRef<RingCanvasHandle, Props>(function RingCanvas({ design, view = "hero", autoRotate = true, className }, ref) {
+export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
   const piece = useMemo(() => buildPiece(design), [design]);
@@ -96,9 +97,13 @@ const RingCanvas = forwardRef<RingCanvasHandle, Props>(function RingCanvas({ des
     const box = new THREE.Box3().setFromObject(piece.group);
     return { y: box.min.y - 0.05, scale: Math.max(40, (box.max.x - box.min.x) * 1.6, (box.max.z - box.min.z) * 1.6) };
   }, [piece]);
-  useImperativeHandle(ref, () => ({
-    snapshot: (type = "image/jpeg") => new Promise((res) => (canvasEl.current ? canvasEl.current.toBlob((b) => res(b), type, 0.9) : res(null))),
-  }));
+  useEffect(() => {
+    if (!handle) return;
+    handle.current = {
+      snapshot: (type = "image/jpeg") => new Promise((res) => (canvasEl.current ? canvasEl.current.toBlob((b) => res(b), type, 0.9) : res(null))),
+    };
+    return () => { handle.current = null; };
+  }, [handle]);
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   return (
     <Canvas
@@ -106,7 +111,7 @@ const RingCanvas = forwardRef<RingCanvasHandle, Props>(function RingCanvas({ des
       dpr={[1, 2]}
       camera={{ fov: FOV, position: [20, 30, 52], near: 0.2, far: 5000 }}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
-      onCreated={({ gl }) => (canvasEl.current = gl.domElement)}
+      onCreated={({ gl }) => { canvasEl.current = gl.domElement; }}
     >
       <color attach="background" args={["#17130f"]} />
       <StudioLights />
@@ -117,6 +122,4 @@ const RingCanvas = forwardRef<RingCanvasHandle, Props>(function RingCanvas({ des
       <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}`} controls={controls} />
     </Canvas>
   );
-});
-
-export default RingCanvas;
+}

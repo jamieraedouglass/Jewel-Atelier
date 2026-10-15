@@ -20,7 +20,7 @@ const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().repla
 
 export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false }: Props) {
   const router = useRouter();
-  const canvas = useRef<RingCanvasHandle>(null);
+  const canvas = useRef<RingCanvasHandle | null>(null);
   const [design, setDesign] = useState(initial);
   const [id, setId] = useState(initialId);
   const [isPublic, setIsPublic] = useState(initialPublic);
@@ -41,14 +41,21 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     if (r.error || !r.id) { setStatus(r.error ?? "Save failed."); return null; }
     const newId = r.id;
     setDirty(false);
-    if (!id) { setId(newId); window.history.replaceState(null, "", `/design/${newId}`); }
-    const blob = await canvas.current?.snapshot();
-    if (blob) {
-      const path = `${userId}/${newId}.jpg`;
-      const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
-      if (!error) await setThumbnail(newId, path);
-    }
+    // thumbnail for the gallery; a failure here never loses the saved design
+    try {
+      const blob = await canvas.current?.snapshot();
+      if (blob) {
+        const path = `${userId}/${newId}.jpg`;
+        const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        if (!error) await setThumbnail(newId, path);
+      }
+    } catch { /* keep going */ }
     flash("Saved");
+    if (!id) {
+      setId(newId);
+      // move to the design's own address through the router rather than editing browser history directly
+      router.replace(`/design/${newId}`, { scroll: false });
+    }
     return newId;
   }
 
@@ -99,7 +106,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   return (
     <div className="designer">
       <div className="stage">
-        <RingCanvas ref={canvas} design={design} view={view} autoRotate={spin} />
+        <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} />
         <div className="stage-ui">
           <p className="summary">{describeDesign(design)}</p>
           <div className="chips" role="group" aria-label="View">
