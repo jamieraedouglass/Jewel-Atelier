@@ -2,7 +2,7 @@
 
 import MotifPanel from "./MotifPanel";
 import {
-  BAND_FINISHES, BANGLE_SIZES, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
+  BAND_FINISHES, BANGLE_SIZES, BEAD_GEMS, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
   SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
 } from "@/lib/design";
 
@@ -97,6 +97,10 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       {has("center") && (
         <section style={{ display: "grid", gap: 12 }}>
           <h3>{d.type === "ring" ? "Centre stone" : "Main stone"}</h3>
+          <Toggle id="no-main" checked={c.none} onChange={(none) => setCenter({ none })}>
+            {d.type === "ring" ? "No centre stone (plain band)" : d.style === "hoop" ? "No charm (plain hoops)" : "No main stone"}
+          </Toggle>
+          {!c.none && (<>
           <p className="muted small" style={{ margin: 0 }}>{c.label}</p>
           <div className="row2">
             <label className="field" htmlFor="gem"><span>Gem</span>
@@ -122,6 +126,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
             </label>
             <Range id="angle" label="Angle" value={c.rotation} min={-180} max={180} step={5} format={(n) => `${n}°`} onChange={(rotation) => setCenter({ rotation })} />
           </div>
+          </>)}
         </section>
       )}
 
@@ -186,9 +191,9 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
             </label>
           </div>
           <Chips name="Accent cut" options={["faceted", "polki", "rose-cut"] as const} value={d.accents.cut} onPick={(cut) => onChange({ accents: { cut } })} />
-          {has("accentShapes") && (
+          {!BEAD_GEMS.has(d.accents.gem) && (
             <>
-              <span className="small muted">Pattern, repeated all the way round. Add the same shape as often as you like (up to 12 stones per repeat); tap a stone to remove it.</span>
+              <span className="small muted">Pattern, repeated along every line of these stones. Add the same shape as often as you like (up to 12 stones per repeat); tap a stone to remove it.</span>
               <div className="chips" role="group" aria-label="Pattern">
                 {d.accents.shapes.map((s, i) => (
                   <button key={`${s}-${i}`} type="button" className="chip" aria-pressed="true" disabled={d.accents.shapes.length === 1}
@@ -208,10 +213,10 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
               </div>
               <span className="small muted">Stone direction</span>
               <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}
-                fmt={(v) => (v === "along" ? "Along the bracelet" : v === "across" ? "Across the bracelet" : "Alternating")} onPick={(orientation) => onChange({ accents: { orientation } })} />
+                fmt={(v) => (v === "along" ? "Along the line" : v === "across" ? "Across the line" : "Alternating")} onPick={(orientation) => onChange({ accents: { orientation } })} />
             </>
           )}
-          <Range id="acc-ct" label="Each" value={d.accents.sizeCt} min={0.005} max={has("accentShapes") ? 6 : 1} step={0.005} format={(n) => `${n.toFixed(n >= 1 ? 2 : 3)} ct`} onChange={(sizeCt) => onChange({ accents: { sizeCt } })} />
+          <Range id="acc-ct" label="Each" value={d.accents.sizeCt} min={0.005} max={has("accentShapes") ? 6 : 1.5} step={0.005} format={(n) => `${n.toFixed(n >= 1 ? 2 : 3)} ct`} onChange={(sizeCt) => onChange({ accents: { sizeCt } })} />
         </section>
       )}
 
