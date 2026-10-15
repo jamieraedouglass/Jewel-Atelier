@@ -6,6 +6,7 @@ import "@fontsource/jost/300.css";
 import "@fontsource/jost/400.css";
 import "@fontsource/jost/500.css";
 import { createClient } from "@/lib/supabase/server";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         {children}
+        <Analytics />
       </body>
     </html>
   );
