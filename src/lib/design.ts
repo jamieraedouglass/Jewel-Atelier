@@ -255,6 +255,8 @@ export const DropPartSchema = z.object({
     widthMm: z.number().min(0.8).max(20).default(3),
     /** turn each small stone, degrees (pears: 0 points outward or down, 180 points inward or up) */
     rotation: z.number().min(-180).max(180).default(0),
+    /** an extra turn for each stone in the shape order, degrees, so some point one way and some another */
+    turns: z.array(z.number().min(-180).max(180)).max(8).default([]),
   }).default({}),
   /** petals / leaves around a stone, strands under a bar */
   count: z.number().int().min(0).max(24).default(0),
@@ -384,6 +386,8 @@ export const DesignSchema = z
       shapes: z.array(z.enum(SHAPES)).min(1).max(12).default(["round"]),
       /** which way elongated stones point: along the line, across it, or alternating */
       orientation: z.enum(["along", "across", "alternate"]).default("along"),
+      /** extra turn for each stone in the pattern, degrees, matching shapes by position (e.g. rounds 0, marquise 90) */
+      turns: z.array(z.number().min(-180).max(180)).max(12).default([]),
     }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),

@@ -48,10 +48,10 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
         <>
           {gemSelect(d.accents.gem, (gem) => onChange({ accents: { gem, color: GEM_LOOK[gem].color } }))}
           <div className="chips">
-            {chip(d.accents.shapes.join() === "round", "All round", () => onChange({ accents: { shapes: ["round"] } }))}
-            {chip(d.accents.shapes.join() === "oval,round", "Oval–round", () => onChange({ accents: { shapes: ["oval", "round"] } }))}
-            {chip(d.accents.shapes.join() === "round,round,round,marquise", "3 rounds + marquise", () => onChange({ accents: { shapes: ["round", "round", "round", "marquise"] } }))}
-            {chip(d.accents.shapes.join() === "baguette", "Baguettes", () => onChange({ accents: { shapes: ["baguette"] } }))}
+            {chip(d.accents.shapes.join() === "round", "All round", () => onChange({ accents: { shapes: ["round"], turns: [] } }))}
+            {chip(d.accents.shapes.join() === "oval,round", "Oval–round", () => onChange({ accents: { shapes: ["oval", "round"], turns: [] } }))}
+            {chip(d.accents.shapes.join() === "round,round,round,marquise", "3 rounds + marquise", () => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [] } }))}
+            {chip(d.accents.shapes.join() === "baguette", "Baguettes", () => onChange({ accents: { shapes: ["baguette"], turns: [] } }))}
           </div>
           <div className="chips">
             {(["along", "across", "alternate"] as const).map((o) => chip(d.accents.orientation === o, o === "alternate" ? "Alternate" : label(o), () => onChange({ accents: { orientation: o } })))}
