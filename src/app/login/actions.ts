@@ -13,7 +13,7 @@ const slugify = (name: string) => name.trim().toLowerCase().normalize("NFKD").re
 
 function secretFor(slug: string) {
   const secret = process.env.NAME_LOGIN_SECRET;
-  if (!secret || secret.length < 16) throw new Error("NAME_LOGIN_SECRET must be set to a long random string in .env.local.");
+  if (!secret || secret.length < 16) throw new Error("NAME_LOGIN_SECRET is missing. Add it under Vercel → Settings → Environment Variables (or .env.local when running locally), then redeploy.");
   return createHmac("sha256", secret).update(slug).digest("hex");
 }
 
