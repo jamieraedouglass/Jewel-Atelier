@@ -57,7 +57,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 /** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -72,6 +72,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     navratna: { label: "Navratna", blurb: "Ruby centre ringed by the eight other planetary gems.", uses: [...CORE, "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "ruby", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#b3062a", clarity: 0.45, label: "Ruby" } } },
     "polki-cocktail": { label: "Polki cocktail", blurb: "Big polki centre, double halo with a pearl fringe.", uses: [...CORE, "accents", "fringe", "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "diamond", cut: "polki", shape: "cushion", lengthMm: 14, widthMm: 12, domeMm: 0.8, color: "#f4f6fb", clarity: 0.9, label: "Polki diamond" }, fringe: { enabled: true } } },
     eternity: { label: "Eternity band", blurb: "Stones all the way round.", uses: ["accents", "band", "ringSize"], defaults: { accents: { sizeCt: 0.1 } } },
+    "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band", "ringSize"] },
   },
   earrings: {
     stud: { label: "Stud", blurb: "A single set stone on the lobe.", uses: [...CORE, "halo", "accents"] },
@@ -83,6 +84,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     chandbali: { label: "Chandbali", blurb: "Crescent moon set with stones, fringed with pearls.", uses: [...CORE, "accents", "fringe", "enamel"], defaults: { fringe: { enabled: true } } },
     climber: { label: "Ear climber", blurb: "Graduated line of stones climbing the ear.", uses: ["accents", "count"], defaults: { options: { count: 7 } } },
     tassel: { label: "Tassel", blurb: "Stud top with strands of beads swinging below.", uses: [...CORE, "fringe", "count"], defaults: { fringe: { enabled: true }, options: { count: 5 } } },
+    motif: { label: "Custom motif", blurb: "Your own shape hanging from a small stud.", uses: ["motif", "center", "accents", "enamel", "fringe"] },
   },
   necklace: {
     pendant: { label: "Pendant", blurb: "One stone on a chain.", uses: [...CORE, "halo", "accents", "length", "chain"] },
@@ -96,6 +98,8 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     temple: { label: "Temple", blurb: "Gold coin motifs with a ruby-set centre coin.", uses: [...CORE, "count", "length", "fringe"], defaults: { options: { count: 17, lengthIn: 20 } } },
     mangalsutra: { label: "Mangalsutra", blurb: "Black bead strands with gold beads and a pendant.", uses: [...CORE, "length", "layers"], defaults: { options: { lengthIn: 20, layers: 2 } } },
     "pearl-strand": { label: "Pearl strand", blurb: "Layered strands of pearls or beads.", uses: ["fringe", "layers", "length"], defaults: { options: { layers: 1, lengthIn: 18 }, fringe: { enabled: true, sizeMm: 7 } } },
+    "motif-pendant": { label: "Custom motif pendant", blurb: "Your own shape as the pendant.", uses: ["motif", "center", "accents", "enamel", "fringe", "length", "chain"] },
+    "motif-station": { label: "Custom motif stations", blurb: "Your shape repeated along a chain.", uses: ["motif", "center", "accents", "enamel", "length", "chain", "count"], defaults: { options: { count: 7 } } },
   },
   bracelet: {
     tennis: { label: "Tennis", blurb: "A full line of matched stones.", uses: ["accents", "wrist"] },
@@ -105,6 +109,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     station: { label: "Station", blurb: "Stones spaced along a chain.", uses: [...CORE, "chain", "count", "wrist"], defaults: { options: { count: 5, chain: "fine" } } },
     charm: { label: "Charm", blurb: "Chain with dangling set-stone charms.", uses: [...CORE, "chain", "count", "wrist"], defaults: { options: { count: 7 } } },
     beaded: { label: "Beaded", blurb: "Strand of beads around a centre stone.", uses: [...CORE, "fringe", "wrist", "layers"], defaults: { fringe: { enabled: true, sizeMm: 6 }, options: { layers: 1 } } },
+    "motif-station": { label: "Custom motif", blurb: "Your shape repeated along a chain.", uses: ["motif", "center", "accents", "enamel", "chain", "count", "wrist"], defaults: { options: { count: 5 } } },
   },
   anklet: {
     payal: { label: "Payal", blurb: "Chain with ghungroo bells all round.", uses: ["chain", "count", "accents", "enamel"], defaults: { options: { count: 24, chain: "box" } } },
@@ -126,6 +131,9 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   },
 };
 
+/** the motif style to switch to when a motif is created for a piece type that has one */
+export const MOTIF_STYLE: Partial<Record<PieceType, string>> = { ring: "motif-ring", earrings: "motif", necklace: "motif-pendant", bracelet: "motif-station" };
+
 export const ALL_STYLES = Array.from(new Set(Object.values(STYLES).flatMap((s) => Object.keys(s))));
 export const firstStyle = (t: PieceType) => Object.keys(STYLES[t])[0];
 export const styleMeta = (t: PieceType, s: string): StyleMeta => STYLES[t][s] ?? STYLES[t][firstStyle(t)];
@@ -134,6 +142,37 @@ export const uses = (d: Design, u: Use) => styleMeta(d.type, d.style).uses.inclu
 /* ---------------- schema ---------------- */
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/* ---------------- custom motifs ---------------- */
+
+/** a paisley (kairi), so motif styles have something to show before you make your own */
+export const SAMPLE_MOTIF_PATH =
+  "M45 95 C18 92 8 65 18 45 C28 25 50 22 60 12 C66 6 70 2 76 4 C83 7 83 15 77 19 C72 22 67 18 70 14 C65 27 81 41 83 59 C86 81 68 97 45 95 Z";
+
+/** SVG path characters only: no scripts, no markup */
+const svgPath = z.string().max(60000).regex(/^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]*$/, "Only SVG path commands are allowed");
+
+export const MotifStoneSchema = z.object({
+  x: z.number(), y: z.number(), r: z.number().positive(),
+  /** "center" uses the main stone (gem, cut, colour); "accent" uses the accent stones */
+  kind: z.enum(["center", "accent"]).default("accent"),
+});
+
+export const MotifSchema = z.object({
+  name: z.string().max(80).default("Paisley (kairi)"),
+  /** SVG path data; may contain several sub-paths, and inner sub-paths become cut-outs */
+  path: svgPath.default(SAMPLE_MOTIF_PATH),
+  /** the drawing's coordinate box [minX, minY, width, height]; stones use the same coordinates */
+  viewBox: z.tuple([z.number(), z.number(), z.number().positive(), z.number().positive()]).default([0, 0, 100, 100]),
+  widthMm: z.number().min(4).max(120).default(24),
+  thicknessMm: z.number().min(0.4).max(6).default(1.4),
+  edge: z.enum(["smooth", "millegrain", "rope"]).default("millegrain"),
+  stones: z.array(MotifStoneSchema).max(300).default([
+    { x: 50, y: 66, r: 11, kind: "center" },
+    ...[[30, 50], [36, 36], [48, 28], [62, 22], [70, 34], [74, 50], [74, 68], [66, 82], [52, 88], [36, 84], [26, 70]].map(([x, y]) => ({ x, y, r: 3.4, kind: "accent" as const })),
+  ]),
+});
+export type Motif = z.infer<typeof MotifSchema>;
 
 export const CenterStoneSchema = z.object({
   gem: z.enum(GEMS).default("sapphire"),
@@ -173,6 +212,8 @@ export const DesignSchema = z
     gallery: z.object({ roseCut: z.boolean().default(true) }).default({}),
     band: z.object({ widthMm: z.number().min(1.5).max(8).default(2.3), finish: z.enum(BAND_FINISHES).default("polished") }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
+    /** a custom shape, used by the motif styles */
+    motif: MotifSchema.default({}),
     /* everything else */
     options: z
       .object({

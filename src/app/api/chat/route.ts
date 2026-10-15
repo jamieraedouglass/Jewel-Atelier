@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, CHAT_SYSTEM, MODEL, proposeDesignTool, storageImages } from "@/lib/claude";
-import { normalizeDesign } from "@/lib/design";
+import { anthropic, CHAT_SYSTEM, createMotifTool, MODEL, proposeDesignTool, storageImages, toMotif } from "@/lib/claude";
+import { MOTIF_STYLE, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { spendAiCall } from "@/lib/usage";
 
@@ -51,22 +51,36 @@ export async function POST(req: Request) {
       if (i === 0) return { role: "user", content: [...context, { type: "text", text: m.content }] };
       return { role: m.role, content: m.content };
     }
-    const latest = `${m.content}\n\n<current_design>${JSON.stringify(design)}</current_design>`;
+    // long motif paths are noise for the conversation; keep the rest of the design
+    const brief = { ...design, motif: design.style.startsWith("motif") ? { ...design.motif, path: `[${design.motif.path.length} characters of SVG path]` } : undefined };
+    const latest = `${m.content}\n\n<current_design>${JSON.stringify(brief)}</current_design>`;
     return { role: "user", content: i === 0 ? [...context, { type: "text", text: latest }] : latest };
   });
 
   try {
     const msg = await anthropic().messages.create({
       model: MODEL,
-      max_tokens: 1000,
       system: CHAT_SYSTEM,
-      tools: [proposeDesignTool],
+      max_tokens: 4000,
+      tools: [proposeDesignTool, createMotifTool],
       messages: apiMessages,
     });
     const reply = msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
     const proposals = msg.content
       .filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === proposeDesignTool.name)
       .map((b) => b.input as { title: string; why: string; patch: Record<string, unknown> });
+    // a new motif becomes a one-click proposal that also switches to that type's motif style
+    for (const b of msg.content) {
+      if (b.type !== "tool_use" || b.name !== createMotifTool.name) continue;
+      const r = toMotif(b.input);
+      if (!r) continue;
+      const style = MOTIF_STYLE[design.type];
+      proposals.push({
+        title: `New motif: ${r.motif.name}`,
+        why: r.notes,
+        patch: { ...(style ? { style } : { type: "necklace", style: "motif-pendant" }), motif: r.motif, ...(r.enamel ? { enamel: { enabled: true } } : {}) },
+      });
+    }
     return NextResponse.json({ reply: reply || (proposals.length ? "Here's what I'd try:" : ""), proposals });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Chat failed." }, { status: 500 });

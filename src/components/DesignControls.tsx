@@ -1,11 +1,12 @@
 "use client";
 
+import MotifPanel from "./MotifPanel";
 import {
   BAND_FINISHES, BANGLE_SIZES, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
   type Design, type DesignPatch, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
 } from "@/lib/design";
 
-type Props = { design: Design; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void };
+type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void };
 
 const ENAMEL_SWATCHES = [["Meenakari green", "#16704c"], ["Ruby red", "#9b1630"], ["Peacock blue", "#1b3f8f"], ["Ivory", "#f3efe6"], ["Rani pink", "#d94f87"], ["Black", "#151515"]];
 const FRINGE_GEMS: Gem[] = ["pearl", "coral", "emerald", "ruby", "onyx", "turquoise", "garnet", "amethyst"];
@@ -51,7 +52,7 @@ function GemSelect({ id, value, options, onPick }: { id: string; value: Gem; opt
   );
 }
 
-export default function DesignControls({ design: d, onChange, onReplace }: Props) {
+export default function DesignControls({ design: d, userId, onChange, onReplace }: Props) {
   const c = d.center, o = d.options, meta = styleMeta(d.type, d.style);
   const has = (u: Parameters<typeof meta.uses.includes>[0]) => meta.uses.includes(u);
   const setCenter = (p: Partial<Design["center"]>) => onChange({ center: p });
@@ -90,6 +91,8 @@ export default function DesignControls({ design: d, onChange, onReplace }: Props
         <Chips name="Style" options={Object.keys(STYLES[d.type])} value={d.style} fmt={(s) => STYLES[d.type][s].label} onPick={(s) => onReplace(chooseStyle(d, d.type, s))} />
         <p className="muted small" style={{ margin: 0 }}>{meta.blurb}</p>
       </section>
+
+      {has("motif") && <MotifPanel design={d} userId={userId} onChange={onChange} />}
 
       {has("center") && (
         <section style={{ display: "grid", gap: 12 }}>

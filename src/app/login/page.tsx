@@ -1,45 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
+import { signInWithName } from "./actions";
+
+function Submit() {
+  const { pending } = useFormStatus();
+  return <button className="btn primary" disabled={pending}>{pending ? "Opening your studio…" : "Continue"}</button>;
+}
 
 function LoginForm() {
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setState("sending");
-    setError(null);
-    const site = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const next = params.get("next") || "/design";
-    const { error } = await createClient().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(next)}` },
-    });
-    if (error) { setError(error.message); setState("idle"); } else setState("sent");
-  }
-
+  const [state, action] = useFormState(signInWithName, null);
+  const needsCode = process.env.NEXT_PUBLIC_STUDIO_CODE_REQUIRED === "true";
   return (
     <main className="page" style={{ maxWidth: 440 }}>
       <h1>Sign in</h1>
-      {state === "sent" ? (
-        <p>Check {email} for a sign-in link. You can close this tab once you&apos;ve opened it.</p>
-      ) : (
-        <form onSubmit={submit} style={{ display: "grid", gap: 14 }}>
-          <label className="field">
-            <span>Email</span>
-            <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+      <form action={action} style={{ display: "grid", gap: 14 }}>
+        <input type="hidden" name="next" value={params.get("next") || "/design"} />
+        <label className="field" htmlFor="name">
+          <span>Your name</span>
+          <input id="name" name="name" type="text" required minLength={2} maxLength={40} autoComplete="nickname" placeholder="e.g. Jamie" />
+        </label>
+        {needsCode && (
+          <label className="field" htmlFor="code">
+            <span>Studio code</span>
+            <input id="code" name="code" type="text" required autoComplete="off" />
           </label>
-          <button className="btn primary" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Email me a sign-in link"}</button>
-          {error && <p className="error">{error}</p>}
-          <p className="muted small">No password needed. Anyone can view a shared ring; you only need an account to save, upload stones and chat.</p>
-        </form>
-      )}
+        )}
+        <Submit />
+        {state?.error && <p className="error">{state.error}</p>}
+        <p className="muted small">
+          No password. The same name always opens the same account, with your saved designs and style profile, on any device.
+        </p>
+      </form>
     </main>
   );
 }
