@@ -355,6 +355,7 @@ export function buildRing(d: Design): THREE.Group {
   /* centre stone (stone + claws live in `head`, which turns with the stone's angle) */
   const head = new THREE.Group();
   root.add(head);
+  root.userData.head = head;
   const c = d.center;
   const L = c.lengthMm, W = c.widthMm, fn = outlineFn(c.shape, L, W);
   const isCab = c.cut === "cabochon";
@@ -377,6 +378,7 @@ export function buildRing(d: Design): THREE.Group {
     envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
   });
   const stone = new THREE.Group();
+  stone.userData.part = "center";
   if (isCab) stone.add(new THREE.Mesh(cabochonGeo(fn, c.domeMm, belly), stoneMat));
   else {
     const g = centerFacetedGeo(c.shape, fn, W, Math.max(0.6, c.domeMm));
@@ -444,6 +446,7 @@ export function buildRing(d: Design): THREE.Group {
     const gap = W / 2 + (d.setting.style === "bezel" ? 0.62 : 0.18);
     for (const side of [1, -1]) {
       const grp = new THREE.Group();
+      grp.userData.part = "sides";
       grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond), new THREE.Mesh(bz, metal));
       for (const z of [-1, 1].map((k) => k * Math.min(1.6, sl * 0.22))) {
         grp.add(tube([new THREE.Vector3(cx + 0.3, -pav * 0.7, z), new THREE.Vector3(-0.3, -pav * 0.72, z * 0.9), new THREE.Vector3(-(gap - W * 0.35) + 0.3, lowRailY - GY, z * 0.8)], 0.42));

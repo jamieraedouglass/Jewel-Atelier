@@ -6,7 +6,8 @@ import { useRef, useState } from "react";
 import { saveDesign, setPublic, setThumbnail } from "@/app/actions";
 import { applyPatch, describeDesign, type Design, type DesignPatch } from "@/lib/design";
 import { createClient } from "@/lib/supabase/client";
-import { VIEW_LABEL, type RingCanvasHandle, type View } from "./RingCanvas";
+import { VIEW_LABEL, type Pick, type RingCanvasHandle, type View } from "./RingCanvas";
+import QuickEdit from "./QuickEdit";
 import DesignControls from "./DesignControls";
 import DesignChat from "./DesignChat";
 import StoneUploader from "./StoneUploader";
@@ -29,6 +30,28 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   const [spin, setSpin] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [pick, setPick] = useState<Pick | null>(null);
+  const stageEl = useRef<HTMLDivElement>(null);
+  const spinRef = useRef(spin);
+  spinRef.current = spin;
+
+  /** a click on the paused piece: open the quick editor there, kept inside the view */
+  function onPick(p: Pick) {
+    if (spinRef.current) return; // clicks edit only while the piece is paused
+    const w = stageEl.current?.clientWidth ?? 800, h = stageEl.current?.clientHeight ?? 600;
+    setPick({ ...p, x: Math.max(8, Math.min(p.x + 12, w - 296)), y: Math.max(8, Math.min(p.y - 20, h - 340)) });
+  }
+  /** jump to a part's full settings in the side panel */
+  function showSection(part: Pick["part"]) {
+    setPick(null);
+    setTab("design");
+    setTimeout(() => {
+      const el = document.getElementById(`sec-${part}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.remove("flash-section"); void el.offsetWidth; el.classList.add("flash-section");
+    }, 60);
+  }
 
   const change = (patch: DesignPatch) => { setDesign((d) => applyPatch(d, patch)); setDirty(true); };
   const replace = (d: Design) => { setDesign(d); setDirty(true); };
@@ -105,15 +128,17 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
 
   return (
     <div className="designer">
-      <div className="stage">
-        <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} />
+      <div className="stage" ref={stageEl}>
+        <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} onPick={onPick} onMiss={() => setPick(null)} />
+        <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
+        {pick && !spin && <QuickEdit pick={pick} design={design} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
         <div className="stage-ui">
           <p className="summary">{describeDesign(design)}</p>
           <div className="chips" role="group" aria-label="View">
             {(Object.keys(VIEW_LABEL) as View[]).map((v) => (
               <button key={v} type="button" className="chip" aria-pressed={view === v} onClick={() => setView(v)}>{VIEW_LABEL[v]}</button>
             ))}
-            <button type="button" className="chip" aria-pressed={spin} onClick={() => setSpin(!spin)}>Spin</button>
+            <button type="button" className="chip" aria-pressed={spin} onClick={() => { setSpin(!spin); setPick(null); }}>{spin ? "Pause" : "Spin"}</button>
           </div>
         </div>
       </div>

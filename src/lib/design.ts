@@ -81,6 +81,7 @@ const CORE: Use[] = ["center", "setting"];
 export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   ring: {
     "three-stone": { label: "Three-stone", blurb: "Centre stone with a matched pair of side stones.", uses: [...CORE, "sides", "band", "ringSize"] },
+    "two-stone": { label: "Two-stone (toi-et-moi)", blurb: "Two stones side by side, each its own gem, shape, size and angle.", uses: [...CORE, "extraStones", "band", "ringSize"] },
     solitaire: { label: "Solitaire", blurb: "One stone, nothing competing.", uses: [...CORE, "band", "ringSize"] },
     halo: { label: "Halo", blurb: "A ring of small stones framing the centre.", uses: [...CORE, "accents", "sides", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.04 } } },
     cluster: { label: "Cluster", blurb: "Petal stones around the centre, like a flower.", uses: [...CORE, "accents", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.4 } } },
@@ -268,6 +269,12 @@ export const DesignSchema = z
         accentTop: z.boolean().default(true),
         pave: z.boolean().default(true),
         hoopDiameterMm: z.number().min(8).max(70).default(22),
+        /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */
+        paveCoverage: z.enum(["front", "half", "full"]).default("front"),
+        /** hoops: which face of the wire the stones sit on — the narrow front edge, the wide outer side, or inside */
+        hoopFace: z.enum(["front", "outer", "inner"]).default("front"),
+        /** hoops: turn the charm, degrees (0 faces forward, 90 faces sideways) */
+        charmTurn: z.number().min(-180).max(180).default(0),
         lengthIn: z.number().min(12).max(40).default(18),
         wristCm: z.number().min(13).max(24).default(16.5),
         bangleSize: z.enum(BANGLE_SIZES).default("2-6"),
@@ -312,6 +319,11 @@ const STYLE_STONE_MAX: Record<string, number> = { riviera: 6.5, station: 6, "kun
 export function chooseStyle(design: Design, type: PieceType, style?: string): Design {
   const s = style && STYLES[type][style] ? style : firstStyle(type);
   let next = applyPatch(applyPatch(design, { type, style: s }), STYLES[type][s].defaults ?? {});
+  // styles that need side stones get them back if an earlier style switched them off
+  if (s === "three-stone" && next.sides.kind === "none") next = applyPatch(next, { sides: { kind: "half-moon" } });
+  // a two-stone ring needs its second stone
+  if (s === "two-stone" && next.extraStones.length === 0)
+    next = applyPatch(next, { extraStones: [{ gem: "diamond", cut: "faceted", shape: "pear", lengthMm: Math.max(6, next.center.lengthMm * 0.8), widthMm: Math.max(4, next.center.widthMm * 0.7), domeMm: 0.8, color: "#f4f6fb", clarity: 0.95, rotation: 0, dx: 0, dz: 0 }] } as DesignPatch);
   const max = STYLE_STONE_MAX[s] ?? STONE_MAX[type];
   const c = next.center, longest = Math.max(c.lengthMm, c.widthMm);
   if (longest > max) {
