@@ -9,7 +9,7 @@ const STYLE_GUIDE = TYPES.map((t) => `${t} (${TYPE_LABEL[t]}): ${Object.entries(
 /** Server-only. The API key never reaches the browser. Created lazily so builds work without a key. */
 let client: Anthropic | null = null;
 export function anthropic() {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local.");
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing. Add it under Vercel → Settings → Environment Variables (or .env.local locally), then redeploy.");
   return (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
 }
 export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
