@@ -81,9 +81,36 @@ function cutGeometry(cut: CenterStone["cut"], shape: CenterStone["shape"], L: nu
 
 /** briolette: a teardrop faceted all over, hanging along Z with its tip toward +Z (turn 180° to point it up) */
 function briolGeo(L: number, W: number) {
-  const prof: THREE.Vector2[] = [];
-  for (let i = 0; i <= 7; i++) { const t = i / 7; prof.push(new THREE.Vector2(Math.max(0.001, (W / 2) * Math.sin(Math.PI * Math.pow(t, 0.62))), -L / 2 + t * L)); }
-  const g = new THREE.LatheGeometry(prof, 10).toNonIndexed();
+  // rings of facets down the drop, each ring turned half a facet from the last, so the facets are triangles that flash
+  const n = 9, rings = 7, pos: number[] = [];
+  const P: THREE.Vector3[][] = [];
+  for (let k = 1; k < rings; k++) {
+    const t = k / rings, r = (W / 2) * Math.sin(Math.PI * Math.pow(t, 0.62)), y = -L / 2 + t * L;
+    P.push(Array.from({ length: n }, (_, i) => { const a = ((i + (k % 2) * 0.5) / n) * Math.PI * 2; return v3(Math.cos(a) * r, y, Math.sin(a) * r); }));
+  }
+  const bottom = v3(0, -L / 2, 0), tip = v3(0, L / 2, 0);
+  const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  for (let i = 0; i < n; i++) tri(bottom, P[0][i], P[0][(i + 1) % n]);
+  for (let k = 0; k < P.length - 1; k++) {
+    const A = P[k], B = P[k + 1], odd = (k + 1) % 2 === 1;
+    for (let i = 0; i < n; i++) {
+      const a0 = A[i], a1 = A[(i + 1) % n];
+      const b0 = odd ? B[i] : B[(i + n - 1) % n], b1 = odd ? B[(i + 1) % n] : B[i];
+      tri(a0, b0, a1); tri(a1, b0, b1);
+    }
+  }
+  const T = P[P.length - 1];
+  for (let i = 0; i < n; i++) tri(T[i], tip, T[(i + 1) % n]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  // make every face point outward whatever the winding above
+  const p = g.getAttribute("position") as THREE.BufferAttribute;
+  for (let f = 0; f < p.count; f += 3) {
+    const a = v3().fromBufferAttribute(p, f), b = v3().fromBufferAttribute(p, f + 1), c = v3().fromBufferAttribute(p, f + 2);
+    const nrm = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a));
+    const ctr = a.clone().add(b).add(c).divideScalar(3).setY(0);
+    if (nrm.dot(ctr) < 0) { p.setXYZ(f + 1, c.x, c.y, c.z); p.setXYZ(f + 2, b.x, b.y, b.z); }
+  }
   g.rotateX(Math.PI / 2); // tip (+Y) → +Z
   g.computeVertexNormals();
   return g;
@@ -746,7 +773,7 @@ function stud(d: Design, m: Mats, mirror: boolean) {
   let z = reach(c.lengthMm, c.widthMm, c.rotation) + (d.options.halo ? roundDiameter(d.accents.gem, d.accents.sizeCt) + 0.8 : 0);
   let prev = new THREE.Vector3();
   for (const e of d.extraStones) {
-    const stone: CenterStone = { ...c, ...e, carat: null, label: "", photoPath: null, rotation: 0 };
+    const stone: CenterStone = { ...c, ...e, domeMm: e.cut === "faceted" ? Math.max(e.domeMm, Math.min(e.widthMm, e.lengthMm) * 0.15) : e.domeMm, carat: null, label: "", photoPath: null, rotation: 0 };
     const half = reach(e.lengthMm, e.widthMm, e.rotation);
     const pos = new THREE.Vector3(e.dx * flip, 0, z + 0.4 + half + e.dz);
     const s = setStoneRaw(stone, d.setting.style, m);
@@ -870,7 +897,9 @@ function paveDesign(d: Design, p: DropPart): Design {
   return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [] } };
 }
 function partStone(d: Design, p: DropPart): CenterStone {
-  return { ...d.center, ...p.stone, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
+  // a faceted stone needs a real crown or its facets all mirror the same light and it reads flat grey
+  const domeMm = p.stone.cut === "faceted" ? Math.max(p.stone.domeMm, Math.min(p.stone.widthMm, p.stone.lengthMm) * 0.15) : p.stone.domeMm;
+  return { ...d.center, ...p.stone, domeMm, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
 }
 function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): CenterStone {
   const W = p.small.widthMm, cut = p.small.cut;
