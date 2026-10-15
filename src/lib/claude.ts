@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MotifSchema } from "./design";
-import { ALL_STYLES, BANGLE_SIZES, BAND_FINISHES, CHAIN_STYLES, CUTS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL } from "./design";
+import { ALL_STYLES, BANGLE_SIZES, BAND_FINISHES, CHAIN_STYLES, CUTS, DROP_ARRANGE, DROP_KINDS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL } from "./design";
 
 /** "ring: three-stone, solitaire, …; earrings: …" so Claude knows which styles belong to which type */
 const STYLE_GUIDE = TYPES.map((t) => `${t} (${TYPE_LABEL[t]}): ${Object.entries(STYLES[t]).map(([k, s]) => `${k} — ${s.blurb}`).join("; ")}`).join("\n");
@@ -78,6 +78,32 @@ const designPatchSchema = {
       description: "studs only: further stones stacked below the main stone (toi-et-moi, clusters). Replaces the whole list.",
       items: { type: "object", properties: { gem: gemProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES] }, lengthMm: { type: "number" }, widthMm: { type: "number" }, color: hexProp, rotation: { type: "number" }, dx: { type: "number" }, dz: { type: "number" } } },
     },
+    drop: {
+      type: "object",
+      description: "earring styles chandelier and pendant, necklace style drop-pendant: the piece built from parts hanging one below the other, top first. parts replaces the whole list.",
+      properties: {
+        top: { type: "string", enum: ["post", "hook"] },
+        parts: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              kind: { type: "string", enum: [...DROP_KINDS], description: "stone: a stone with optional halo and petals/leaves (flowers, clusters, sprays); strands: a bar with strands of stones (chandelier strands, briolette fringes, tiers); frame: open gold outline in the stone's shape and size; bow: pavé ribbon bow" },
+              stone: { type: "object", properties: { gem: gemProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES] }, lengthMm: { type: "number" }, widthMm: { type: "number" }, color: hexProp, rotation: { type: "number", description: "pears and hearts: 0 points down, 180 points up" } } },
+              showStone: { type: "boolean" },
+              small: { type: "object", properties: { gem: gemProp, cut: { type: "string", enum: [...CUTS] }, color: hexProp, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "repeating order: around the petals, or down each strand (e.g. pear, round, pear)" }, widthMm: { type: "number" }, rotation: { type: "number" } } },
+              count: { type: "integer", description: "petals/leaves (stone) or strands (strands)" },
+              arrange: { type: "string", enum: [...DROP_ARRANGE] },
+              halo: { type: "boolean", description: "halo round the stone, or pavé on a frame or bow" },
+              haloShape: { type: "string", enum: [...SHAPES] }, haloMm: { type: "number" },
+              perStrand: { type: "integer" }, taper: { type: "string", enum: ["even", "v", "u"] }, openMiddle: { type: "boolean" }, barStones: { type: "boolean" },
+              spreadMm: { type: "number", description: "strands: bar width; bow: bow width; frame: gap round the stone" }, curveMm: { type: "number" },
+              gapMm: { type: "number" }, link: { type: "string", enum: ["ring", "chain", "direct"] },
+            },
+          },
+        },
+      },
+    },
     accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] } } },
     fringe: { type: "object", properties: { enabled: { type: "boolean" }, gem: gemProp, color: hexProp, sizeMm: { type: "number", description: "1.5–14" } } },
     enamel: { type: "object", properties: { enabled: { type: "boolean" }, color: hexProp } },
@@ -91,7 +117,7 @@ const designPatchSchema = {
       type: "object",
       properties: {
         halo: { type: "boolean" }, accentTop: { type: "boolean" }, pave: { type: "boolean" },
-        hoopDiameterMm: { type: "number" }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
+        hoopDiameterMm: { type: "number" }, hoopShape: { type: "string", enum: ["round", "oval", "paperclip"] }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
       },
