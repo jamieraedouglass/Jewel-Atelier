@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveDesign, setPublic, setThumbnail } from "@/app/actions";
 import { applyPatch, describeDesign, type Design, type DesignPatch } from "@/lib/design";
 import { createClient } from "@/lib/supabase/client";
@@ -11,15 +11,16 @@ import QuickEdit from "./QuickEdit";
 import DesignControls from "./DesignControls";
 import DesignChat from "./DesignChat";
 import StoneUploader from "./StoneUploader";
+import PhotoToDesign from "./PhotoToDesign";
 
 const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false, loading: () => <div className="muted" style={{ padding: 24 }}>Loading 3D…</div> });
 
-type Tab = "design" | "stone" | "chat";
-type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean };
+type Tab = "design" | "photo" | "stone" | "chat";
+type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean; hasThumbnail?: boolean };
 
 const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}.png`;
 
-export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false }: Props) {
+export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false, hasThumbnail = true }: Props) {
   const router = useRouter();
   const canvas = useRef<RingCanvasHandle | null>(null);
   const [design, setDesign] = useState(initial);
@@ -57,6 +58,27 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   const replace = (d: Design) => { setDesign(d); setDirty(true); };
   const flash = (msg: string) => { setStatus(msg); setTimeout(() => setStatus((s) => (s === msg ? null : s)), 2500); };
 
+  /** a picture of the piece for the gallery; a failure here never loses the saved design */
+  async function saveThumbnail(designId: string) {
+    if (!userId) return;
+    try {
+      const blob = await canvas.current?.snapshot();
+      if (!blob || blob.size < 2000) return; // nothing drawn yet
+      const path = `${userId}/${designId}.jpg`;
+      const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) console.warn("thumbnail upload failed:", error.message);
+      else await setThumbnail(designId, path);
+    } catch (e) { console.warn("thumbnail failed", e); }
+  }
+
+  // designs saved before pictures worked get one the first time they are opened
+  useEffect(() => {
+    if (!initialId || !userId || hasThumbnail) return;
+    const t = setTimeout(() => void saveThumbnail(initialId), 5000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function save(): Promise<string | null> {
     if (!userId) { router.push(`/login?next=${encodeURIComponent(id ? `/design/${id}` : "/design")}`); return null; }
     setStatus("Saving…");
@@ -64,15 +86,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     if (r.error || !r.id) { setStatus(r.error ?? "Save failed."); return null; }
     const newId = r.id;
     setDirty(false);
-    // thumbnail for the gallery; a failure here never loses the saved design
-    try {
-      const blob = await canvas.current?.snapshot();
-      if (blob) {
-        const path = `${userId}/${newId}.jpg`;
-        const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
-        if (!error) await setThumbnail(newId, path);
-      }
-    } catch { /* keep going */ }
+    await saveThumbnail(newId);
     flash("Saved");
     if (!id) {
       setId(newId);
@@ -145,14 +159,15 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
 
       <aside className="panel">
         <div className="tabs" role="tablist">
-          {(["design", "stone", "chat"] as Tab[]).map((t) => (
+          {(["design", "photo", "stone", "chat"] as Tab[]).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
-              {t === "design" ? "Design" : t === "stone" ? "Upload stone" : "Ask the designer"}
+              {t === "design" ? "Design" : t === "photo" ? "From a photo" : t === "stone" ? "Upload stone" : "Ask the designer"}
             </button>
           ))}
         </div>
         <div className="panel-body">
           {tab === "design" && <DesignControls design={design} userId={userId} onChange={change} onReplace={replace} />}
+          {tab === "photo" && <PhotoToDesign userId={userId} design={design} onReplace={replace} />}
           {tab === "stone" && <StoneUploader userId={userId} onApply={(stone) => { change({ center: stone }); setTab("design"); }} />}
           {tab === "chat" && <DesignChat userId={userId} design={design} onApply={change} />}
         </div>
