@@ -35,8 +35,8 @@ function framing(piece: Piece, view: View) {
   return { pos: sphere.center.clone().add(new THREE.Vector3(0.1, 0.8, 0.62).normalize().multiplyScalar(fit(sphere.radius))), target: sphere.center.clone() };
 }
 
-export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif";
-export type Pick = { part: Part; x: number; y: number };
+export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif" | "drop";
+export type Pick = { part: Part; x: number; y: number; index?: number };
 
 function Model({ piece }: { piece: Piece }) {
   useEffect(() => () => disposeGroup(piece.group), [piece]);
@@ -65,8 +65,11 @@ function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: (p: Pic
       const hit = ray.intersectObject(piece.group, true)[0];
       if (!hit) { onMiss?.(); return; }
       let o: THREE.Object3D | null = hit.object;
+      let index: number | undefined;
       while (o && !o.userData.part) o = o.parent;
-      onPick({ part: (o?.userData.part as Part) ?? "metal", x: e.clientX - r.left, y: e.clientY - r.top });
+      // inside a drop part, the part number lives on the part's group
+      for (let q: THREE.Object3D | null = o; q; q = q.parent) if (typeof q.userData.dropIndex === "number") { index = q.userData.dropIndex; break; }
+      onPick({ part: index !== undefined ? "drop" : ((o?.userData.part as Part) ?? "metal"), index, x: e.clientX - r.left, y: e.clientY - r.top });
     };
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointerup", onUp);
@@ -155,7 +158,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
       <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
-      <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}`} controls={controls} />
+      <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}:${design.drop.parts.map((x) => x.kind[0] + Math.round(x.stone.lengthMm / 4)).join("")}:${design.options.hoopShape}`} controls={controls} />
     </Canvas>
   );
 }

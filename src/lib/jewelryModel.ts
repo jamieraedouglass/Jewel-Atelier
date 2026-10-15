@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BEAD_GEMS, SHAPE_RATIO, type CenterStone, type Design, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
+import { BEAD_GEMS, SHAPE_RATIO, type CenterStone, type Design, type DropPart, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
 import { motifPlate, motifShapes } from "./motifModel";
 import { clawDegrees, metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
 
@@ -72,11 +72,30 @@ function cutGeometry(cut: CenterStone["cut"], shape: CenterStone["shape"], L: nu
   const fn = outlineFn(shape, L, W);
   let g: THREE.BufferGeometry;
   if (cut === "cabochon") g = cabochonGeo(fn, dome, Math.min(W * 0.14, 2));
+  else if (cut === "briolette") g = briolGeo(L, W);
   else if (cut === "faceted") g = centerFacetedGeo(shape, fn, W, Math.max(0.3, dome));
   else g = lowCutGeo(fn, cut, dome);
   geoCache.set(key, g);
   return g;
 }
+
+/** briolette: a teardrop faceted all over, hanging along Z with its tip toward +Z (turn 180° to point it up) */
+function briolGeo(L: number, W: number) {
+  const prof: THREE.Vector2[] = [];
+  for (let i = 0; i <= 7; i++) { const t = i / 7; prof.push(new THREE.Vector2(Math.max(0.001, (W / 2) * Math.sin(Math.PI * Math.pow(t, 0.62))), -L / 2 + t * L)); }
+  const g = new THREE.LatheGeometry(prof, 10).toNonIndexed();
+  g.rotateX(Math.PI / 2); // tip (+Y) → +Z
+  g.computeVertexNormals();
+  return g;
+}
+
+/** a colourless stone (white diamond, pale aquamarine) reads by sparkle; a coloured one (a canary diamond) shows its body colour */
+const isColorless = (gem: Gem, color: string) => {
+  if (!COLORLESS.has(gem)) return false;
+  const hsl = { h: 0, s: 0, l: 0 };
+  new THREE.Color(color).getHSL(hsl);
+  return hsl.s < 0.3 || hsl.l > 0.92;
+};
 
 /** rose-cut: faceted dome on a flat base. polki: flat, slightly irregular slab with a foil back. */
 function lowCutGeo(fn: OutlineFn, cut: "rose-cut" | "polki", dome: number) {
@@ -109,7 +128,7 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
     g.add(new THREE.Mesh(geo, BEAD_GEMS.has(c.gem) ? m.bead(c.gem, c.color) : m.stone(c, W)));
     return g;
   }
-  const colorless = COLORLESS.has(c.gem);
+  const colorless = isColorless(c.gem, c.color);
   const tint = c.cut === "polki" ? (colorless ? 0xfff0c8 : new THREE.Color(c.color).lerp(new THREE.Color(0xffe0a0), 0.25)) : colorless ? 0xf2f5ff : new THREE.Color(c.color).lerp(new THREE.Color(0xffffff), 0.15);
   g.add(new THREE.Mesh(geo, m.mirror(tint, c.cut === "polki" ? 2.4 : 3.6)), new THREE.Mesh(geo, colorless ? m.skin : m.stone(c, W)));
   return g;
@@ -146,6 +165,14 @@ function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m: Mats,
   // polki and rose cuts are traditionally closed-set in gold (kundan); beads have no setting
   const s = c.cut === "polki" || c.cut === "rose-cut" ? "bezel" : style;
   if (BEAD_GEMS.has(c.gem) && c.cut !== "cabochon") return g;
+  if (c.cut === "briolette") {
+    // drilled at the tip: a gold cap and a tiny loop
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.35, W * 0.16), 12, 8), m.metal);
+    cap.position.z = L / 2; g.add(cap);
+    const loopR = new THREE.Mesh(new THREE.TorusGeometry(Math.max(0.35, W * 0.14), 0.12, 8, 16), m.metal);
+    loopR.position.z = L / 2 + Math.max(0.5, W * 0.25); loopR.rotation.y = Math.PI / 2; g.add(loopR);
+    return g;
+  }
   if (s === "bezel") {
     const shape = new THREE.Shape(loop(1 + (wire * 2.4) / W, 0).map((p) => new THREE.Vector2(p.x, p.z)));
     shape.holes.push(new THREE.Path(loop(0.96, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
@@ -199,7 +226,7 @@ function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "r
   }
   const asp = ASPECT[shape];
   const geo = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
-  const colorless = COLORLESS.has(gem);
+  const colorless = isColorless(gem, color);
   const tint = cut === "polki" ? 0xfff0c8 : colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
   const meshes = [
     new THREE.InstancedMesh(geo, m.mirror(tint, cut === "polki" ? 2.4 : 3.6), items.length),
@@ -739,9 +766,14 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   const T = sideSet ? (huggie ? 2.4 : 1.4) : Math.max(huggie ? 2.6 : 1.5, stoneW + (huggie ? 0.8 : 0.6)); // width seen from the front
   const D = sideSet ? Math.max(huggie ? 3 : 1.8, stoneW + 0.6) : huggie ? Math.max(3, T * 1.1) : Math.max(1.6, T * 0.9); // depth, front to back
   const gapA = Math.max(0.12, 1.4 / R);
-  const arc = new THREE.CatmullRomCurve3(Array.from({ length: 120 }, (_, i) => {
-    const a = Math.PI / 2 + gapA + (i / 119) * (2 * Math.PI - 2 * gapA);
-    return v3(Math.cos(a) * R, Math.sin(a) * R, 0);
+  // round; a tall oval; or a long paperclip (a rounded rectangle), hanging from the top
+  const hs = d.options.hoopShape;
+  const rx = hs === "round" ? R : hs === "oval" ? R * 0.72 : R * 0.5, ry = hs === "round" ? R : hs === "oval" ? R * 1.25 : R * 1.45;
+  const ex = hs === "paperclip" ? 0.45 : 1;
+  const arc = new THREE.CatmullRomCurve3(Array.from({ length: 160 }, (_, i) => {
+    const a = Math.PI / 2 + gapA + (i / 159) * (2 * Math.PI - 2 * gapA);
+    const c = Math.cos(a), sn = Math.sin(a);
+    return v3(Math.sign(c) * Math.pow(Math.abs(c), ex) * rx, Math.sign(sn) * Math.pow(Math.abs(sn), ex) * ry - (ry - R), 0);
   }));
   const wire = new THREE.Mesh(new THREE.TubeGeometry(arc, 240, T / 2, 20, false), m.metal);
   wire.scale.z = D / T;
@@ -757,7 +789,8 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
     const span = { front: [0.14, 0.86], half: [0.25, 0.75], full: [0.03, 0.97] }[d.options.paveCoverage];
     const face = d.options.hoopFace;
     // front: the narrow face you see head-on; outer/inner: the wide sides of the wire
-    const radial = (u: number) => arc.getPointAt(u).setZ(0).normalize();
+    // outward normal of the hoop in its own plane (works for ovals and paperclips too)
+    const radial = (u: number) => { const t = arc.getTangentAt(u); return v3(t.y, -t.x, 0).normalize(); };
     const opts: RunOpts = face === "front"
       ? { up: () => v3(0, 0, 1), offset: () => v3(0, 0, D / 2 - 0.05), maxW: T - 0.4, gap: 0.12 }
       : face === "outer"
@@ -765,7 +798,29 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
       : { up: (u) => radial(u).negate(), offset: (u) => radial(u).multiplyScalar(-(T / 2 - 0.05)), maxW: D - 0.4, gap: 0.12 };
     g.add(patternRun(d, m, arc, span[0], span[1], opts).group);
   }
-  let low = -R - T / 2;
+  if (!huggie && d.fringe.enabled) {
+    // a crescent of seed pearls (or beads) clustered over the front of the hoop, fullest at the bottom
+    const beads: Item[] = [];
+    const D0 = d.fringe.sizeMm;
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const u0 = 0.3, u1 = 0.7;
+    for (let u = u0; u <= u1; u += D0 * 0.5 / arc.getLength()) {
+      const k = Math.sin(((u - u0) / (u1 - u0)) * Math.PI);
+      const rows = 1 + Math.round(k * 3);
+      const p0 = arc.getPointAt(u), nrm = (() => { const t = arc.getTangentAt(u); return v3(t.y, -t.x, 0).normalize(); })();
+      for (let r = 0; r < rows; r++) {
+        const dia = D0 * (0.65 + rnd() * 0.5) * (0.75 + 0.25 * k);
+        const out = (r - (rows - 1) / 2) * D0 * 0.62 + (rnd() - 0.5) * D0 * 0.2;
+        beads.push({ pos: p0.clone().addScaledVector(nrm, out).add(v3(0, 0, D / 2 + dia * 0.25 + Math.abs(out) * -0.15)), dia });
+      }
+    }
+    const cluster = balls(m.bead(d.fringe.gem, d.fringe.color), beads, d.fringe.gem === "pearl" ? 1 : 0.95);
+    const cg = new THREE.Group(); cg.userData.part = "fringe"; cg.add(cluster);
+    g.add(cg);
+  }
+  const box = new THREE.Box3().setFromObject(g);
+  let low = Math.min(-R - T / 2, box.min.y);
   if (!huggie && !d.center.none) {
     const c = d.center;
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.24, 10, 24), m.metal);
@@ -796,6 +851,210 @@ function hoopPair(d: Design, m: Mats, huggie: boolean): Piece {
   return { group, focus: v3(-sep, (left.low + left.R) / 2, 0), focusSize: (left.R + left.T) * 2.6 + (left.R - left.low), upright: true };
 }
 
+/* ================= drops, chandeliers and drop pendants, part by part ================= */
+
+const PAVE_CUTS = new Set(["faceted", "polki", "rose-cut"]);
+const briolRatio = (shape: CenterStone["shape"], cut: CenterStone["cut"]) => (cut === "briolette" ? 2 : ASPECT[shape]);
+
+/** the accent settings swapped for a drop part's own small stones, so halos and pavé reuse the pattern engine */
+function paveDesign(d: Design, p: DropPart): Design {
+  const cut = PAVE_CUTS.has(p.small.cut) ? (p.small.cut as "faceted" | "polki" | "rose-cut") : "faceted";
+  return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along" } };
+}
+function partStone(d: Design, p: DropPart): CenterStone {
+  return { ...d.center, ...p.stone, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
+}
+function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): CenterStone {
+  const W = p.small.widthMm, cut = p.small.cut;
+  return {
+    ...d.center, gem: p.small.gem, cut, shape, widthMm: W, lengthMm: W * briolRatio(shape, cut), domeMm: cut === "cabochon" ? W * 0.4 : W * 0.16,
+    color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
+  };
+}
+const setFor = (d: Design, c: CenterStone) => (c.cut === "cabochon" ? "bezel" : Math.max(c.lengthMm, c.widthMm) < 4.5 ? "four-claw" : d.setting.style);
+
+type Built = { g: THREE.Group; top?: number; hang?: number };
+
+/** one stone with an optional halo and petals or leaves */
+function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
+  const g = new THREE.Group();
+  const cs = partStone(d, p);
+  const theta = THREE.MathUtils.degToRad(p.stone.rotation);
+  const core = new THREE.Group();
+  let Lh = 1, Wh = 1;
+  if (p.showStone) {
+    core.add(setStoneRaw(cs, setFor(d, cs), m));
+    Lh = cs.lengthMm / 2; Wh = cs.widthMm / 2;
+    if (p.halo) {
+      const pd = paveDesign(d, p);
+      core.add(patternRun(pd, m, outlineCurve(cs, 0.35 + p.haloMm / 2, -0.25), 0, 1, { closed: true, gap: 0.16, maxW: p.haloMm }).group);
+      const r0 = Math.max(Lh, Wh);
+      core.add(backingPlate(m, outlineFn(cs.shape, cs.lengthMm, cs.widthMm), (r0 + p.haloMm + 0.5) / r0, -0.5, 0.6));
+      Lh += p.haloMm + 0.45; Wh += p.haloMm + 0.45;
+    }
+  } else {
+    core.add(new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), m.metal));
+  }
+  core.rotation.y = theta;
+  g.add(core);
+
+  const n = p.count;
+  if (n > 0) {
+    const angles: number[] = [];
+    const fan = (centre: number, k: number, step: number) => { for (let i = 0; i < k; i++) angles.push(centre + (i - (k - 1) / 2) * step); };
+    if (p.arrange === "around") for (let i = 0; i < n; i++) angles.push(-Math.PI / 2 + (2 * Math.PI * i) / n);
+    else if (p.arrange === "above") fan(-Math.PI / 2, n, Math.min(0.62, (Math.PI * 0.9) / Math.max(1, n - 1)));
+    else if (p.arrange === "below") fan(Math.PI / 2, n, Math.min(0.62, (Math.PI * 0.9) / Math.max(1, n - 1)));
+    else { const left = Math.ceil(n / 2); fan(Math.PI - 0.5, left, -0.48); fan(0.5, n - left, 0.48); }
+    const rot = THREE.MathUtils.degToRad(p.small.rotation);
+    angles.forEach((phi, i) => {
+      const dir = v3(Math.cos(phi), 0, Math.sin(phi));
+      // the stone's edge in this direction (an ellipse, turned with the stone)
+      const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
+      const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
+      const shape = p.small.shapes[i % p.small.shapes.length];
+      const sc = smallStone(d, p, shape);
+      const pos = dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
+      const s = setStoneRaw(sc, setFor(d, sc), m);
+      s.position.copy(pos).setY(-0.15);
+      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -rot : rot);
+      g.add(s);
+      g.add(tube(m, [v3(0, -0.9, 0), pos.clone().setY(-0.9)], 0.3));
+    });
+  }
+  return { g };
+}
+
+/** a bar with strands of stones hanging from it */
+function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
+  const g = new THREE.Group();
+  const n = Math.max(1, p.count);
+  const spread = n > 1 ? p.spreadMm : 0;
+  const barZ = (x: number) => (spread ? p.curveMm * (1 - 4 * (x / spread) ** 2) : 0);
+  if (n > 1) {
+    const bar = new THREE.CatmullRomCurve3(Array.from({ length: 25 }, (_, i) => { const x = (i / 24 - 0.5) * spread; return v3(x, -0.3, barZ(x)); }));
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(bar, 60, 0.28, 8, false), m.metal));
+    // the two wires from the hanging point to the bar's ends
+    g.add(tube(m, [v3(0, -0.3, -1.6), v3(-spread / 2, -0.3, 0)], 0.22), tube(m, [v3(0, -0.3, -1.6), v3(spread / 2, -0.3, 0)], 0.22));
+    if (p.barStones) {
+      const pd = paveDesign(d, p);
+      g.add(patternRun(pd, m, bar, 0, 1, { gap: 0.2, maxW: p.haloMm, offset: () => v3(0, 0.25, 0) }).group);
+    }
+  }
+  const mid = (n - 1) / 2;
+  let hang: number | undefined;
+  for (let i = 0; i < n; i++) {
+    if (p.openMiddle && n % 2 === 1 && i === mid) continue;
+    const t = n > 1 ? i / (n - 1) - 0.5 : 0, x = t * spread;
+    const k = Math.abs(t) * 2;
+    const extra = (p.taper === "v" ? 1 - k : p.taper === "u" ? k : 0) * p.small.widthMm * 1.6;
+    let z = barZ(x) + 0.3;
+    g.add(jumpRing(m, 0.55, 0.16, v3(x, -0.3, z + 0.3)));
+    z += 0.7;
+    if (extra > 0.2) { g.add(tube(m, [v3(x, -0.3, z - 0.2), v3(x, -0.3, z + extra)], 0.16)); z += extra; }
+    for (let j = 0; j < p.perStrand; j++) {
+      const sc = smallStone(d, p, p.small.shapes[j % p.small.shapes.length]);
+      const s = setStoneRaw(sc, setFor(d, sc), m);
+      s.rotation.y = THREE.MathUtils.degToRad(p.small.rotation);
+      s.position.set(x, 0, z + sc.lengthMm / 2);
+      g.add(s);
+      z += sc.lengthMm;
+      if (j < p.perStrand - 1) { g.add(jumpRing(m, 0.45, 0.14, v3(x, -0.2, z + 0.35))); z += 0.7; }
+    }
+    if (Math.abs(i - mid) < 0.01) hang = z;
+  }
+  if (hang === undefined) { hang = barZ(0) + 0.5; g.add(jumpRing(m, 0.6, 0.16, v3(0, -0.3, hang))); }
+  return { g, hang };
+}
+
+/** an open gold outline, plain or pavé, with an optional stone inside */
+function dropFramePart(d: Design, m: Mats, p: DropPart): Built {
+  const g = new THREE.Group();
+  const cs = partStone(d, p);
+  const r = p.halo ? p.haloMm / 2 + 0.35 : 0.55;
+  const curve = outlineCurve(cs, p.showStone ? p.spreadMm + r : 0, 0);
+  const wire = new THREE.Mesh(new THREE.TubeGeometry(curve, 200, r, 12, true), m.metal);
+  wire.scale.y = 0.7;
+  g.add(wire);
+  if (p.halo) g.add(patternRun(paveDesign(d, p), m, curve, 0, 1, { closed: true, gap: 0.14, maxW: p.haloMm, offset: () => v3(0, r * 0.55, 0) }).group);
+  if (p.showStone) {
+    g.add(setStoneRaw(cs, setFor(d, cs), m));
+    // four little bars hold the stone in the frame
+    const fn = outlineFn(cs.shape, cs.lengthMm, cs.widthMm);
+    for (const u of [0, 0.25, 0.5, 0.75]) { const [x, z] = fn(u); const len = Math.hypot(x, z) || 1; g.add(tube(m, [v3(x, -0.4, z), v3(x * (1 + (p.spreadMm + r) / len), -0.4, z * (1 + (p.spreadMm + r) / len))], 0.22)); }
+  }
+  g.rotation.y = THREE.MathUtils.degToRad(p.stone.rotation);
+  return { g };
+}
+
+/** a ribbon bow set with small stones; the knot can hold a stone */
+function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
+  const g = new THREE.Group();
+  const w = Math.max(8, p.spreadMm), h = w * 0.55;
+  const r = p.haloMm / 2 + 0.4;
+  const pd = paveDesign(d, p);
+  const curves: { c: THREE.Curve<THREE.Vector3>; closed: boolean }[] = [];
+  for (const s of [-1, 1]) {
+    const loop = [[0.03, 0], [0.18, -0.42], [0.4, -0.5], [0.5, -0.12], [0.42, 0.28], [0.18, 0.16]].map(([x, z]) => v3(s * x * w, 0, z * h));
+    curves.push({ c: new THREE.CatmullRomCurve3(loop, true, "centripetal"), closed: true });
+    const tail = [[0.04, 0.12], [0.12, 0.55], [0.2, 1.0], [0.26, 1.3]].map(([x, z]) => v3(s * x * w, -0.2, z * h));
+    curves.push({ c: new THREE.CatmullRomCurve3(tail, false, "centripetal"), closed: false });
+  }
+  for (const { c, closed } of curves) {
+    const t = new THREE.Mesh(new THREE.TubeGeometry(c, 160, r, 10, closed), m.metal);
+    t.scale.y = 0.6;
+    g.add(t);
+    if (p.halo) g.add(patternRun(pd, m, c, 0, 1, { closed, gap: 0.14, maxW: p.haloMm, offset: () => v3(0, r * 0.5, 0) }).group);
+    if (!closed) { const cap = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), m.metal); cap.scale.y = 0.6; cap.position.copy(c.getPointAt(1)); g.add(cap); }
+  }
+  const cs = partStone(d, p);
+  let top = -1.2;
+  if (p.showStone) {
+    const knot = setStoneRaw(cs, setFor(d, cs), m);
+    knot.rotation.y = THREE.MathUtils.degToRad(p.stone.rotation);
+    knot.position.y = 0.35;
+    g.add(knot, backingPlate(m, outlineFn(cs.shape, cs.lengthMm, cs.widthMm), 1.15, -0.3, 0.6));
+    top = -cs.lengthMm / 2 - 0.3;
+  } else {
+    const k = new THREE.Mesh(new THREE.SphereGeometry(1.4, 18, 12), m.metal); k.scale.set(1, 0.7, 1.3); g.add(k);
+  }
+  return { g, top, hang: h * 0.2 };
+}
+
+/** stack every part from the top down; the first part's top is at z = 0 */
+function dropStack(d: Design, m: Mats) {
+  const group = new THREE.Group();
+  let prevHang: number | null = null;
+  let firstTop = 0;
+  d.drop.parts.forEach((p, i) => {
+    const b = p.kind === "strands" ? dropStrandsPart(d, m, p) : p.kind === "frame" ? dropFramePart(d, m, p) : p.kind === "bow" ? dropBowPart(d, m, p) : dropStonePart(d, m, p);
+    b.g.userData.part = "drop";
+    b.g.userData.dropIndex = i;
+    const box = new THREE.Box3().setFromObject(b.g);
+    const top = b.top ?? box.min.z, hang = b.hang ?? box.max.z;
+    const z0 = prevHang === null ? 0 : prevHang + p.gapMm;
+    b.g.position.z = z0 - top;
+    group.add(b.g);
+    if (prevHang !== null) {
+      const a = prevHang, c = z0;
+      if (p.link === "ring") group.add(jumpRing(m, Math.max(0.7, (c - a) / 2 + 0.55), 0.2, v3(0, -0.3, (a + c) / 2)));
+      else if (p.link === "chain") group.add(chainAlong(new THREE.LineCurve3(v3(0, -0.3, a - 0.4), v3(0, -0.3, c + 0.4)), "fine", m));
+      else group.add(tube(m, [v3(0, -0.7, a - 0.6), v3(0, -0.7, c + 0.6)], 0.35));
+    } else firstTop = z0;
+    prevHang = z0 - top + hang;
+  });
+  return { group, top: firstTop, bottom: prevHang ?? 0 };
+}
+
+/** a french hook above an earring's top */
+function hook(m: Mats, top: number) {
+  const pts = [v3(0, -0.2, top + 0.6), v3(0, -0.2, top - 4), v3(-1.2, -0.2, top - 9), v3(-4.5, -0.2, top - 11), v3(-7.5, -0.2, top - 9), v3(-8.4, -0.2, top - 4), v3(-8.2, -0.2, top + 1)];
+  const g = new THREE.Group();
+  g.add(tube(m, pts, 0.38));
+  const bead = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), m.metal); bead.position.copy(pts[1]); g.add(bead);
+  return g;
+}
+
 function earringPiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
   const one = new THREE.Group();
@@ -824,24 +1083,11 @@ function earringPiece(d: Design, m: Mats): Piece {
     focus = v3(0, 0, z);
   } else if (st === "hoop" || st === "huggie") {
     return hoopPair(d, m, st === "huggie");
-  } else if (st === "chandelier") {
-    one.add(setStone(c, d.setting.style, m, Math.min(1, 7 / Math.max(c.lengthMm, c.widthMm))));
-    let z = Math.min(c.lengthMm, 7) / 2 + 2;
-    let last: Item[] = [];
-    const tiers = Math.min(5, Math.max(1, o.count));
-    for (let k = 1; k <= tiers; k++) {
-      const w = 6 + k * 6, n = 3 + k * 2, sag = 2 + k;
-      const items: Item[] = Array.from({ length: n }, (_, i) => { const t = i / (n - 1) - 0.5; return { pos: v3(t * w, 0, z + sag * (1 - 4 * t * t)), dia: accentDia }; });
-      const tierCurve = new THREE.CatmullRomCurve3(Array.from({ length: 24 }, (_, i) => { const t = i / 23 - 0.5; return v3(t * w * 1.06, 0, z + sag * (1 - 4 * t * t)); }));
-      one.add(patternRun(d, m, tierCurve, 0, 1, { gap: 0.2 }).group);
-      one.add(tube(m, items.map((it) => it.pos.clone().setY(-0.3)), 0.2));
-      one.add(tube(m, [v3(0, -0.3, z - 3.5), items[0].pos.clone().setY(-0.3)], 0.18), tube(m, [v3(0, -0.3, z - 3.5), items[n - 1].pos.clone().setY(-0.3)], 0.18));
-      last = items;
-      z += sag + accentDia + 3.5;
-    }
-    if (d.fringe.enabled) one.add(fringe(d, m, last.map((it) => ({ pos: it.pos.clone().add(v3(0, 0, it.dia / 2)), dir: v3(0, 0, 1) })), 2));
-    else last.forEach((it) => { const p = setStone({ ...c, shape: "pear", lengthMm: 4, widthMm: 2.8, domeMm: 0.5 }, "four-claw", m); p.rotation.y = Math.PI; p.position.copy(it.pos).add(v3(0, 0, it.dia / 2 + 2.6)); one.add(p); });
-    focus = v3(0, 0, z * 0.45); focusSize = z * 1.3;
+  } else if (st === "chandelier" || st === "pendant") {
+    const stack = dropStack(d, m);
+    one.add(stack.group);
+    if (d.drop.top === "hook") one.add(hook(m, stack.top - 0.5));
+    focus = v3(0, 0, stack.bottom * 0.5); focusSize = Math.max(18, stack.bottom * 1.25);
   } else if (st === "jhumka") {
     const r = topStud();
     const b = bell(d, m, Math.max(7, r * 1.15));
@@ -929,7 +1175,7 @@ function earringPiece(d: Design, m: Mats): Piece {
   // a mirrored partner for asymmetric studs (angled stones, side-shifted extras); otherwise an exact copy
   const right = st === "stud" && d.mirrorPair ? (() => { const r = new THREE.Group(); r.add(stud(d, m, true)); return r; })() : one.clone();
   one.position.x = -gap / 2; right.position.x = gap / 2;
-  if (st === "climber") right.scale.x = -1;
+  if (st === "climber" || ((st === "chandelier" || st === "pendant") && d.mirrorPair)) right.scale.x = -1;
   const group = new THREE.Group();
   group.add(one, right);
   focus.x -= gap / 2;
@@ -959,6 +1205,18 @@ function necklacePiece(d: Design, m: Mats): Piece {
       if (o.halo) { const h = halo(d, m, c); pend.add(h.group); extra = h.extent; }
       if (c.shape === "pear") pend.rotation.y = Math.PI;
       focus = hang(pend, fp, 2.4 + c.lengthMm / 2 + extra);
+      break;
+    }
+    case "drop-pendant": {
+      group.add(chainAlong(curve, o.chain, m));
+      const bail = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.5, 12, 32, Math.PI * 1.2), m.metal);
+      bail.position.copy(fp).add(v3(0, 0, 0.6)); bail.rotation.set(Math.PI / 2, 0, -Math.PI * 0.1);
+      group.add(bail);
+      const stack = dropStack(d, m);
+      stack.group.position.copy(fp).add(v3(0, 0, 2.4 - stack.top));
+      group.add(stack.group);
+      focus = fp.clone().add(v3(0, 0, 2.4 + (stack.bottom - stack.top) / 2));
+      focusSize = Math.max(24, (stack.bottom - stack.top) * 1.4);
       break;
     }
     case "riviera": {

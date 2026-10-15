@@ -1,12 +1,13 @@
 "use client";
 
 import MotifPanel from "./MotifPanel";
+import DropComposer from "./DropComposer";
 import {
   BAND_FINISHES, BANGLE_SIZES, BEAD_GEMS, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
   SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
 } from "@/lib/design";
 
-type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void };
+type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void; dropFocus?: number | null };
 
 const ENAMEL_SWATCHES = [["Meenakari green", "#16704c"], ["Ruby red", "#9b1630"], ["Peacock blue", "#1b3f8f"], ["Ivory", "#f3efe6"], ["Rani pink", "#d94f87"], ["Black", "#151515"]];
 const FRINGE_GEMS: Gem[] = ["pearl", "coral", "emerald", "ruby", "onyx", "turquoise", "garnet", "amethyst"];
@@ -52,7 +53,7 @@ function GemSelect({ id, value, options, onPick }: { id: string; value: Gem; opt
   );
 }
 
-export default function DesignControls({ design: d, userId, onChange, onReplace }: Props) {
+export default function DesignControls({ design: d, userId, onChange, onReplace, dropFocus }: Props) {
   const c = d.center, o = d.options, meta = styleMeta(d.type, d.style);
   const has = (u: Parameters<typeof meta.uses.includes>[0]) => meta.uses.includes(u);
   const setCenter = (p: Partial<Design["center"]>) => onChange({ center: p });
@@ -93,6 +94,8 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       </section>
 
       {has("motif") && <MotifPanel design={d} userId={userId} onChange={onChange} />}
+
+      {has("drop") && <DropComposer design={d} onChange={onChange} focusIndex={dropFocus} />}
 
       {has("center") && (
         <section id="sec-center" style={{ display: "grid", gap: 12 }}>
@@ -224,8 +227,8 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
 
       {has("fringe") && (
         <section id="sec-fringe" style={{ display: "grid", gap: 12 }}>
-          <h3>Fringe &amp; beads</h3>
-          <Toggle id="fringe-on" checked={d.fringe.enabled} onChange={(enabled) => onChange({ fringe: { enabled } })}>Hanging beads</Toggle>
+          <h3>{d.style === "hoop" ? "Pearl cluster" : "Fringe & beads"}</h3>
+          <Toggle id="fringe-on" checked={d.fringe.enabled} onChange={(enabled) => onChange({ fringe: { enabled } })}>{d.style === "hoop" ? "Cluster of pearls (or beads) over the front" : "Hanging beads"}</Toggle>
           {d.fringe.enabled && (
             <div className="row2">
               <label className="field" htmlFor="fringe-gem"><span>Bead</span>
@@ -277,6 +280,9 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
           {d.style === "hoop" && !c.none && (
             <Range id="charm-turn" label="Charm faces" value={o.charmTurn} min={-180} max={180} step={5}
               format={(n) => (n === 0 ? "Forward" : Math.abs(n) === 90 ? "Sideways" : `${n}°`)} onChange={(charmTurn) => setOpt({ charmTurn })} />
+          )}
+          {(d.style === "hoop" || d.style === "huggie") && d.type === "earrings" && (
+            <Chips name="Hoop shape" options={["round", "oval", "paperclip"] as const} value={o.hoopShape} fmt={(v) => (v === "paperclip" ? "Paperclip (long)" : label(v))} onPick={(hoopShape) => setOpt({ hoopShape })} />
           )}
           {has("hoop") && <Range id="hoop" label="Diameter" value={o.hoopDiameterMm} min={8} max={70} step={1} format={(n) => `${n} mm`} onChange={(hoopDiameterMm) => setOpt({ hoopDiameterMm })} />}
           {has("length") && <Range id="length" label="Length" value={o.lengthIn} min={12} max={40} step={1} format={(n) => `${n}" (${Math.round(n * 2.54)} cm) · ${lengthName(n)}`} onChange={(lengthIn) => setOpt({ lengthIn })} />}

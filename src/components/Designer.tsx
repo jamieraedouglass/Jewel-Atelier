@@ -42,11 +42,11 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     setPick({ ...p, x: Math.max(8, Math.min(p.x + 12, w - 296)), y: Math.max(8, Math.min(p.y - 20, h - 340)) });
   }
   /** jump to a part's full settings in the side panel */
-  function showSection(part: Pick["part"]) {
+  function showSection(part: Pick["part"], index?: number) {
     setPick(null);
     setTab("design");
     setTimeout(() => {
-      const el = document.getElementById(`sec-${part}`);
+      const el = document.getElementById(part === "drop" && index !== undefined ? `drop-part-${index}` : `sec-${part}`);
       if (!el) return;
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       el.classList.remove("flash-section"); void el.offsetWidth; el.classList.add("flash-section");

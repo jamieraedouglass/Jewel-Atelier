@@ -9,7 +9,7 @@ A private 3D jewellery design studio for jewellers. Upload a stone, build a piec
   | Type | Styles |
   | --- | --- |
   | Rings | Three-stone, solitaire, halo, cluster, navratna, polki cocktail, eternity |
-  | Earrings | Stud, drop, hoop, huggie, chandelier, jhumka, chandbali, ear climber, tassel |
+  | Earrings | Stud, drop, hoop (round, oval, paperclip, pearl cluster), huggie, chandelier and pendant drops built part by part (stones, clusters, sprays, strands, briolette fringes, open frames, bows), jhumka, chandbali, ear climber, tassel |
   | Necklaces | Pendant, riviera, station / by the yard, lariat, choker, collar / bib, kundan choker, rani haar, temple, mangalsutra, pearl strand |
   | Bracelets & bangles | Tennis, bangle, kada, cuff, station, charm, beaded |
   | Other | Payal and station anklets, maang tikka, matha patti, nath, nose stud, bajuband, haathphool |

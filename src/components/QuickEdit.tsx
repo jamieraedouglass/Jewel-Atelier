@@ -1,14 +1,14 @@
 "use client";
 
-import { GEMS, GEM_LOOK, KARATS, METALS, SHAPES, SIDE_KINDS, type Design, type DesignPatch, type Gem, isGold, label } from "@/lib/design";
+import { DropPartSchema, GEMS, GEM_LOOK, KARATS, METALS, SHAPES, SIDE_KINDS, type Design, type DesignPatch, type DropPart, type Gem, isGold, label } from "@/lib/design";
 import type { Pick } from "./RingCanvas";
 
 const TITLE: Record<Pick["part"], string> = {
-  center: "Main stone", accents: "Small stones", sides: "Side stones", metal: "Metal", fringe: "Beads", extra: "Extra stone", motif: "Motif",
+  center: "Main stone", accents: "Small stones", sides: "Side stones", metal: "Metal", fringe: "Beads", extra: "Extra stone", motif: "Motif", drop: "Part",
 };
 const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));
 
-type Props = { pick: Pick; design: Design; onChange: (p: DesignPatch) => void; onMore: (part: Pick["part"]) => void; onClose: () => void };
+type Props = { pick: Pick; design: Design; onChange: (p: DesignPatch) => void; onMore: (part: Pick["part"], index?: number) => void; onClose: () => void };
 
 /** A small editor that opens where you clicked on the paused 3D piece. */
 export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }: Props) {
@@ -21,12 +21,16 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
     </select>
   );
   const part = pick.part === "center" && d.center.none ? "metal" : pick.part;
+  const di = pick.index ?? 0;
+  const dp = part === "drop" ? d.drop.parts[di] : undefined;
+  const setDp = (x: Partial<DropPart>) => onChange({ drop: { parts: d.drop.parts.map((p, j) => (j === di ? DropPartSchema.parse({ ...p, ...x }) : p)) } } as DesignPatch);
+  const title = dp ? `Part ${di + 1}` : TITLE[part];
 
   return (
-    <div role="dialog" aria-label={`Edit ${TITLE[part]}`} className="quick"
+    <div role="dialog" aria-label={`Edit ${title}`} className="quick"
       style={{ left: pick.x, top: pick.y }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-        <strong>{TITLE[part]}</strong>
+        <strong>{title}</strong>
         <button type="button" className="chip" onClick={onClose} aria-label="Close">×</button>
       </div>
 
@@ -76,9 +80,31 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
 
       {part === "motif" && <div className="chips">{(["smooth", "millegrain", "rope"] as const).map((e) => chip(d.motif.edge === e, `${label(e)} edge`, () => onChange({ motif: { edge: e } })))}</div>}
 
+      {dp && (
+        <>
+          {dp.showStone && dp.kind !== "strands" && (
+            <>
+              <span className="small muted">Stone</span>
+              {gemSelect(dp.stone.gem, (gem) => setDp({ stone: { ...dp.stone, gem, ...GEM_LOOK[gem] } }))}
+              <div className="chips">{SHAPES.slice(0, 12).map((s) => chip(dp.stone.shape === s, label(s), () => setDp({ stone: { ...dp.stone, shape: s } })))}</div>
+              <label className="field"><span>Angle · {dp.stone.rotation}°</span>
+                <input type="range" min={-180} max={180} step={5} value={dp.stone.rotation} onChange={(e) => setDp({ stone: { ...dp.stone, rotation: Number(e.target.value) } })} />
+              </label>
+            </>
+          )}
+          <span className="small muted">{dp.kind === "strands" ? "Strand stones" : "Small stones"}</span>
+          {gemSelect(dp.small.gem, (gem) => setDp({ small: { ...dp.small, gem, color: GEM_LOOK[gem].color } }))}
+          {dp.kind === "strands" && (
+            <label className="field"><span>Strands · {dp.count}</span>
+              <input type="range" min={1} max={15} step={1} value={dp.count} onChange={(e) => setDp({ count: Number(e.target.value) })} />
+            </label>
+          )}
+        </>
+      )}
+
       {part === "extra" && <p className="small muted" style={{ margin: 0 }}>Each extra stone has its own gem, shape, size, angle and position.</p>}
 
-      <button type="button" className="btn" onClick={() => onMore(part)}>All {TITLE[part].toLowerCase()} settings</button>
+      <button type="button" className="btn" onClick={() => onMore(part, pick.index)}>All {title.toLowerCase()} settings</button>
     </div>
   );
 }

@@ -29,7 +29,7 @@ const SHAPE_FILL: Record<(typeof SHAPES)[number], number> = {
   radiant: 0.66, baguette: 0.75, octagon: 0.64, hexagon: 0.62, trillion: 0.38, kite: 0.45, shield: 0.55, "half-moon": 0.5, "old-mine": 0.58,
 };
 /** polki = flat uncut diamond with a foil back; rose-cut = faceted dome with a flat base */
-export const CUTS = ["faceted", "cabochon", "rose-cut", "polki"] as const;
+export const CUTS = ["faceted", "cabochon", "rose-cut", "polki", "briolette"] as const;
 export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round"] as const;
 export const SETTINGS = ["double-claw", "six-claw", "four-claw", "bezel"] as const;
 export const METALS = ["yellow-gold", "rose-gold", "white-gold", "platinum", "oxidised-silver"] as const;
@@ -72,7 +72,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 /** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -93,9 +93,10 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   earrings: {
     stud: { label: "Stud", blurb: "One stone, or several in a row (toi-et-moi, clusters), each in its own shape, gem and angle.", uses: [...CORE, "halo", "accents", "extraStones"] },
     drop: { label: "Drop", blurb: "The stone hangs below a small top stone.", uses: [...CORE, "accentTop", "accents"] },
-    hoop: { label: "Hoop", blurb: "Hoop, plain or pavé, with an optional charm.", uses: [...CORE, "hoop", "pave", "accents"] },
+    hoop: { label: "Hoop", blurb: "Round, oval or paperclip hoop, plain or pavé, with an optional pearl cluster and charm.", uses: [...CORE, "hoop", "pave", "accents", "fringe"] },
     huggie: { label: "Huggie", blurb: "Small, thick hoop that hugs the lobe.", uses: ["accents", "pave"], defaults: { options: { hoopDiameterMm: 12, pave: true } } },
-    chandelier: { label: "Chandelier", blurb: "Tiers of stones fanning out, finished with drops.", uses: [...CORE, "accents", "fringe", "count"], defaults: { options: { count: 3 } } },
+    chandelier: { label: "Chandelier", blurb: "Built part by part: fleur tops, clusters, sprays, strands, frames and drops.", uses: ["drop"] },
+    pendant: { label: "Pendant drop (build your own)", blurb: "Stack stones, clusters, frames, bows and fringes into any drop or stud.", uses: ["drop"] },
     jhumka: { label: "Jhumka", blurb: "Kundan top with a bell below and a pearl fringe.", uses: [...CORE, "accents", "fringe", "enamel"], defaults: { fringe: { enabled: true } } },
     chandbali: { label: "Chandbali", blurb: "Crescent moon set with stones, fringed with pearls.", uses: [...CORE, "accents", "fringe", "enamel"], defaults: { fringe: { enabled: true } } },
     climber: { label: "Ear climber", blurb: "Graduated line of stones climbing the ear.", uses: ["accents", "count"], defaults: { options: { count: 7 } } },
@@ -104,6 +105,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   },
   necklace: {
     pendant: { label: "Pendant", blurb: "One stone on a chain.", uses: [...CORE, "halo", "accents", "length", "chain"] },
+    "drop-pendant": { label: "Drop pendant (build your own)", blurb: "Stack stones, clusters, frames, bows and fringes into a pendant.", uses: ["drop", "length", "chain"] },
     riviera: { label: "Riviera", blurb: "A continuous line of graduated stones.", uses: [...CORE, "length", "count"], defaults: { options: { count: 33, lengthIn: 16 } } },
     station: { label: "Station / by the yard", blurb: "Stones spaced along a fine chain.", uses: [...CORE, "length", "chain", "count"], defaults: { options: { count: 7, chain: "fine" } } },
     lariat: { label: "Lariat / Y", blurb: "A loop with a long drop ending in the stone.", uses: [...CORE, "length", "chain", "accents"] },
@@ -227,6 +229,146 @@ export const ExtraStoneSchema = z.object({
 });
 export type ExtraStone = z.infer<typeof ExtraStoneSchema>;
 
+/* ---------------- drops, chandeliers and pendants, built part by part ---------------- */
+
+/**
+ * stone: one stone, with an optional halo and petals or leaves around it (flowers, clusters, sprays).
+ * strands: a bar with strands of stones hanging from it (chandelier strands, briolette fringes, tiers).
+ * frame: an open gold outline (octagon, pear, round...), plain or set with stones.
+ * bow: a ribbon bow set with small stones, with an optional stone in the knot.
+ */
+export const DROP_KINDS = ["stone", "strands", "frame", "bow"] as const;
+export const DROP_ARRANGE = ["around", "above", "below", "sides"] as const;
+
+export const DropPartSchema = z.object({
+  kind: z.enum(DROP_KINDS).default("stone"),
+  /** the part's own stone: the centre of a cluster, the stone in a bow's knot, the stone inside a frame */
+  stone: ExtraStoneSchema.default({}),
+  showStone: z.boolean().default(true),
+  /** the small stones: petals and leaves, halo, strand stones, the stones set on a frame or bow */
+  small: z.object({
+    gem: z.enum(GEMS).default("diamond"),
+    cut: z.enum(CUTS).default("faceted"),
+    color: hex.default("#f4f6fb"),
+    /** shapes in repeating order, e.g. pear, round, pear down a strand */
+    shapes: z.array(z.enum(SHAPES)).min(1).max(8).default(["pear"]),
+    widthMm: z.number().min(0.8).max(20).default(3),
+    /** turn each small stone, degrees (pears: 0 points outward or down, 180 points inward or up) */
+    rotation: z.number().min(-180).max(180).default(0),
+  }).default({}),
+  /** petals / leaves around a stone, strands under a bar */
+  count: z.number().int().min(0).max(24).default(0),
+  /** where petals sit around the stone */
+  arrange: z.enum(DROP_ARRANGE).default("around"),
+  /** a ring of small stones around the stone, or stones set on the frame / bow */
+  halo: z.boolean().default(false),
+  /** shape of the halo / frame / bow stones */
+  haloShape: z.enum(SHAPES).default("round"),
+  /** width of each halo / frame / bow stone, mm */
+  haloMm: z.number().min(0.6).max(6).default(1.3),
+  /** strands: stones in each strand */
+  perStrand: z.number().int().min(1).max(10).default(3),
+  /** strands: longest in the middle (v), at the sides (u), or all the same */
+  taper: z.enum(["even", "v", "u"]).default("even"),
+  /** strands: leave the middle strand out so a bigger drop can hang there */
+  openMiddle: z.boolean().default(false),
+  /** strands: small stones along the bar too */
+  barStones: z.boolean().default(false),
+  /** strands: width of the bar; bow: width of the bow; frame: space between frame and stone */
+  spreadMm: z.number().min(0).max(70).default(12),
+  /** strands: how much the bar curves down in the middle */
+  curveMm: z.number().min(0).max(20).default(2),
+  /** space above this part, and what joins it to the part above */
+  gapMm: z.number().min(0).max(40).default(1),
+  link: z.enum(["ring", "chain", "direct"]).default("ring"),
+});
+export type DropPart = z.infer<typeof DropPartSchema>;
+
+type PartIn = z.input<typeof DropPartSchema>;
+const W_ = "#f4f6fb";
+const dia = (shape: (typeof SHAPES)[number], lengthMm: number, widthMm: number, rotation = 0) => ({ gem: "diamond" as const, cut: "faceted" as const, shape, lengthMm, widthMm, domeMm: 0.8, color: W_, clarity: 0.95, rotation, dx: 0, dz: 0 });
+const col = (gem: Gem, cut: (typeof CUTS)[number], shape: (typeof SHAPES)[number], lengthMm: number, widthMm: number, rotation = 0, color?: string) =>
+  ({ gem, cut, shape, lengthMm, widthMm, domeMm: cut === "cabochon" ? widthMm * 0.4 : 0.8, color: color ?? GEM_LOOK[gem].color, clarity: GEM_LOOK[gem].clarity, rotation, dx: 0, dz: 0 });
+const sm = (shapes: (typeof SHAPES)[number][], widthMm: number, rotation = 0, gem: Gem = "diamond", cut: (typeof CUTS)[number] = "faceted") => ({ gem, cut, color: GEM_LOOK[gem].color, shapes, widthMm, rotation });
+
+/** starting points, modelled on classic pieces; every part stays editable */
+export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[] }[] = [
+  {
+    name: "Fleur chandelier", blurb: "Marquise fleur top, a canary cushion with a marquise spray, three pear–round–pear strands and a big pear drop.",
+    parts: [
+      { kind: "stone", stone: dia("round", 4.2, 4.2), small: sm(["marquise"], 2.4), count: 3, arrange: "above", gapMm: 0 },
+      { kind: "stone", stone: dia("round", 3.2, 3.2), small: sm(["round"], 1), gapMm: 0.8 },
+      { kind: "stone", stone: col("diamond", "faceted", "cushion", 10, 9.5, 0, "#f6d23c"), halo: true, haloMm: 1.3, small: sm(["marquise"], 2.3), count: 6, arrange: "sides", gapMm: 0.8 },
+      { kind: "strands", small: sm(["pear", "round", "pear"], 2.8, 180), count: 3, perStrand: 3, spreadMm: 17, curveMm: 3, gapMm: 0.6 },
+      { kind: "stone", stone: dia("pear", 12, 8, 180), small: sm(["round"], 1), gapMm: 0.6 },
+    ],
+  },
+  {
+    name: "Tiered chandelier", blurb: "Classic tiers of small stones, each finished with pear drops.",
+    parts: [
+      { kind: "stone", stone: dia("round", 5, 5), small: sm(["round"], 1.2), halo: true, gapMm: 0 },
+      { kind: "strands", small: sm(["pear"], 2.4, 180), count: 5, perStrand: 1, barStones: true, spreadMm: 12, curveMm: 2.5, gapMm: 1 },
+      { kind: "strands", small: sm(["pear", "pear"], 2.6, 180), count: 7, perStrand: 2, barStones: true, spreadMm: 20, curveMm: 4, taper: "v", gapMm: 1 },
+    ],
+  },
+  {
+    name: "Emerald cabochon drop", blurb: "Asscher and baguette top with a haloed emerald cabochon pear.",
+    parts: [
+      { kind: "stone", stone: dia("asscher", 5, 5), halo: true, haloMm: 1.1, small: sm(["round"], 1.1), gapMm: 0 },
+      { kind: "stone", stone: dia("baguette", 5, 2.2), small: sm(["round"], 1), gapMm: 0.5, link: "direct" },
+      { kind: "stone", stone: col("emerald", "cabochon", "pear", 17, 12, 180), halo: true, haloMm: 1.3, small: sm(["round"], 1.3), gapMm: 0.6 },
+    ],
+  },
+  {
+    name: "Pear cluster with drops", blurb: "A cluster of emerald pears with diamond pears swinging below.",
+    parts: [
+      { kind: "stone", stone: dia("round", 3, 3), small: sm(["pear"], 4.2, 0, "emerald"), count: 5, arrange: "above", gapMm: 0 },
+      { kind: "strands", small: sm(["pear"], 4, 180), count: 3, perStrand: 1, spreadMm: 9, curveMm: 3, gapMm: 0, link: "direct" },
+    ],
+  },
+  {
+    name: "Stacked hearts", blurb: "Graduated heart shapes, small to large.",
+    parts: [
+      { kind: "stone", stone: dia("heart", 4.5, 4.5), small: sm(["round"], 1), gapMm: 0 },
+      { kind: "stone", stone: dia("heart", 5.5, 5.5), small: sm(["round"], 1), gapMm: 0.6 },
+      { kind: "stone", stone: dia("heart", 11, 11), small: sm(["round"], 1), gapMm: 0.6 },
+    ],
+  },
+  {
+    name: "Ruby flower stud", blurb: "An oval ruby with diamond pear petals all round.",
+    parts: [{ kind: "stone", stone: col("ruby", "faceted", "oval", 8, 6), small: sm(["pear"], 3, 0), count: 9, arrange: "around", gapMm: 0 }],
+  },
+  {
+    name: "Aquamarine halo with leaves", blurb: "Aquamarine in a pear halo, with diamond pear leaves on top.",
+    parts: [{ kind: "stone", stone: col("aquamarine", "faceted", "round", 9, 9), halo: true, haloMm: 1.8, haloShape: "pear", small: sm(["pear"], 3.4, 0), count: 2, arrange: "above", gapMm: 0 }],
+  },
+  {
+    name: "Octagon frame drop", blurb: "A small pavé octagon frame and a large open octagon below.",
+    parts: [
+      { kind: "frame", stone: dia("octagon", 7, 7), showStone: false, halo: true, haloMm: 1.1, small: sm(["round"], 1.1), gapMm: 0 },
+      { kind: "frame", stone: dia("octagon", 22, 19), showStone: false, halo: true, haloMm: 1.3, small: sm(["round"], 1.3), gapMm: 0.8 },
+    ],
+  },
+  {
+    name: "Pear with briolette fringe", blurb: "A pear stud with a fringe of briolettes underneath.",
+    parts: [
+      { kind: "stone", stone: dia("pear", 9, 6, 180), small: sm(["round"], 1), gapMm: 0 },
+      { kind: "strands", small: sm(["pear"], 2.2, 180, "diamond", "briolette"), count: 7, perStrand: 1, spreadMm: 8, curveMm: 3, taper: "v", gapMm: 0, link: "direct" },
+    ],
+  },
+  {
+    name: "Ribbon bow", blurb: "A pavé bow with a baguette knot.",
+    parts: [{ kind: "bow", stone: dia("baguette", 4, 2), halo: true, haloMm: 1.1, small: sm(["round"], 1.1), spreadMm: 18, gapMm: 0 }],
+  },
+  {
+    name: "Bow with pear drop", blurb: "The pavé bow with a pear drop hanging from the knot.",
+    parts: [
+      { kind: "bow", stone: dia("baguette", 4, 2), halo: true, haloMm: 1.1, small: sm(["round"], 1.1), spreadMm: 18, gapMm: 0 },
+      { kind: "stone", stone: dia("pear", 10, 7, 180), small: sm(["round"], 1), gapMm: 1 },
+    ],
+  },
+];
+
 export const DesignSchema = z
   .object({
     type: z.enum(TYPES).default("ring"),
@@ -258,6 +400,12 @@ export const DesignSchema = z
     ringSize: z.number().min(3).max(13).default(6.5),
     /** more stones in each stud (toi-et-moi, clusters), stacked below the main stone */
     extraStones: z.array(ExtraStoneSchema).max(6).default([]),
+    /** drops, chandeliers and drop pendants, built part by part from the top down */
+    drop: z.object({
+      parts: z.array(DropPartSchema).min(1).max(10).default(DROP_PRESETS[0].parts),
+      /** earrings: a stud post behind the top part, or a hook above it */
+      top: z.enum(["post", "hook"]).default("post"),
+    }).default({}),
     /** mirror the second earring of a pair */
     mirrorPair: z.boolean().default(true),
     /** a custom shape, used by the motif styles */
@@ -269,6 +417,8 @@ export const DesignSchema = z
         accentTop: z.boolean().default(true),
         pave: z.boolean().default(true),
         hoopDiameterMm: z.number().min(8).max(70).default(22),
+        /** hoops: round, a tall oval, or a long paperclip */
+        hoopShape: z.enum(["round", "oval", "paperclip"]).default("round"),
         /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         /** hoops: which face of the wire the stones sit on — the narrow front edge, the wide outer side, or inside */
@@ -342,7 +492,7 @@ export const DENSITY: Record<Gem, number> = {
   peridot: 3.34, opal: 2.1, turquoise: 2.7, onyx: 2.65, other: 3.5,
 };
 
-const DEPTH: Record<CenterStone["cut"], number> = { faceted: 0.62, "rose-cut": 0.4, polki: 0.22, cabochon: 0.6 };
+const DEPTH: Record<CenterStone["cut"], number> = { faceted: 0.62, "rose-cut": 0.4, polki: 0.22, cabochon: 0.6, briolette: 0.75 };
 
 /**
  * Rough dimensions from carat weight. Volume = ct × 0.2 g / SG.
@@ -390,7 +540,7 @@ const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCa
 
 export function stoneText(c: CenterStone) {
   if (c.none) return "no main stone";
-  const cut = c.cut === "cabochon" ? "cabochon" : c.cut === "polki" ? "polki" : c.cut === "rose-cut" ? "rose-cut" : `${c.shape}-cut`;
+  const cut = c.cut === "faceted" ? `${c.shape}-cut` : c.cut;
   return `${c.carat ? `${c.carat} ct ` : ""}${gemName(c.gem)} ${cut} (${c.lengthMm} × ${c.widthMm} mm)`;
 }
 
