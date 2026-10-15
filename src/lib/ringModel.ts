@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type Design, ringInnerDiameter, sideStoneDims } from "./design";
+import { type Design, STEP_SHAPES, ringInnerDiameter, sideStoneDims } from "./design";
 
 /**
  * Builds the whole ring as a plain three.js Group from a Design.
@@ -41,15 +41,96 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
         return [Math.sign(Math.cos(th)) * x, z];
       };
     }
-    case "emerald": {
-      const c = Math.min(a, b) * 0.32;
-      const poly: Pt[] = [[a, -b + c], [a, b - c], [a - c, b], [-a + c, b], [-a, b - c], [-a, -b + c], [-a + c, -b], [a - c, -b]];
-      return polygonFn(poly);
+    case "emerald":
+    case "asscher":
+    case "octagon":
+    case "radiant": {
+      const k = shape === "emerald" ? 0.32 : shape === "asscher" ? 0.38 : shape === "octagon" ? 0.586 : 0.16;
+      const c = Math.min(a, b) * k;
+      return polygonFn([[a, -b + c], [a, b - c], [a - c, b], [-a + c, b], [-a, b - c], [-a, -b + c], [-a + c, -b], [a - c, -b]]);
+    }
+    case "princess":
+    case "baguette":
+      return polygonFn([[a, -b], [a, b], [-a, b], [-a, -b]]);
+    case "hexagon":
+      return polygonFn([[a, -b * 0.5], [a, b * 0.5], [0, b], [-a, b * 0.5], [-a, -b * 0.5], [0, -b]]);
+    case "trillion": {
+      // softly curved sides, point toward +Z
+      const pts: Pt[] = [];
+      const V: Pt[] = [[a, -b], [0, b], [-a, -b]];
+      for (let i = 0; i < 3; i++) {
+        const p = V[i], q = V[(i + 1) % 3];
+        for (let k = 0; k < 8; k++) {
+          const t = k / 8, bulge = Math.sin(t * Math.PI) * 0.07;
+          const mx = p[0] + (q[0] - p[0]) * t, mz = p[1] + (q[1] - p[1]) * t;
+          pts.push([mx * (1 + bulge), mz * (1 + bulge) + bulge * b * 0.3]);
+        }
+      }
+      return polygonFn(pts);
+    }
+    case "kite":
+      return polygonFn([[a, -b * 0.4], [0, b], [-a, -b * 0.4], [0, -b]]);
+    case "shield":
+      return polygonFn([[a, -b], [a, b * 0.15], [0, b], [-a, b * 0.15], [-a, -b]]);
+    case "half-moon": {
+      const pts: Pt[] = [];
+      for (let i = 0; i <= 24; i++) { const th = (i / 24) * Math.PI; pts.push([Math.cos(th) * a, -b + Math.sin(th) * 2 * b]); }
+      return polygonFn(pts);
+    }
+    case "heart":
+      // classic heart curve, point toward +Z, lobes toward −Z
+      return (t) => {
+        const u = 2 * Math.PI * (t - 0.25) + Math.PI;
+        const hx = 16 * Math.pow(Math.sin(u), 3);
+        const hy = 13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u);
+        return [(hx / 16) * a, b - ((hy + 17) / 29) * 2 * b];
+      };
+    case "old-mine": {
+      const e = 2 / 3.6;
+      return (t) => {
+        const th = t * 2 * Math.PI, c = Math.cos(th), s = Math.sin(th);
+        return [Math.sign(c) * Math.pow(Math.abs(c), e) * a, Math.sign(s) * Math.pow(Math.abs(s), e) * b];
+      };
     }
     case "oval":
     default:
       return (t) => [Math.cos(t * 2 * Math.PI) * a, Math.sin(t * 2 * Math.PI) * b];
   }
+}
+
+/** where claws go: on the corners of angular shapes, protecting points, evenly round curved shapes (degrees along the outline) */
+export function clawDegrees(shape: Design["center"]["shape"], L: number, W: number, style: Design["setting"]["style"]): number[] {
+  const a = W / 2, b = L / 2;
+  const anchors: Pt[] | null = (() => {
+    switch (shape) {
+      case "emerald": case "asscher": case "octagon": case "radiant": {
+        const k = shape === "emerald" ? 0.32 : shape === "asscher" ? 0.38 : shape === "octagon" ? 0.586 : 0.16, c = Math.min(a, b) * k;
+        return [[a - c / 2, b - c / 2], [-a + c / 2, b - c / 2], [-a + c / 2, -b + c / 2], [a - c / 2, -b + c / 2]];
+      }
+      case "princess": case "baguette": return [[a, b], [-a, b], [-a, -b], [a, -b]];
+      case "hexagon": return [[a, -b * 0.5], [a, b * 0.5], [0, b], [-a, b * 0.5], [-a, -b * 0.5], [0, -b]];
+      case "trillion": return [[a, -b], [0, b], [-a, -b]];
+      case "kite": return [[a, -b * 0.4], [0, b], [-a, -b * 0.4], [0, -b]];
+      case "shield": return [[a, -b], [a, b * 0.15], [0, b], [-a, b * 0.15], [-a, -b]];
+      case "half-moon": return [[a, -b], [a * 0.7, b * 0.45], [-a * 0.7, b * 0.45], [-a, -b]];
+      case "heart": return [[0, b], [a * 0.95, -b * 0.25], [a * 0.5, -b * 0.95], [-a * 0.5, -b * 0.95], [-a * 0.95, -b * 0.25]];
+      default: return null;
+    }
+  })();
+  if (style === "bezel") return [];
+  if (anchors) {
+    const fn = outlineFn(shape, L, W);
+    const ts = anchors.map(([x, z]) => {
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < 720; i++) { const [px, pz] = fn(i / 720); const dd = (px - x) ** 2 + (pz - z) ** 2; if (dd < bd) { bd = dd; best = i / 2; } }
+      return best;
+    });
+    return style === "double-claw" ? ts.flatMap((t) => [t - 5, t + 5]) : ts;
+  }
+  const base = style === "double-claw" ? [45, 135, 225, 315].flatMap((x) => [x - 8, x + 8]) : style === "six-claw" ? [30, 90, 150, 210, 270, 330] : [45, 135, 225, 315];
+  if (shape === "pear" || shape === "marquise") base.push(90);
+  if (shape === "marquise") base.push(270);
+  return base;
 }
 
 function polygonFn(poly: Pt[]): OutlineFn {
@@ -116,8 +197,8 @@ export function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.
 }
 
 export function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn, W: number, crown: number) {
-  const step = shape === "emerald";
-  const n = step ? 8 * 4 : 16;
+  const step = STEP_SHAPES.has(shape);
+  const n = step ? 32 : shape === "heart" || shape === "trillion" ? 40 : shape === "old-mine" ? 24 : 16;
   const ring = (s: number, y: number, twist: number) => {
     const out: THREE.Vector3[] = [];
     for (let i = 0; i < n; i++) { const [x, z] = fn((i + twist) / n); out.push(new THREE.Vector3(x * s, y, z * s)); }
@@ -271,7 +352,9 @@ export function buildRing(d: Design): THREE.Group {
   root.add(new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish), bandMetal));
   const SHANK_TOP = RIN + 2.3;
 
-  /* centre stone */
+  /* centre stone (stone + claws live in `head`, which turns with the stone's angle) */
+  const head = new THREE.Group();
+  root.add(head);
   const c = d.center;
   const L = c.lengthMm, W = c.widthMm, fn = outlineFn(c.shape, L, W);
   const isCab = c.cut === "cabochon";
@@ -301,37 +384,34 @@ export function buildRing(d: Design): THREE.Group {
     stone.add(new THREE.Mesh(g, inner), new THREE.Mesh(g, stoneMat));
   }
   stone.position.y = GY;
-  root.add(stone);
+  head.add(stone);
 
   /* head */
   const loop = (s: number, y: number, n = 96) => Array.from({ length: n }, (_, i) => { const [x, z] = fn(i / n); return new THREE.Vector3(x * s, y, z * s); });
   const lowRailY = GY - Math.min(belly, 2) - 0.1;
-  root.add(tube(loop(0.7, lowRailY), 0.42, true));
+  head.add(tube(loop(0.7, lowRailY), 0.42, true));
   if (d.setting.style === "bezel") {
     const shape = new THREE.Shape(loop(1.09, 0).map((p) => new THREE.Vector2(p.x, p.z)));
     shape.holes.push(new THREE.Path(loop(0.98, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
     const g = new THREE.ExtrudeGeometry(shape, { depth: 1.9, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.15, bevelSegments: 4, curveSegments: 64 });
     g.rotateX(Math.PI / 2); g.translate(0, GY + 0.55, 0); g.computeVertexNormals();
-    root.add(new THREE.Mesh(g, metal));
+    head.add(new THREE.Mesh(g, metal));
   } else {
-    root.add(tube(loop(0.95, GY - 0.55), 0.38, true));
-    const positions: number[] =
-      d.setting.style === "double-claw" ? [45, 135, 225, 315].flatMap((a) => [a - 8, a + 8])
-      : d.setting.style === "six-claw" ? [30, 90, 150, 210, 270, 330]
-      : [45, 135, 225, 315];
-    if (c.shape === "pear" || c.shape === "marquise") positions.push(90); // protect the point(s)
-    if (c.shape === "marquise") positions.push(270);
+    head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
+    const positions = clawDegrees(c.shape, L, W, d.setting.style);
     const tipY = isCab ? Math.min(0.55, c.domeMm * 0.15) : Math.max(0.4, c.domeMm * 0.5);
     const r = d.setting.style === "double-claw" ? 0.34 : 0.44;
     positions.forEach((deg) => {
       const [x, z] = fn(deg / 360);
       const P = (s: number, y: number) => new THREE.Vector3(x * s, y, z * s);
       const pad = 1 + (r + 0.05) / Math.max(1, Math.hypot(x, z));
-      root.add(tube([P(0.62, lowRailY - 0.7), P(0.7, lowRailY), P(0.97, GY - 0.55), P(pad + 0.01, GY + 0.05), P(pad - 0.01, GY + tipY)], r));
+      head.add(tube([P(0.62, lowRailY - 0.7), P(0.7, lowRailY), P(0.97, GY - 0.55), P(pad + 0.01, GY + 0.05), P(pad - 0.01, GY + tipY)], r));
       const tip = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), metal);
-      tip.scale.set(1, 0.8, 1); tip.position.copy(P(pad - 0.01, GY + tipY)); root.add(tip);
+      tip.scale.set(1, 0.8, 1); tip.position.copy(P(pad - 0.01, GY + tipY)); head.add(tip);
     });
   }
+  head.rotation.y = THREE.MathUtils.degToRad(d.center.rotation ?? 0);
+
   /* posts into the shank */
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const [x, z] = fn(((sx > 0 ? (sz > 0 ? 45 : 315) : sz > 0 ? 135 : 225)) / 360);

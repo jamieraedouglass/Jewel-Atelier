@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { BEAD_GEMS, type CenterStone, type Design, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
+import { BEAD_GEMS, SHAPE_RATIO, type CenterStone, type Design, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
 import { motifPlate, motifShapes } from "./motifModel";
-import { metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
+import { clawDegrees, metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
 
 /**
  * Builds any piece from a Design.
@@ -122,7 +122,17 @@ function tube(m: Mats, pts: THREE.Vector3[], r: number, closed = false, mat?: TH
 }
 
 /** A stone in its setting, girdle at y = 0, facing +Y, length along Z. */
+/** A stone in its setting, turned by its own angle (c.rotation). Callers may still rotate or place the result. */
 function setStone(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1): THREE.Group {
+  const inner = setStoneRaw(c, style, m, scale);
+  if (!c.rotation) return inner;
+  inner.rotation.y = THREE.MathUtils.degToRad(c.rotation);
+  const outer = new THREE.Group();
+  outer.add(inner);
+  return outer;
+}
+
+function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1): THREE.Group {
   const g = stoneMesh(c, m, scale);
   const L = c.lengthMm * scale, W = c.widthMm * scale;
   const fn = outlineFn(c.shape, L, W);
@@ -144,9 +154,7 @@ function setStone(c: CenterStone, style: Design["setting"]["style"], m: Mats, sc
     return g;
   }
   g.add(tube(m, loop(0.92, -Math.min(belly, 2) * 0.35), wire * 0.9, true));
-  const degs = s === "double-claw" ? [45, 135, 225, 315].flatMap((a) => [a - 8, a + 8]) : s === "six-claw" ? [30, 90, 150, 210, 270, 330] : [45, 135, 225, 315];
-  if (c.shape === "pear" || c.shape === "marquise") degs.push(90);
-  if (c.shape === "marquise") degs.push(270);
+  const degs = clawDegrees(c.shape, L, W, s);
   const tipY = isCab ? Math.min(0.5, dome * 0.15) : Math.max(0.2, dome * 0.5);
   const r = s === "double-claw" ? wire * 0.8 : wire;
   for (const deg of degs) {
@@ -173,7 +181,7 @@ function orient(o: THREE.Object3D, it: Item) {
 }
 
 /** small round stones in cups; beads become spheres */
-const ASPECT: Record<CenterStone["shape"], number> = { round: 1, oval: 1.3, cushion: 1.1, pear: 1.5, emerald: 1.4, marquise: 2 };
+const ASPECT = SHAPE_RATIO;
 
 /** `dia` on each item is the stone's width; shaped stones are longer along their local Z by the shape's aspect */
 function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "rose-cut", items: Item[], shape: CenterStone["shape"] = "round") {
@@ -562,6 +570,36 @@ function ringPiece(d: Design): Piece {
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
 }
 
+/** one stud: the main stone (with optional halo) and any extra stones stacked below it, joined underneath */
+function stud(d: Design, m: Mats, mirror: boolean) {
+  const g = new THREE.Group();
+  const flip = mirror ? -1 : 1;
+  const c = d.center;
+  const main = new THREE.Group();
+  main.add(setStoneRaw(c, d.setting.style, m));
+  if (d.options.halo) main.add(halo(d, m, c).group);
+  main.rotation.y = THREE.MathUtils.degToRad(c.rotation * flip);
+  g.add(main);
+  // extent of a stone along Z once it is turned
+  const reach = (L: number, W: number, deg: number) => { const r = THREE.MathUtils.degToRad(deg); return (Math.abs(Math.cos(r)) * L + Math.abs(Math.sin(r)) * W) / 2; };
+  let z = reach(c.lengthMm, c.widthMm, c.rotation) + (d.options.halo ? roundDiameter(d.accents.gem, d.accents.sizeCt) + 0.8 : 0);
+  let prev = new THREE.Vector3();
+  for (const e of d.extraStones) {
+    const stone: CenterStone = { ...c, ...e, carat: null, label: "", photoPath: null, rotation: 0 };
+    const half = reach(e.lengthMm, e.widthMm, e.rotation);
+    const pos = new THREE.Vector3(e.dx * flip, 0, z + 0.4 + half + e.dz);
+    const s = setStoneRaw(stone, d.setting.style, m);
+    s.rotation.y = THREE.MathUtils.degToRad(e.rotation * flip);
+    s.position.copy(pos);
+    g.add(s);
+    // a hidden gold bridge between neighbouring stones
+    g.add(tube(m, [prev.clone().setY(-1.1), pos.clone().setY(-1.1)], 0.45));
+    prev = pos;
+    z = pos.z + half;
+  }
+  return g;
+}
+
 function earringPiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
   const one = new THREE.Group();
@@ -575,8 +613,8 @@ function earringPiece(d: Design, m: Mats): Piece {
   };
 
   if (st === "stud") {
-    one.add(setStone(c, d.setting.style, m));
-    if (o.halo) one.add(halo(d, m, c).group);
+    one.add(stud(d, m, false));
+    focusSize = Math.max(c.lengthMm, c.widthMm) * (1.6 + d.extraStones.length);
   } else if (st === "drop") {
     let top: number;
     if (o.accentTop) { one.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, [{ pos: v3(), dia: accentDia }])); top = accentDia / 2; }
@@ -702,7 +740,8 @@ function earringPiece(d: Design, m: Mats): Piece {
 
   const box = new THREE.Box3().setFromObject(one);
   const gap = box.max.x - box.min.x + 10;
-  const right = one.clone();
+  // a mirrored partner for asymmetric studs (angled stones, side-shifted extras); otherwise an exact copy
+  const right = st === "stud" && d.mirrorPair ? (() => { const r = new THREE.Group(); r.add(stud(d, m, true)); return r; })() : one.clone();
   one.position.x = -gap / 2; right.position.x = gap / 2;
   if (st === "climber") right.scale.x = -1;
   const group = new THREE.Group();
@@ -902,27 +941,34 @@ function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
   if (st === "tennis") {
     // each shape at the chosen carat weight; long axes run along the bracelet; the pattern repeats all the way round
     const pattern = d.accents.shapes;
+    const orient = d.accents.orientation;
     const dims = pattern.map((shape) => {
       const e = estimateDims(d.accents.gem, d.accents.cut, shape, d.accents.sizeCt);
       return { shape, W: e.widthMm, L: e.widthMm * ASPECT[shape] };
     });
+    /** does stone i point along the bracelet? */
+    const along = (i: number) => orient === "along" || (orient === "alternate" && i % 2 === 0);
     const gap = 0.45, total = curve.getLength();
     const seq: typeof dims = [];
+    // footprint along the line depends on which way each stone points
+    const foot = (s: (typeof dims)[number], i: number) => (along(i) ? s.L : s.W);
     for (let used = 0, i = 0; ; i++) {
       const s = dims[i % dims.length];
-      if (used + s.L + gap > total) break;
-      seq.push(s); used += s.L + gap;
+      if (used + foot(s, i) + gap > total) break;
+      seq.push(s); used += foot(s, i) + gap;
     }
     // close the loop on a whole repeat of the pattern, then spread the spare length evenly
-    while (seq.length > dims.length && seq.length % dims.length) seq.pop();
-    const spare = (total - seq.reduce((a, s) => a + s.L + gap, 0)) / Math.max(1, seq.length);
+    const cycle = orient === "alternate" && dims.length % 2 ? dims.length * 2 : dims.length;
+    while (seq.length > cycle && seq.length % cycle) seq.pop();
+    const spare = (total - seq.reduce((a, s, i) => a + foot(s, i) + gap, 0)) / Math.max(1, seq.length);
     const byShape = new Map<string, Item[]>();
     let at = 0;
-    for (const s of seq) {
-      const u = wrap(front + (at + s.L / 2) / total);
-      (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos: curve.getPointAt(u), dia: s.W, yaw: yawAt(curve, u) - Math.PI / 2 });
-      at += s.L + gap + spare;
-    }
+    seq.forEach((s, i) => {
+      const f = foot(s, i);
+      const u = wrap(front + (at + f / 2) / total);
+      (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos: curve.getPointAt(u), dia: s.W, yaw: yawAt(curve, u) - (along(i) ? Math.PI / 2 : 0) });
+      at += f + gap + spare;
+    });
     byShape.forEach((items, shape) => group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
     const maxW = Math.max(...dims.map((x) => x.W));
     const under = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.45, maxW * 0.08), 8, true), m.metal);
