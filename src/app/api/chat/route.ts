@@ -4,6 +4,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, CHAT_SYSTEM, MODEL, proposeDesignTool, storageImages } from "@/lib/claude";
 import { normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
+import { spendAiCall } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,6 +22,8 @@ export async function POST(req: Request) {
   if (!body.success) return NextResponse.json({ error: "Bad request." }, { status: 400 });
   const { messages, useStyleProfile } = body.data;
   if (messages[0].role !== "user") return NextResponse.json({ error: "Conversation must start with you." }, { status: 400 });
+  const limited = await spendAiCall(supabase);
+  if (limited) return NextResponse.json({ error: limited }, { status: 429 });
   const design = normalizeDesign(body.data.design);
 
   // Style context goes at the front of the first user turn and is cached across the conversation.

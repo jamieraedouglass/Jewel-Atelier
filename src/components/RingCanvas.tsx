@@ -5,32 +5,54 @@ import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { type Design, ringInnerDiameter } from "@/lib/design";
-import { buildRing, disposeGroup } from "@/lib/ringModel";
+import type { Design } from "@/lib/design";
+import { buildPiece, type Piece } from "@/lib/jewelryModel";
+import { disposeGroup } from "@/lib/ringModel";
 
-export type View = "hero" | "top" | "profile";
-export type RingCanvasHandle = { snapshot: () => Promise<Blob | null> };
+export type View = "hero" | "top" | "detail";
+export const VIEW_LABEL: Record<View, string> = { hero: "¾", top: "Top", detail: "Detail" };
+export type RingCanvasHandle = { snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null> };
 
-const VIEWS: Record<View, { pos: [number, number, number]; target: [number, number, number] }> = {
-  hero: { pos: [20, 30, 52], target: [0, 5.5, 0] },
-  top: { pos: [0.01, 74, 6], target: [0, 12, 0] },
-  profile: { pos: [4, 18, 70], target: [0, 7, 0] },
-};
+const FOV = 28;
 
-function RingModel({ design }: { design: Design }) {
-  const group = useMemo(() => buildRing(design), [design]);
-  useEffect(() => () => disposeGroup(group), [group]);
-  return <primitive object={group} />;
+/** Where the camera sits for each view, framed to the piece's size. */
+function framing(piece: Piece, view: View) {
+  const box = new THREE.Box3().setFromObject(piece.group);
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const fit = (r: number) => (r / Math.sin(THREE.MathUtils.degToRad(FOV / 2))) * 1.25;
+  if (piece.upright) {
+    // rings stand up, so look at them like a product shot
+    const t = sphere.center.clone().add(new THREE.Vector3(0, sphere.radius * 0.18, 0));
+    if (view === "top") return { pos: t.clone().add(new THREE.Vector3(0.01, fit(sphere.radius) * 1.05, 6)), target: piece.focus.clone() };
+    if (view === "detail") return { pos: t.clone().add(new THREE.Vector3(4, 10, fit(sphere.radius) * 1.05)), target: t };
+    return { pos: t.clone().add(new THREE.Vector3(0.36, 0.52, 0.95).normalize().multiplyScalar(fit(sphere.radius) * 1.05)), target: t };
+  }
+  if (view === "top") return { pos: sphere.center.clone().add(new THREE.Vector3(0, fit(sphere.radius), 0.01)), target: sphere.center.clone() };
+  if (view === "detail") {
+    const r = Math.max(4, piece.focusSize / 2);
+    return { pos: piece.focus.clone().add(new THREE.Vector3(0.25, 0.85, 0.75).normalize().multiplyScalar(fit(r))), target: piece.focus.clone() };
+  }
+  return { pos: sphere.center.clone().add(new THREE.Vector3(0.1, 0.8, 0.62).normalize().multiplyScalar(fit(sphere.radius))), target: sphere.center.clone() };
 }
 
-function CameraRig({ view, controls }: { view: View; controls: React.RefObject<OrbitControlsImpl> }) {
+function Model({ piece }: { piece: Piece }) {
+  useEffect(() => () => disposeGroup(piece.group), [piece]);
+  return <primitive object={piece.group} />;
+}
+
+/** Re-frames when the view or the kind of piece changes, not on every slider tweak. */
+function CameraRig({ view, piece, frameKey, controls }: { view: View; piece: Piece; frameKey: string; controls: React.RefObject<OrbitControlsImpl> }) {
   const { camera } = useThree();
+  const latest = useRef(piece);
+  latest.current = piece;
   useEffect(() => {
-    const v = VIEWS[view];
-    const fromP = camera.position.clone();
+    const { pos: toP, target: toT } = framing(latest.current, view);
     const ctl = controls.current;
-    const fromT = ctl ? ctl.target.clone() : new THREE.Vector3();
-    const toP = new THREE.Vector3(...v.pos), toT = new THREE.Vector3(...v.target);
+    const fromP = camera.position.clone(), fromT = ctl ? ctl.target.clone() : new THREE.Vector3();
+    const dist = toP.distanceTo(toT);
+    if (ctl) { ctl.minDistance = Math.max(4, dist * 0.15); ctl.maxDistance = dist * 3; }
+    (camera as THREE.PerspectiveCamera).far = dist * 10;
+    camera.updateProjectionMatrix();
     let t = 0, raf = 0;
     const step = () => {
       t = Math.min(1, t + 0.04);
@@ -42,7 +64,7 @@ function CameraRig({ view, controls }: { view: View; controls: React.RefObject<O
     };
     step();
     return () => cancelAnimationFrame(raf);
-  }, [view, camera, controls]);
+  }, [view, frameKey, camera, controls]);
   return null;
 }
 
@@ -69,26 +91,30 @@ type Props = { design: Design; view?: View; autoRotate?: boolean; className?: st
 const RingCanvas = forwardRef<RingCanvasHandle, Props>(function RingCanvas({ design, view = "hero", autoRotate = true, className }, ref) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
+  const piece = useMemo(() => buildPiece(design), [design]);
+  const floor = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(piece.group);
+    return { y: box.min.y - 0.05, scale: Math.max(40, (box.max.x - box.min.x) * 1.6, (box.max.z - box.min.z) * 1.6) };
+  }, [piece]);
   useImperativeHandle(ref, () => ({
-    snapshot: () => new Promise((res) => (canvasEl.current ? canvasEl.current.toBlob((b) => res(b), "image/jpeg", 0.88) : res(null))),
+    snapshot: (type = "image/jpeg") => new Promise((res) => (canvasEl.current ? canvasEl.current.toBlob((b) => res(b), type, 0.9) : res(null))),
   }));
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const RIN = ringInnerDiameter(design.ringSize) / 2;
   return (
     <Canvas
       className={className}
       dpr={[1, 2]}
-      camera={{ fov: 28, position: VIEWS.hero.pos, near: 0.5, far: 500 }}
+      camera={{ fov: FOV, position: [20, 30, 52], near: 0.2, far: 5000 }}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
       onCreated={({ gl }) => (canvasEl.current = gl.domElement)}
     >
       <color attach="background" args={["#17130f"]} />
       <StudioLights />
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
-      <RingModel design={design} />
-      <ContactShadows position={[0, -(RIN + 2), 0]} opacity={0.55} scale={40} blur={2.6} far={14} />
-      <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} minDistance={24} maxDistance={120} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.9} target={VIEWS.hero.target} />
-      <CameraRig view={view} controls={controls} />
+      <Model piece={piece} />
+      <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
+      <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
+      <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}`} controls={controls} />
     </Canvas>
   );
 });

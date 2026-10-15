@@ -1,10 +1,12 @@
 import Designer from "@/components/Designer";
-import { defaultDesign } from "@/lib/design";
+import { TYPES, chooseStyle, defaultDesign, type PieceType } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 
-export const metadata = { title: "New ring · Ring Atelier" };
+export const metadata = { title: "New design · Atelier" };
 
-export default async function NewDesignPage() {
+export default async function NewDesignPage({ searchParams }: { searchParams: { type?: string; style?: string } }) {
   const { user } = await requireUser();
-  return <Designer initial={defaultDesign()} id={null} userId={user?.id ?? null} />;
+  const type = (TYPES as readonly string[]).includes(searchParams.type ?? "") ? (searchParams.type as PieceType) : null;
+  const initial = type ? chooseStyle(defaultDesign(), type, searchParams.style) : defaultDesign();
+  return <Designer initial={initial} id={null} userId={user?.id ?? null} />;
 }

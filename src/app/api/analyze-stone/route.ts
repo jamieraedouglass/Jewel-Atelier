@@ -3,6 +3,7 @@ import { z } from "zod";
 import { anthropic, MODEL, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/claude";
 import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
+import { spendAiCall } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -40,6 +41,8 @@ export async function POST(req: Request) {
   const { paths, carat, notes } = body.data;
   if (paths.some((p) => !p.startsWith(`${user.id}/`))) return NextResponse.json({ error: "Those files aren't yours." }, { status: 403 });
 
+  const limited = await spendAiCall(supabase);
+  if (limited) return NextResponse.json({ error: limited }, { status: 429 });
   const images = await storageImages(supabase, "stones", paths);
   if (!images.length) return NextResponse.json({ error: "Couldn't read the uploaded images." }, { status: 400 });
 

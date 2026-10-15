@@ -1,6 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BAND_FINISHES, CUTS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS } from "./design";
+import { ALL_STYLES, BANGLE_SIZES, BAND_FINISHES, CHAIN_STYLES, CUTS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL } from "./design";
+
+/** "ring: three-stone, solitaire, …; earrings: …" so Claude knows which styles belong to which type */
+const STYLE_GUIDE = TYPES.map((t) => `${t} (${TYPE_LABEL[t]}): ${Object.entries(STYLES[t]).map(([k, s]) => `${k} — ${s.blurb}`).join("; ")}`).join("\n");
 
 /** Server-only. The API key never reaches the browser. Created lazily so builds work without a key. */
 let client: Anthropic | null = null;
@@ -59,41 +62,32 @@ If the person gives a carat weight, set size_basis to "carat weight" and leave t
 If there is a clear scale reference, estimate mm dimensions from it. Otherwise give your best guess and set size_basis to "guess".
 Always call record_stone_analysis exactly once.`;
 
+const gemProp = { type: "string", enum: [...GEMS] };
+const hexProp = { type: "string", description: "#rrggbb" };
 const designPatchSchema = {
   type: "object",
-  description: "Only the fields to change. Omit everything that should stay the same.",
+  description: "Only the fields to change. Omit everything that should stay the same. To change the piece type or style, set both type and style.",
   properties: {
     name: { type: "string" },
-    center: {
-      type: "object",
-      properties: {
-        gem: { type: "string", enum: [...GEMS] },
-        cut: { type: "string", enum: [...CUTS] },
-        shape: { type: "string", enum: [...SHAPES] },
-        color: { type: "string", description: "#rrggbb" },
-      },
-    },
-    sides: {
-      type: "object",
-      properties: {
-        kind: { type: "string", enum: [...SIDE_KINDS] },
-        sizeCt: { type: "number", description: "carat weight of each side stone, 0.05–3" },
-      },
-    },
-    setting: {
-      type: "object",
-      properties: {
-        style: { type: "string", enum: [...SETTINGS] },
-        height: { type: "number", description: "0 = seated low into the shank, 1 = tall cathedral" },
-      },
-    },
-    gallery: { type: "object", properties: { roseCut: { type: "boolean" } } },
+    type: { type: "string", enum: [...TYPES] },
+    style: { type: "string", enum: ALL_STYLES, description: `Must belong to the type. ${STYLE_GUIDE}` },
+    center: { type: "object", properties: { gem: gemProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES] }, color: hexProp, lengthMm: { type: "number" }, widthMm: { type: "number" } } },
+    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–1" } } },
+    fringe: { type: "object", properties: { enabled: { type: "boolean" }, gem: gemProp, color: hexProp, sizeMm: { type: "number", description: "1.5–14" } } },
+    enamel: { type: "object", properties: { enabled: { type: "boolean" }, color: hexProp } },
     metal: { type: "string", enum: [...METALS] },
-    band: {
+    purity: { type: "object", properties: { karat: { type: "number", enum: [14, 18, 22, 24] }, bisHallmark: { type: "boolean" } } },
+    setting: { type: "object", properties: { style: { type: "string", enum: [...SETTINGS] }, height: { type: "number", description: "rings only: 0 low … 1 tall" } } },
+    sides: { type: "object", properties: { kind: { type: "string", enum: [...SIDE_KINDS] }, sizeCt: { type: "number" } } },
+    gallery: { type: "object", properties: { roseCut: { type: "boolean" } } },
+    band: { type: "object", properties: { widthMm: { type: "number" }, finish: { type: "string", enum: [...BAND_FINISHES] } } },
+    options: {
       type: "object",
       properties: {
-        widthMm: { type: "number", description: "1.5–6" },
-        finish: { type: "string", enum: [...BAND_FINISHES] },
+        halo: { type: "boolean" }, accentTop: { type: "boolean" }, pave: { type: "boolean" },
+        hoopDiameterMm: { type: "number" }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
+        chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
+        layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
       },
     },
   },
@@ -114,11 +108,14 @@ export const proposeDesignTool: Anthropic.Tool = {
   },
 };
 
-export const CHAT_SYSTEM = `You are a fine-jewellery design consultant inside a ring-design app.
-You can see the ring being designed (as JSON) and, when provided, the person's style profile: inspiration photos, style icons and notes.
+export const CHAT_SYSTEM = `You are a senior fine-jewellery design consultant inside a 3D jewellery design app used by working jewellers, many in the Indian trade.
+You know Western fine jewellery and Indian traditions equally well: kundan and polki, jadau, meenakari, temple work, navratna, bridal pieces,
+22k gold, and how jhumkas, chandbalis, rani haars, chokers, kadas and maang tikkas are built and worn. Lean maximalist when the person's taste does.
+Talk to them as a fellow professional: construction, stone layouts, proportions, weight and wearability, what to tell the karigar.
+You can see the piece being designed (as JSON) and, when provided, the person's style profile: inspiration photos, style icons and notes.
 Ground every suggestion in that profile and in the centre stone's character. When the person names a style icon, draw on that person's
 well-known, publicly documented jewellery taste in general terms (e.g. "quiet, heirloom-feeling pieces"); don't invent specific items they own.
 Be specific and practical: proportions, cut pairings, setting height, wearability, what to ask the jeweller.
 Keep replies short (under 150 words) and conversational. When you recommend a concrete change, call propose_design so they can apply it.
-The app can only change the fields in propose_design; for anything else (engraving, milgrain, custom gallery work), describe it in words.
+The app can only change the fields in propose_design; for anything else (filigree, nakashi, engraving, jadau detailing, sahara ear chains), describe it in words.
 Never claim a stone's origin or treatment without a lab report.`;

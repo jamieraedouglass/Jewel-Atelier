@@ -17,7 +17,7 @@ async function load(id: string) {
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const d = await load(params.id);
   if (!d) return { title: "Ring not found" };
-  return { title: `${d.name} · Ring Atelier`, description: describeDesign(d.design), openGraph: d.thumb ? { images: [d.thumb] } : undefined };
+  return { title: `${d.name} · Atelier`, description: describeDesign(d.design), openGraph: d.thumb ? { images: [d.thumb] } : undefined };
 }
 
 export default async function SharedDesign({ params }: { params: { id: string } }) {
@@ -35,7 +35,7 @@ export default async function SharedDesign({ params }: { params: { id: string } 
       <RingViewer design={d.design} />
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {mine ? (
-          <Link href={`/design/${d.id}`} className="btn primary">Edit this ring</Link>
+          <Link href={`/design/${d.id}`} className="btn primary">Edit this design</Link>
         ) : (
           <form action={copy}><button className="btn primary">Make my own version</button></form>
         )}
