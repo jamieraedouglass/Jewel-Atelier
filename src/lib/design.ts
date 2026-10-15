@@ -203,6 +203,8 @@ export const CenterStoneSchema = z.object({
   clarity: z.number().min(0).max(1).default(0.3),
   label: z.string().max(120).default("Royal blue sapphire cabochon"),
   photoPath: z.string().nullable().default(null),
+  /** no main stone at all: a plain band, plain hoops, a bare chain */
+  none: z.boolean().default(false),
   /** turn the stone in its setting, degrees (e.g. 90 sets an oval east–west) */
   rotation: z.number().min(-180).max(180).default(0),
 });
@@ -375,6 +377,7 @@ export const label = (s: string) => s.replace(/-/g, " ").replace(/^\w/, (c) => c
 const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCase());
 
 export function stoneText(c: CenterStone) {
+  if (c.none) return "no main stone";
   const cut = c.cut === "cabochon" ? "cabochon" : c.cut === "polki" ? "polki" : c.cut === "rose-cut" ? "rose-cut" : `${c.shape}-cut`;
   return `${c.carat ? `${c.carat} ct ` : ""}${gemName(c.gem)} ${cut} (${c.lengthMm} × ${c.widthMm} mm)`;
 }
