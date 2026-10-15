@@ -19,6 +19,7 @@ function describePatch(p: DesignPatch): string {
   const parts: string[] = [];
   const walk = (o: Record<string, unknown>, prefix = "") => {
     for (const [k, v] of Object.entries(o)) {
+      if (k === "motif" && v && typeof v === "object") { parts.push(`motif: ${(v as { name?: string }).name ?? "custom"}`); continue; }
       if (v && typeof v === "object") walk(v as Record<string, unknown>, `${prefix}${k} `);
       else parts.push(`${prefix}${k}: ${typeof v === "number" ? Math.round(v * 100) / 100 : String(v)}`);
     }

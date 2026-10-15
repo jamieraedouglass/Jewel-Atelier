@@ -120,7 +120,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           ))}
         </div>
         <div className="panel-body">
-          {tab === "design" && <DesignControls design={design} onChange={change} onReplace={replace} />}
+          {tab === "design" && <DesignControls design={design} userId={userId} onChange={change} onReplace={replace} />}
           {tab === "stone" && <StoneUploader userId={userId} onApply={(stone) => { change({ center: stone }); setTab("design"); }} />}
           {tab === "chat" && <DesignChat userId={userId} design={design} onApply={change} />}
         </div>

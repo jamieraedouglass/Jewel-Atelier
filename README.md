@@ -23,12 +23,14 @@ A private 3D jewellery design studio for jewellers. Upload a stone, build a piec
   - Pearl and bead fringes.
   - All nine navratna gems, plus 12 more.
 - **Indian sizing.** Ring sizes show US and Indian side by side. Bangles use Indian sizes 2-2 to 2-12. Necklace lengths are named, from hasli to opera.
+- **Custom motifs (new shapes).** Describe a shape ("peacock with emerald drops"), upload a sketch for Claude to trace, or import an SVG from Illustrator or CAD. The motif becomes a gold plate with stones, with millegrain or rope edges and optional enamel. Use it as a ring top, earrings, a pendant, or repeated along a necklace or bracelet. The design chat can draw motifs too. Motifs are flat plates with depth, not fully sculpted 3D forms.
 - **Upload a stone.** Add photos or a short phone video. Claude reads the gem, cut, shape, colour and size, and lists what a lab still has to confirm. One click puts it in the piece.
 - **Ask the designer.** A chat panel that speaks Western and Indian fine jewellery. It sees the current piece and your style profile: inspiration photos, style icons and notes. It proposes changes you apply with one click.
 - **Download and WhatsApp.**
   - **Download image** saves a PNG render.
   - **WhatsApp**, on a phone, shares the render itself with a short description and a link. On a computer it opens WhatsApp with the link.
 - **Private by default.** Designs are visible only to you. A link works only after you press Copy link or WhatsApp, and **Turn off link** makes it private again.
+- **Name-only accounts.** Sign in with just your name. The same name opens the same account, with its saved designs and style profile, on any device. Set `STUDIO_CODE` to add one shared word for your team, so a stranger can't sign in as you by typing your name.
 - **Daily AI limit.** Each person gets `AI_DAILY_LIMIT` stone analyses and chat messages per day (default 40), counted in the database.
 
 Stack: Next.js 14 (App Router) · TypeScript · React Three Fiber + drei · Supabase (auth, Postgres, storage) · Claude API.
@@ -41,8 +43,8 @@ Stack: Next.js 14 (App Router) · TypeScript · React Three Fiber + drei · Supa
    ```
 2. **Create a Supabase project** at [supabase.com](https://supabase.com).
    - In SQL Editor, run `supabase/schema.sql`. This creates the tables, the security rules, the storage buckets and the daily-limit counter.
-   - In Authentication → URL Configuration, set **Site URL** to `http://localhost:3000`. Add `http://localhost:3000/auth/callback`, plus your live URL's `/auth/callback`, to **Redirect URLs**.
-   - Optional: in Authentication → Sign In / Providers, turn off **Allow new users to sign up** once your team has accounts. This keeps the studio private.
+   - Copy the **service_role** key from Project Settings → API into `SUPABASE_SERVICE_ROLE_KEY`. The server uses it only to create name-based accounts.
+   - In Authentication → Sign In / Providers, turn **off** "Allow new users to sign up". Accounts are then created only through the name sign-in, never by someone calling Supabase directly.
 3. **Get a Claude API key** at [console.anthropic.com](https://console.anthropic.com). Set a monthly spend limit there too.
 4. **Create `.env.local`.**
    ```bash
@@ -67,6 +69,8 @@ To deploy, push to Vercel, add the same environment variables there, and set `NE
 | `src/components/RingCanvas.tsx` | Canvas, studio lighting, automatic framing for any size of piece, image snapshots. |
 | `src/components/DesignControls.tsx` | Controls. Only the ones the current style uses are shown. |
 | `src/app/api/analyze-stone`, `src/app/api/chat` | The Claude calls. Both require sign-in and count against the daily limit. |
+| `src/app/login/actions.ts` | Name sign-in. Each name maps to a hidden email, and a password derived from `NAME_LOGIN_SECRET`. |
+| `src/lib/motifModel.ts`, `src/components/MotifPanel.tsx`, `src/app/api/motif` | Custom motifs: SVG path → extruded plate, plus the AI drawing and tracing endpoint. |
 | `supabase/schema.sql` | Tables, row-level security, buckets, the `use_ai_call` limit function. |
 
 To add a style:

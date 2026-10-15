@@ -26,6 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/design">New design</Link>
             {user ? (
               <>
+                <span className="muted" style={{ textTransform: "none", letterSpacing: 0 }}>{(user.user_metadata?.display_name as string) || "Signed in"}</span>
                 <Link href="/rings">My designs</Link>
                 <Link href="/style">Style profile</Link>
                 <form action="/auth/signout" method="post"><button className="btn" type="submit">Sign out</button></form>
