@@ -12,7 +12,22 @@ export const GEMS = [
   "diamond", "sapphire", "yellow-sapphire", "ruby", "emerald", "spinel", "pearl", "coral", "hessonite", "cats-eye",
   "tourmaline", "aquamarine", "tanzanite", "amethyst", "citrine", "garnet", "morganite", "peridot", "opal", "turquoise", "onyx", "other",
 ] as const;
-export const SHAPES = ["oval", "round", "cushion", "pear", "emerald", "marquise"] as const;
+export const SHAPES = [
+  "round", "oval", "cushion", "pear", "marquise", "heart", "emerald", "asscher", "princess", "radiant", "baguette",
+  "octagon", "hexagon", "trillion", "kite", "shield", "half-moon", "old-mine",
+] as const;
+/** step-cut shapes get parallel step facets; the rest get brilliant facets */
+export const STEP_SHAPES = new Set<string>(["emerald", "asscher", "baguette", "octagon", "hexagon", "kite", "shield", "half-moon"]);
+/** typical length ÷ width per shape */
+export const SHAPE_RATIO: Record<(typeof SHAPES)[number], number> = {
+  round: 1, oval: 1.3, cushion: 1.1, pear: 1.5, marquise: 2, heart: 1, emerald: 1.4, asscher: 1, princess: 1, radiant: 1.25,
+  baguette: 2.5, octagon: 1, hexagon: 1.15, trillion: 1, kite: 1.5, shield: 1.1, "half-moon": 0.55, "old-mine": 1.05,
+};
+/** how much of the bounding box the outline fills, for carat ↔ mm estimates */
+const SHAPE_FILL: Record<(typeof SHAPES)[number], number> = {
+  round: 0.5, oval: 0.52, cushion: 0.58, pear: 0.48, marquise: 0.44, heart: 0.5, emerald: 0.64, asscher: 0.66, princess: 0.7,
+  radiant: 0.66, baguette: 0.75, octagon: 0.64, hexagon: 0.62, trillion: 0.38, kite: 0.45, shield: 0.55, "half-moon": 0.5, "old-mine": 0.58,
+};
 /** polki = flat uncut diamond with a foil back; rose-cut = faceted dome with a flat base */
 export const CUTS = ["faceted", "cabochon", "rose-cut", "polki"] as const;
 export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round"] as const;
@@ -57,7 +72,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 /** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -75,7 +90,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band", "ringSize"] },
   },
   earrings: {
-    stud: { label: "Stud", blurb: "A single set stone on the lobe.", uses: [...CORE, "halo", "accents"] },
+    stud: { label: "Stud", blurb: "One stone, or several in a row (toi-et-moi, clusters), each in its own shape, gem and angle.", uses: [...CORE, "halo", "accents", "extraStones"] },
     drop: { label: "Drop", blurb: "The stone hangs below a small top stone.", uses: [...CORE, "accentTop", "accents"] },
     hoop: { label: "Hoop", blurb: "Hoop, plain or pavé, with an optional charm.", uses: [...CORE, "hoop", "pave", "accents"] },
     huggie: { label: "Huggie", blurb: "Small, thick hoop that hugs the lobe.", uses: ["accents", "pave"], defaults: { options: { hoopDiameterMm: 12, pave: true } } },
@@ -188,7 +203,26 @@ export const CenterStoneSchema = z.object({
   clarity: z.number().min(0).max(1).default(0.3),
   label: z.string().max(120).default("Royal blue sapphire cabochon"),
   photoPath: z.string().nullable().default(null),
+  /** turn the stone in its setting, degrees (e.g. 90 sets an oval east–west) */
+  rotation: z.number().min(-180).max(180).default(0),
 });
+
+/** an extra stone in a multi-stone stud: its own gem, cut, shape and size, placed below the previous stone */
+export const ExtraStoneSchema = z.object({
+  gem: z.enum(GEMS).default("diamond"),
+  cut: z.enum(CUTS).default("faceted"),
+  shape: z.enum(SHAPES).default("pear"),
+  lengthMm: z.number().min(1).max(30).default(7),
+  widthMm: z.number().min(1).max(30).default(5),
+  domeMm: z.number().min(0.2).max(12).default(0.8),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f4f6fb"),
+  clarity: z.number().min(0).max(1).default(0.95),
+  rotation: z.number().min(-180).max(180).default(0),
+  /** nudge from its automatic spot, mm */
+  dx: z.number().min(-30).max(30).default(0),
+  dz: z.number().min(-30).max(30).default(0),
+});
+export type ExtraStone = z.infer<typeof ExtraStoneSchema>;
 
 export const DesignSchema = z
   .object({
@@ -201,8 +235,10 @@ export const DesignSchema = z
     accents: z.object({
       gem: z.enum(GEMS).default("diamond"), color: hex.default("#f4f6fb"), cut: z.enum(["faceted", "polki", "rose-cut"]).default("faceted"),
       sizeCt: z.number().min(0.005).max(6).default(0.1),
-      /** stone shapes in repeating order, e.g. ["oval", "round"] alternates ovals and rounds (tennis styles) */
-      shapes: z.array(z.enum(SHAPES)).min(1).max(4).default(["round"]),
+      /** stone shapes in repeating order, e.g. ["round", "round", "round", "marquise"] (tennis styles) */
+      shapes: z.array(z.enum(SHAPES)).min(1).max(12).default(["round"]),
+      /** which way elongated stones point: along the line, across it, or alternating */
+      orientation: z.enum(["along", "across", "alternate"]).default("along"),
     }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),
@@ -217,6 +253,10 @@ export const DesignSchema = z
     gallery: z.object({ roseCut: z.boolean().default(true) }).default({}),
     band: z.object({ widthMm: z.number().min(1.5).max(8).default(2.3), finish: z.enum(BAND_FINISHES).default("polished") }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
+    /** more stones in each stud (toi-et-moi, clusters), stacked below the main stone */
+    extraStones: z.array(ExtraStoneSchema).max(6).default([]),
+    /** mirror the second earring of a pair */
+    mirrorPair: z.boolean().default(true),
     /** a custom shape, used by the motif styles */
     motif: MotifSchema.default({}),
     /* everything else */
@@ -296,13 +336,13 @@ const DEPTH: Record<CenterStone["cut"], number> = { faceted: 0.62, "rose-cut": 0
  */
 export function estimateDims(gem: Gem, cut: CenterStone["cut"], shape: CenterStone["shape"], carat: number) {
   const volMm3 = ((carat * 0.2) / DENSITY[gem]) * 1000;
-  const ratio = { oval: 1.25, round: 1, cushion: 1.1, pear: 1.5, emerald: 1.4, marquise: 2 }[shape];
+  const ratio = SHAPE_RATIO[shape];
   if (cut === "cabochon") {
     const k = (2 / 3) * Math.PI * ratio * 1.17;
     const b = Math.cbrt(volMm3 / k);
     return { lengthMm: round1(2 * b * ratio), widthMm: round1(2 * b), domeMm: round1(0.9 * b) };
   }
-  const fill = { oval: 0.52, round: 0.5, cushion: 0.58, pear: 0.48, emerald: 0.64, marquise: 0.44 }[shape] * (cut === "faceted" ? 1 : 1.35);
+  const fill = SHAPE_FILL[shape] * (cut === "faceted" ? 1 : 1.35);
   const w = Math.cbrt(volMm3 / (ratio * DEPTH[cut] * fill));
   return { lengthMm: round1(w * ratio), widthMm: round1(w), domeMm: round1(w * (cut === "faceted" ? 0.14 : cut === "rose-cut" ? 0.3 : 0.06)) };
 }

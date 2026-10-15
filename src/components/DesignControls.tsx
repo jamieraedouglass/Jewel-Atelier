@@ -3,7 +3,7 @@
 import MotifPanel from "./MotifPanel";
 import {
   BAND_FINISHES, BANGLE_SIZES, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
-  type Design, type DesignPatch, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
+  SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
 } from "@/lib/design";
 
 type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void };
@@ -116,9 +116,61 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
             <Range id="dome" label={c.cut === "cabochon" ? "Dome" : "Crown"} value={c.domeMm} min={0.2} max={12} step={0.1} format={(n) => `${n} mm`} onChange={(domeMm) => setCenter({ domeMm })} />
             <Range id="clar" label="Transparency" value={c.clarity} min={0} max={1} step={0.05} format={(n) => `${Math.round(n * 100)}%`} onChange={(clarity) => setCenter({ clarity })} />
           </div>
-          <label className="field" htmlFor="color"><span>Colour</span>
-            <input id="color" type="color" value={c.color} onChange={(e) => setCenter({ color: e.target.value })} style={{ width: "100%", height: 36, border: 0, background: "none" }} />
-          </label>
+          <div className="row2">
+            <label className="field" htmlFor="color"><span>Colour</span>
+              <input id="color" type="color" value={c.color} onChange={(e) => setCenter({ color: e.target.value })} style={{ width: "100%", height: 36, border: 0, background: "none" }} />
+            </label>
+            <Range id="angle" label="Angle" value={c.rotation} min={-180} max={180} step={5} format={(n) => `${n}°`} onChange={(rotation) => setCenter({ rotation })} />
+          </div>
+        </section>
+      )}
+
+      {has("extraStones") && (
+        <section style={{ display: "grid", gap: 12 }}>
+          <h3>More stones in each stud</h3>
+          <p className="muted small" style={{ margin: 0 }}>Each extra stone sits below the one before it. Give each its own gem, cut, shape, size and angle, and nudge it into place.</p>
+          {d.extraStones.map((e, i) => {
+            const set = (p: Partial<ExtraStone>) => onChange({ extraStones: d.extraStones.map((x, j) => (j === i ? { ...x, ...p } : x)) } as DesignPatch);
+            return (
+              <div key={i} style={{ display: "grid", gap: 10, border: "1px solid var(--line)", borderRadius: 12, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong>Stone {i + 2}</strong>
+                  <button type="button" className="chip" onClick={() => onChange({ extraStones: d.extraStones.filter((_, j) => j !== i) } as DesignPatch)}>Remove</button>
+                </div>
+                <div className="row2">
+                  <label className="field" htmlFor={`x-gem-${i}`}><span>Gem</span>
+                    <GemSelect id={`x-gem-${i}`} value={e.gem} options={GEMS} onPick={(gem) => set({ gem, ...GEM_LOOK[gem] })} />
+                  </label>
+                  <label className="field" htmlFor={`x-shape-${i}`}><span>Shape</span>
+                    <select id={`x-shape-${i}`} value={e.shape} onChange={(ev) => { const shape = ev.target.value as ExtraStone["shape"]; set({ shape, lengthMm: Math.round(e.widthMm * SHAPE_RATIO[shape] * 10) / 10 }); }}>
+                      {SHAPES.map((sh) => <option key={sh} value={sh}>{label(sh)}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <Chips name="Cut" options={CUTS} value={e.cut} onPick={(cut) => set({ cut })} />
+                <div className="row2">
+                  <Range id={`x-l-${i}`} label="Length" value={e.lengthMm} min={1} max={30} step={0.1} format={(n) => `${n} mm`} onChange={(lengthMm) => set({ lengthMm })} />
+                  <Range id={`x-w-${i}`} label="Width" value={e.widthMm} min={1} max={30} step={0.1} format={(n) => `${n} mm`} onChange={(widthMm) => set({ widthMm })} />
+                </div>
+                <Range id={`x-a-${i}`} label="Angle" value={e.rotation} min={-180} max={180} step={5} format={(n) => `${n}°`} onChange={(rotation) => set({ rotation })} />
+                <div className="row2">
+                  <Range id={`x-dx-${i}`} label="Shift sideways" value={e.dx} min={-15} max={15} step={0.25} format={(n) => `${n} mm`} onChange={(dx) => set({ dx })} />
+                  <Range id={`x-dz-${i}`} label="Shift down" value={e.dz} min={-15} max={15} step={0.25} format={(n) => `${n} mm`} onChange={(dz) => set({ dz })} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn" disabled={d.extraStones.length >= 6}
+              onClick={() => onChange({ extraStones: [...d.extraStones, { gem: "diamond", cut: "faceted", shape: "pear", lengthMm: 7, widthMm: 5, domeMm: 0.8, color: GEM_LOOK.diamond.color, clarity: 0.95, rotation: 0, dx: 0, dz: 0 }] } as DesignPatch)}>
+              + Add a stone
+            </button>
+            <button type="button" className="btn"
+              onClick={() => onChange({ center: { shape: "pear", cut: "faceted", gem: "diamond", lengthMm: 8, widthMm: 5.5, domeMm: 0.8, rotation: 35, color: GEM_LOOK.diamond.color, clarity: 0.95 }, extraStones: [{ gem: "emerald", cut: "faceted", shape: "emerald", lengthMm: 7, widthMm: 5, domeMm: 0.8, color: GEM_LOOK.emerald.color, clarity: 0.5, rotation: -35, dx: 3, dz: -1 }] } as DesignPatch)}>
+              Try a toi-et-moi
+            </button>
+          </div>
+          <Toggle id="mirror" checked={d.mirrorPair} onChange={(mirrorPair) => onChange({ mirrorPair })}>Mirror the second earring</Toggle>
         </section>
       )}
 
@@ -136,7 +188,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
           <Chips name="Accent cut" options={["faceted", "polki", "rose-cut"] as const} value={d.accents.cut} onPick={(cut) => onChange({ accents: { cut } })} />
           {has("accentShapes") && (
             <>
-              <span className="small muted">Shapes, in repeating order (tap to add, × to remove; up to 4)</span>
+              <span className="small muted">Pattern, repeated all the way round. Add the same shape as often as you like (up to 12 stones per repeat); tap a stone to remove it.</span>
               <div className="chips" role="group" aria-label="Pattern">
                 {d.accents.shapes.map((s, i) => (
                   <button key={`${s}-${i}`} type="button" className="chip" aria-pressed="true" disabled={d.accents.shapes.length === 1}
@@ -145,13 +197,18 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
               </div>
               <div className="chips" role="group" aria-label="Add shape">
                 {SHAPES.map((s) => (
-                  <button key={s} type="button" className="chip" disabled={d.accents.shapes.length >= 4}
+                  <button key={s} type="button" className="chip" disabled={d.accents.shapes.length >= 12}
                     onClick={() => onChange({ accents: { shapes: [...d.accents.shapes, s] } })}>+ {label(s)}</button>
                 ))}
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"] } })}>Oval–round</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"] } })}>Emerald–round–round</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"] } })}>Pear–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"] } })}>3 rounds + marquise</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"] } })}>All hearts</button>
               </div>
+              <span className="small muted">Stone direction</span>
+              <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}
+                fmt={(v) => (v === "along" ? "Along the bracelet" : v === "across" ? "Across the bracelet" : "Alternating")} onPick={(orientation) => onChange({ accents: { orientation } })} />
             </>
           )}
           <Range id="acc-ct" label="Each" value={d.accents.sizeCt} min={0.005} max={has("accentShapes") ? 6 : 1} step={0.005} format={(n) => `${n.toFixed(n >= 1 ? 2 : 3)} ct`} onChange={(sizeCt) => onChange({ accents: { sizeCt } })} />
