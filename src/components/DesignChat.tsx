@@ -36,7 +36,7 @@ export default function DesignChat({ userId, design, onApply }: Props) {
   const [useStyle, setUseStyle] = useState(true);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages, busy]);
+  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, busy]);
 
   if (!userId) return <p className="muted">Sign in to chat with the design consultant.</p>;
 

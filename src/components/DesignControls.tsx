@@ -134,7 +134,27 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
             </label>
           </div>
           <Chips name="Accent cut" options={["faceted", "polki", "rose-cut"] as const} value={d.accents.cut} onPick={(cut) => onChange({ accents: { cut } })} />
-          <Range id="acc-ct" label="Each" value={d.accents.sizeCt} min={0.005} max={1} step={0.005} format={(n) => `${n.toFixed(3)} ct`} onChange={(sizeCt) => onChange({ accents: { sizeCt } })} />
+          {has("accentShapes") && (
+            <>
+              <span className="small muted">Shapes, in repeating order (tap to add, × to remove; up to 4)</span>
+              <div className="chips" role="group" aria-label="Pattern">
+                {d.accents.shapes.map((s, i) => (
+                  <button key={`${s}-${i}`} type="button" className="chip" aria-pressed="true" disabled={d.accents.shapes.length === 1}
+                    onClick={() => onChange({ accents: { shapes: d.accents.shapes.filter((_, j) => j !== i) } })}>{label(s)} ×</button>
+                ))}
+              </div>
+              <div className="chips" role="group" aria-label="Add shape">
+                {SHAPES.map((s) => (
+                  <button key={s} type="button" className="chip" disabled={d.accents.shapes.length >= 4}
+                    onClick={() => onChange({ accents: { shapes: [...d.accents.shapes, s] } })}>+ {label(s)}</button>
+                ))}
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"] } })}>Oval–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"] } })}>Emerald–round–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"] } })}>Pear–round</button>
+              </div>
+            </>
+          )}
+          <Range id="acc-ct" label="Each" value={d.accents.sizeCt} min={0.005} max={has("accentShapes") ? 6 : 1} step={0.005} format={(n) => `${n.toFixed(n >= 1 ? 2 : 3)} ct`} onChange={(sizeCt) => onChange({ accents: { sizeCt } })} />
         </section>
       )}
 
@@ -217,12 +237,6 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
         {isGold(d.metal) && (
           <>
             <Chips name="Purity" options={KARATS} value={d.purity.karat as (typeof KARATS)[number]} fmt={(k) => `${k}k`} onPick={(karat) => onChange({ purity: { karat } })} />
-            <div className="row2" style={{ alignItems: "end" }}>
-              <Toggle id="bis" checked={d.purity.bisHallmark} onChange={(bisHallmark) => onChange({ purity: { bisHallmark } })}>BIS hallmark</Toggle>
-              <label className="field" htmlFor="huid"><span>HUID</span>
-                <input id="huid" type="text" maxLength={6} value={d.purity.huid} placeholder="6 characters" onChange={(e) => onChange({ purity: { huid: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") } })} />
-              </label>
-            </div>
           </>
         )}
       </section>
