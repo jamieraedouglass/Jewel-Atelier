@@ -83,7 +83,7 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
   }
 
   return (
-    <section style={{ display: "grid", gap: 12 }}>
+    <section id="sec-motif" style={{ display: "grid", gap: 12 }}>
       <h3>Custom motif</h3>
       <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 12, alignItems: "center" }}>
         <div aria-label={`Preview of ${mo.name}`} role="img" style={{ width: 96, height: 96, background: "var(--bg)", borderRadius: 10, padding: 6 }}

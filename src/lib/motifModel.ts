@@ -43,6 +43,7 @@ export function motifShapes(m: Motif): MotifShapes | null {
 /** extrude the plate; optional inset layer (enamel) and an edge finish */
 export function motifPlate(m: Motif, metal: THREE.Material, enamel: THREE.Material | null): THREE.Group {
   const g = new THREE.Group();
+  g.userData.part = "motif";
   const ms = motifShapes(m);
   if (!ms) {
     // fall back to a simple disc so the piece still renders

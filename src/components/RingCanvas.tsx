@@ -35,9 +35,44 @@ function framing(piece: Piece, view: View) {
   return { pos: sphere.center.clone().add(new THREE.Vector3(0.1, 0.8, 0.62).normalize().multiplyScalar(fit(sphere.radius))), target: sphere.center.clone() };
 }
 
+export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif";
+export type Pick = { part: Part; x: number; y: number };
+
 function Model({ piece }: { piece: Piece }) {
   useEffect(() => () => disposeGroup(piece.group), [piece]);
   return <primitive object={piece.group} />;
+}
+
+/** Turns a click (not a drag) on the canvas into "which part of the piece was hit", using our own raycast. */
+function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: (p: Pick) => void; onMiss?: () => void }) {
+  const { camera, gl } = useThree();
+  const latest = useRef({ piece, onPick, onMiss });
+  latest.current = { piece, onPick, onMiss };
+  useEffect(() => {
+    const el = gl.domElement;
+    let down: { x: number; y: number } | null = null;
+    const ray = new THREE.Raycaster();
+    const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY }; };
+    const onUp = (e: PointerEvent) => {
+      const { piece, onPick, onMiss } = latest.current;
+      if (!down || !onPick) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      down = null;
+      if (moved > 5) return; // that was a drag to turn the piece
+      const r = el.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      piece.group.updateWorldMatrix(true, true);
+      const hit = ray.intersectObject(piece.group, true)[0];
+      if (!hit) { onMiss?.(); return; }
+      let o: THREE.Object3D | null = hit.object;
+      while (o && !o.userData.part) o = o.parent;
+      onPick({ part: (o?.userData.part as Part) ?? "metal", x: e.clientX - r.left, y: e.clientY - r.top });
+    };
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointerup", onUp);
+    return () => { el.removeEventListener("pointerdown", onDown); el.removeEventListener("pointerup", onUp); };
+  }, [camera, gl]);
+  return null;
 }
 
 /** Re-frames when the view or the kind of piece changes, not on every slider tweak. */
@@ -87,9 +122,9 @@ function StudioLights() {
 }
 
 /** `handle` is a plain prop, not a ref: next/dynamic does not forward refs, so a ref would silently stay null. */
-type Props = { design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null> };
+type Props = { design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>; onPick?: (p: Pick) => void; onMiss?: () => void };
 
-export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle }: Props) {
+export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
   const piece = useMemo(() => buildPiece(design), [design]);
@@ -117,6 +152,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <StudioLights />
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
       <Model piece={piece} />
+      <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
       <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
       <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}`} controls={controls} />

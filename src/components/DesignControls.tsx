@@ -95,7 +95,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       {has("motif") && <MotifPanel design={d} userId={userId} onChange={onChange} />}
 
       {has("center") && (
-        <section style={{ display: "grid", gap: 12 }}>
+        <section id="sec-center" style={{ display: "grid", gap: 12 }}>
           <h3>{d.type === "ring" ? "Centre stone" : "Main stone"}</h3>
           <Toggle id="no-main" checked={c.none} onChange={(none) => setCenter({ none })}>
             {d.type === "ring" ? "No centre stone (plain band)" : d.style === "hoop" ? "No charm (plain hoops)" : "No main stone"}
@@ -131,9 +131,11 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       )}
 
       {has("extraStones") && (
-        <section style={{ display: "grid", gap: 12 }}>
-          <h3>More stones in each stud</h3>
-          <p className="muted small" style={{ margin: 0 }}>Each extra stone sits below the one before it. Give each its own gem, cut, shape, size and angle, and nudge it into place.</p>
+        <section id="sec-extra" style={{ display: "grid", gap: 12 }}>
+          <h3>{d.type === "ring" ? "Second stone" : "More stones in each stud"}</h3>
+          <p className="muted small" style={{ margin: 0 }}>{d.type === "ring"
+            ? "Sits beside the main stone. Give it its own gem, cut, shape, size and angle, and nudge it into place."
+            : "Each extra stone sits below the one before it. Give each its own gem, cut, shape, size and angle, and nudge it into place."}</p>
           {d.extraStones.map((e, i) => {
             const set = (p: Partial<ExtraStone>) => onChange({ extraStones: d.extraStones.map((x, j) => (j === i ? { ...x, ...p } : x)) } as DesignPatch);
             return (
@@ -166,7 +168,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
             );
           })}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="btn" disabled={d.extraStones.length >= 6}
+            <button type="button" className="btn" disabled={d.extraStones.length >= (d.type === "ring" ? 1 : 6)}
               onClick={() => onChange({ extraStones: [...d.extraStones, { gem: "diamond", cut: "faceted", shape: "pear", lengthMm: 7, widthMm: 5, domeMm: 0.8, color: GEM_LOOK.diamond.color, clarity: 0.95, rotation: 0, dx: 0, dz: 0 }] } as DesignPatch)}>
               + Add a stone
             </button>
@@ -175,12 +177,12 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
               Try a toi-et-moi
             </button>
           </div>
-          <Toggle id="mirror" checked={d.mirrorPair} onChange={(mirrorPair) => onChange({ mirrorPair })}>Mirror the second earring</Toggle>
+          {d.type === "earrings" && <Toggle id="mirror" checked={d.mirrorPair} onChange={(mirrorPair) => onChange({ mirrorPair })}>Mirror the second earring</Toggle>}
         </section>
       )}
 
       {(has("accents") || (has("halo") && o.halo) || (has("pave") && o.pave)) && (
-        <section style={{ display: "grid", gap: 12 }}>
+        <section id="sec-accents" style={{ display: "grid", gap: 12 }}>
           <h3>Accent stones</h3>
           <div className="row2">
             <label className="field" htmlFor="acc-gem"><span>Gem</span>
@@ -221,7 +223,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       )}
 
       {has("fringe") && (
-        <section style={{ display: "grid", gap: 12 }}>
+        <section id="sec-fringe" style={{ display: "grid", gap: 12 }}>
           <h3>Fringe &amp; beads</h3>
           <Toggle id="fringe-on" checked={d.fringe.enabled} onChange={(enabled) => onChange({ fringe: { enabled } })}>Hanging beads</Toggle>
           {d.fringe.enabled && (
@@ -261,7 +263,21 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
           )}
           {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>Halo of accent stones</Toggle>}
           {has("accentTop") && <Toggle id="acc-top" checked={o.accentTop} onChange={(accentTop) => setOpt({ accentTop })}>Accent stone at the top</Toggle>}
-          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>Pavé front</Toggle>}
+          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>Set with stones</Toggle>}
+          {has("pave") && o.pave && (
+            <>
+              <span className="small muted">How far the stones run</span>
+              <Chips name="Coverage" options={["front", "half", "full"] as const} value={o.paveCoverage}
+                fmt={(v) => (v === "front" ? "Front two-thirds" : v === "half" ? "Bottom half" : "All the way up")} onPick={(paveCoverage) => setOpt({ paveCoverage })} />
+              <span className="small muted">Which face of the wire</span>
+              <Chips name="Face" options={["front", "outer", "inner"] as const} value={o.hoopFace}
+                fmt={(v) => (v === "front" ? "Front edge (narrow)" : v === "outer" ? "Outer side (wide)" : "Inside")} onPick={(hoopFace) => setOpt({ hoopFace })} />
+            </>
+          )}
+          {d.style === "hoop" && !c.none && (
+            <Range id="charm-turn" label="Charm faces" value={o.charmTurn} min={-180} max={180} step={5}
+              format={(n) => (n === 0 ? "Forward" : Math.abs(n) === 90 ? "Sideways" : `${n}°`)} onChange={(charmTurn) => setOpt({ charmTurn })} />
+          )}
           {has("hoop") && <Range id="hoop" label="Diameter" value={o.hoopDiameterMm} min={8} max={70} step={1} format={(n) => `${n} mm`} onChange={(hoopDiameterMm) => setOpt({ hoopDiameterMm })} />}
           {has("length") && <Range id="length" label="Length" value={o.lengthIn} min={12} max={40} step={1} format={(n) => `${n}" (${Math.round(n * 2.54)} cm) · ${lengthName(n)}`} onChange={(lengthIn) => setOpt({ lengthIn })} />}
           {has("chain") && <Chips name="Chain" options={CHAIN_STYLES} value={o.chain} onPick={(chain) => setOpt({ chain })} />}
@@ -274,7 +290,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
       )}
 
       {has("sides") && (
-        <section style={{ display: "grid", gap: 12 }}>
+        <section id="sec-sides" style={{ display: "grid", gap: 12 }}>
           <h3>Side stones</h3>
           <Chips name="Side stones" options={SIDE_KINDS} value={d.sides.kind} onPick={(kind) => onChange({ sides: { kind } })} />
           {d.sides.kind !== "none" && <Range id="side-ct" label="Each" value={d.sides.sizeCt} min={0.1} max={1.5} step={0.05} format={(n) => `${n.toFixed(2)} ct`} onChange={(sizeCt) => onChange({ sides: { sizeCt } })} />}
@@ -293,7 +309,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace 
         </section>
       )}
 
-      <section style={{ display: "grid", gap: 12 }}>
+      <section id="sec-metal" style={{ display: "grid", gap: 12 }}>
         <h3>Metal</h3>
         <Chips name="Metal" options={METALS} value={d.metal} onPick={(metal) => onChange({ metal })} />
         {isGold(d.metal) && (

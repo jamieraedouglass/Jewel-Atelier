@@ -135,6 +135,7 @@ function setStone(c: CenterStone, style: Design["setting"]["style"], m: Mats, sc
 
 function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1): THREE.Group {
   const g = stoneMesh(c, m, scale);
+  g.userData.part = "center"; // what a click on it edits
   const L = c.lengthMm * scale, W = c.widthMm * scale;
   const fn = outlineFn(c.shape, L, W);
   const isCab = c.cut === "cabochon";
@@ -187,6 +188,7 @@ const ASPECT = SHAPE_RATIO;
 /** `dia` on each item is the stone's width; shaped stones are longer along their local Z by the shape's aspect */
 function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "rose-cut", items: Item[], shape: CenterStone["shape"] = "round") {
   const g = new THREE.Group();
+  g.userData.part = "accents";
   if (!items.length) return g;
   const o = new THREE.Object3D();
   if (BEAD_GEMS.has(gem)) {
@@ -232,6 +234,7 @@ function balls(mat: THREE.Material, items: Item[], squash = 1) {
 /** hanging fringe: from each anchor, a tiny gold link and a drop bead (pearl by default), along `dir` */
 function fringe(d: Design, m: Mats, anchors: { pos: THREE.Vector3; dir: THREE.Vector3 }[], beadsPer = 1) {
   const g = new THREE.Group();
+  g.userData.part = "fringe";
   if (!d.fringe.enabled || !anchors.length) return g;
   const D = d.fringe.sizeMm;
   const links: Item[] = [], beads: Item[] = [];
@@ -368,6 +371,28 @@ function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from:
   const g = new THREE.Group();
   byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
   return { group: g, maxW: Math.max(...dims.map((x) => x.W)), count: seq.length };
+}
+
+/**
+ * The accent pattern at fixed spots (graduated climbers, stations, wings): shapes cycle through the pattern,
+ * each spot keeps its own width, and elongated stones point along or across `tan`.
+ */
+function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number; tan: THREE.Vector3; up?: THREE.Vector3 }[]) {
+  const orient = d.accents.orientation;
+  const byShape = new Map<string, Item[]>();
+  const basis = new THREE.Matrix4();
+  spots.forEach((sp, i) => {
+    const shape = d.accents.shapes[i % d.accents.shapes.length];
+    const along = orient === "along" || (orient === "alternate" && i % 2 === 0);
+    const up = (sp.up ?? Y).clone().normalize();
+    const tp = sp.tan.clone().addScaledVector(up, -sp.tan.dot(up)).normalize();
+    const Z = along ? tp : new THREE.Vector3().crossVectors(up, tp).normalize();
+    basis.makeBasis(new THREE.Vector3().crossVectors(up, Z).normalize(), up, Z);
+    (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia, quat: new THREE.Quaternion().setFromRotationMatrix(basis) });
+  });
+  const g = new THREE.Group();
+  byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
+  return g;
 }
 
 /** a closed curve following a stone's outline, pushed outward by `gap` */
@@ -620,6 +645,25 @@ function ringPiece(d: Design): Piece {
   }
   const base = st === "three-stone" || st === "halo" ? d : { ...d, sides: { ...d.sides, kind: "none" as const } };
   const group = buildRing(base);
+  if (st === "two-stone" && d.extraStones[0]) {
+    // toi-et-moi: shift the main stone's head aside and set the partner stone beside it
+    const e = d.extraStones[0];
+    const head: THREE.Group | undefined = group.userData.head;
+    const reach = (L: number, W: number, deg: number) => { const r = THREE.MathUtils.degToRad(deg); return (Math.abs(Math.cos(r)) * W + Math.abs(Math.sin(r)) * L) / 2; };
+    const a = reach(d.center.lengthMm, d.center.widthMm, d.center.rotation), b = reach(e.lengthMm, e.widthMm, e.rotation);
+    if (head) head.position.x = -(a + 0.4);
+    const gy0: number = group.userData.girdleY ?? 12;
+    const mm = makeMaterials(d);
+    const partner = setStoneRaw({ ...d.center, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false }, d.setting.style, mm);
+    partner.rotation.y = THREE.MathUtils.degToRad(e.rotation);
+    partner.position.set(b + 0.4 + e.dx, gy0, e.dz);
+    partner.userData.part = "extra";
+    group.add(partner);
+    // a bridge under both stones into the shank
+    group.add(tube(mm, [v3(-(a + 0.4), gy0 - 1.6, 0), v3(0, gy0 - 2.4, 0), v3(b + 0.4 + e.dx, gy0 - 1.6, e.dz)], 0.6));
+    const top = new THREE.Box3().setFromObject(group).max.y;
+    return { group, focus: v3(0, top - d.center.domeMm - 1, 0), focusSize: 30, upright: true };
+  }
   const gy: number = group.userData.girdleY ?? 12;
   const c = d.center;
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
@@ -673,6 +717,7 @@ function stud(d: Design, m: Mats, mirror: boolean) {
     const s = setStoneRaw(stone, d.setting.style, m);
     s.rotation.y = THREE.MathUtils.degToRad(e.rotation * flip);
     s.position.copy(pos);
+    s.userData.part = "extra";
     g.add(s);
     // a hidden gold bridge between neighbouring stones
     g.add(tube(m, [prev.clone().setY(-1.1), pos.clone().setY(-1.1)], 0.45));
@@ -689,9 +734,10 @@ function stud(d: Design, m: Mats, mirror: boolean) {
 function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   const g = new THREE.Group();
   const R = (huggie ? Math.min(d.options.hoopDiameterMm, 16) : d.options.hoopDiameterMm) / 2;
-  const stoneW = d.options.pave ? patternMaxW(d, huggie ? 3.2 : 2.6) : 0;
-  const T = Math.max(huggie ? 2.6 : 1.5, stoneW + (huggie ? 0.8 : 0.6)); // width seen from the front
-  const D = huggie ? Math.max(3, T * 1.1) : Math.max(1.6, T * 0.9); // depth, front to back
+  const stoneW = d.options.pave ? patternMaxW(d, huggie ? 3.6 : 2.8) : 0;
+  const sideSet = d.options.pave && d.options.hoopFace !== "front";
+  const T = sideSet ? (huggie ? 2.4 : 1.4) : Math.max(huggie ? 2.6 : 1.5, stoneW + (huggie ? 0.8 : 0.6)); // width seen from the front
+  const D = sideSet ? Math.max(huggie ? 3 : 1.8, stoneW + 0.6) : huggie ? Math.max(3, T * 1.1) : Math.max(1.6, T * 0.9); // depth, front to back
   const gapA = Math.max(0.12, 1.4 / R);
   const arc = new THREE.CatmullRomCurve3(Array.from({ length: 120 }, (_, i) => {
     const a = Math.PI / 2 + gapA + (i / 119) * (2 * Math.PI - 2 * gapA);
@@ -708,8 +754,16 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   knuckle.rotation.x = Math.PI / 2; knuckle.position.copy(endB);
   g.add(knuckle);
   if (d.options.pave) {
-    // stones on the front face, around the bottom two-thirds of the hoop
-    g.add(patternRun(d, m, arc, 0.14, 0.86, { up: () => v3(0, 0, 1), offset: () => v3(0, 0, D / 2 - 0.05), maxW: T - 0.4, gap: 0.12 }).group);
+    const span = { front: [0.14, 0.86], half: [0.25, 0.75], full: [0.03, 0.97] }[d.options.paveCoverage];
+    const face = d.options.hoopFace;
+    // front: the narrow face you see head-on; outer/inner: the wide sides of the wire
+    const radial = (u: number) => arc.getPointAt(u).setZ(0).normalize();
+    const opts: RunOpts = face === "front"
+      ? { up: () => v3(0, 0, 1), offset: () => v3(0, 0, D / 2 - 0.05), maxW: T - 0.4, gap: 0.12 }
+      : face === "outer"
+      ? { up: radial, offset: (u) => radial(u).multiplyScalar(T / 2 - 0.05), maxW: D - 0.4, gap: 0.12 }
+      : { up: (u) => radial(u).negate(), offset: (u) => radial(u).multiplyScalar(-(T / 2 - 0.05)), maxW: D - 0.4, gap: 0.12 };
+    g.add(patternRun(d, m, arc, span[0], span[1], opts).group);
   }
   let low = -R - T / 2;
   if (!huggie && !d.center.none) {
@@ -722,8 +776,11 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
     holder.add(charm);
     if (c.shape === "pear" || c.shape === "heart") charm.rotateY(Math.PI); // narrow end up
     holder.rotation.x = Math.PI / 2; // face forward, length hanging down
-    holder.position.set(0, low - 1.8 - c.lengthMm / 2, 0);
-    g.add(holder);
+    const turn = new THREE.Group();
+    turn.rotation.y = THREE.MathUtils.degToRad(d.options.charmTurn);
+    turn.position.set(0, low - 1.8 - c.lengthMm / 2, 0);
+    turn.add(holder);
+    g.add(turn);
     low -= 1.8 + c.lengthMm;
   }
   return { group: g, R, T, low };
@@ -831,11 +888,24 @@ function earringPiece(d: Design, m: Mats): Piece {
     focus = v3(0, 0, zc + R * 0.4); focusSize = R * 2.8;
   } else if (st === "climber") {
     const n = Math.max(3, o.count);
-    const items: Item[] = Array.from({ length: n }, (_, i) => {
-      const t = i / (n - 1), dia = accentDia * (1.4 - 0.8 * t);
-      return { pos: v3(Math.sin(t * 1.3) * 10, 0, -t * 22), dia };
+    const curveC = new THREE.CatmullRomCurve3(Array.from({ length: 24 }, (_, i) => { const t = i / 23; return v3(Math.sin(t * 1.3) * 10, 0, -t * 22); }));
+    // graduated widths; elongated shapes take up their length along the climb, so space by real footprint
+    const orient = d.accents.orientation;
+    const spec = Array.from({ length: n }, (_, i) => {
+      const shape = d.accents.shapes[i % d.accents.shapes.length];
+      const along = orient === "along" || (orient === "alternate" && i % 2 === 0);
+      const W = accentDia * (1.4 - 0.8 * (i / (n - 1)));
+      return { W, foot: along ? W * ASPECT[shape] : W };
     });
-    one.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items));
+    const len = curveC.getLength(), need = spec.reduce((a, x) => a + x.foot + 0.25, 0);
+    const k = Math.min(1, len / need);
+    let at = 0;
+    const items = spec.map((x) => {
+      const u = Math.min(1, (at + (x.foot * k) / 2) / len);
+      at += x.foot * k + 0.25 * k;
+      return { pos: curveC.getPointAt(u), dia: x.W * k, tan: curveC.getTangentAt(u) };
+    });
+    one.add(patternAt(d, m, items));
     one.add(tube(m, items.map((it) => it.pos.clone().setY(-0.5)), 0.35));
     focus = v3(4, 0, -11); focusSize = 30;
   } else {
@@ -1161,7 +1231,7 @@ function headpiecePiece(d: Design, m: Mats): Piece {
         group.add(chainAlong(cv, "fine", m));
         const n = Math.max(2, d.options.count);
         const items: Item[] = Array.from({ length: n }, (_, i) => ({ pos: cv.getPointAt((i + 0.5) / n).add(v3(0, 0.3, 0)), dia: Math.max(2.4, roundDiameter(d.accents.gem, d.accents.sizeCt) * 1.4) }));
-        group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items));
+        group.add(patternAt(d, m, items.map((it, i) => ({ ...it, tan: cv.getTangentAt((i + 0.5) / n) }))));
         if (row === 1) group.add(fringe(d, m, items.map((it) => ({ pos: it.pos.clone().add(v3(0, 0, it.dia / 2)), dir: v3(0, 0, 1) }))));
       }
     }
@@ -1213,7 +1283,7 @@ function armletPiece(d: Design, m: Mats): Piece {
   const accentDia = Math.max(2, roundDiameter(d.accents.gem, d.accents.sizeCt));
   for (const s of [-1, 1]) {
     const params = Array.from({ length: 6 }, (_, i) => wrap(front + s * (0.03 + i * 0.015)));
-    group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, params.map((u) => ({ pos: curve.getPointAt(u).addScaledVector(outwardAt(curve, u), 1.8), dia: accentDia * (1 - Math.abs(u - front) * 4), up: outwardAt(curve, u) }))));
+    group.add(patternAt(d, m, params.map((u) => ({ pos: curve.getPointAt(u).addScaledVector(outwardAt(curve, u), 1.8), dia: accentDia * (1 - Math.abs(u - front) * 4), up: outwardAt(curve, u), tan: curve.getTangentAt(u) }))));
   }
   group.add(fringe(d, m, Array.from({ length: 9 }, (_, i) => { const u = wrap(front + (i / 8 - 0.5) * 0.12); return { pos: curve.getPointAt(u).addScaledVector(outwardAt(curve, u), 2).add(v3(0, -5.2, 0)), dir: v3(0, -1, 0).add(outwardAt(curve, u)).normalize() }; })));
   return { group, focus: f.group.position.clone(), focusSize: f.radius * 5, upright: false };
