@@ -1,4 +1,4 @@
--- Ring Atelier schema. Paste into Supabase → SQL Editor → Run.
+-- Jewel Atelier schema. Paste into Supabase → SQL Editor → Run.
 
 -- Saved ring designs ---------------------------------------------------------
 create table if not exists public.designs (
@@ -72,4 +72,4 @@ create policy "update own files" on storage.objects for update to authenticated
 create policy "delete own files" on storage.objects for delete to authenticated
   using (bucket_id in ('stones','inspiration','thumbnails') and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "read own private files" on storage.objects for select to authenticated
-  using (bucket_id in ('stones','inspiration') and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id in ('stones','inspiration','thumbnails') and (storage.foldername(name))[1] = auth.uid()::text);
