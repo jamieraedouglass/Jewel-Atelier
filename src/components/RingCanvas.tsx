@@ -11,7 +11,14 @@ import { disposeGroup } from "@/lib/ringModel";
 
 export type View = "hero" | "top" | "detail";
 export const VIEW_LABEL: Record<View, string> = { hero: "¾", top: "Top", detail: "Detail" };
-export type RingCanvasHandle = { snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null> };
+export type Cutout = { url: string; mmPerPx: number; widthMm: number; heightMm: number };
+export type RingCanvasHandle = {
+  snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null>;
+  /** a true-to-scale picture of one piece (one earring of a pair) on a clear background, for trying it on a photo */
+  cutout?: () => Cutout | null;
+};
+/** real size of the piece, mm: across, top to bottom, and how thick */
+export type Measure = { widthMm: number; lengthMm: number; depthMm: number; what: string };
 
 const FOV = 28;
 
@@ -37,6 +44,77 @@ function framing(piece: Piece, view: View) {
 
 export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif" | "drop";
 export type Pick = { part: Part; x: number; y: number; index?: number };
+
+/** the part worth measuring: one earring of a pair, a ring's head, otherwise the whole piece */
+function subjectOf(piece: Piece, design: Design): { obj: THREE.Object3D; hide: THREE.Object3D[]; what: string } {
+  const g = piece.group;
+  if (design.type === "earrings" && g.children.length >= 2) return { obj: g.children[0], hide: g.children.slice(1), what: "each earring" };
+  return { obj: g, hide: [], what: design.type === "ring" ? "the ring" : "the piece" };
+}
+
+export function measurePiece(piece: Piece, design: Design): Measure {
+  const { obj, what } = subjectOf(piece, design);
+  obj.updateWorldMatrix(true, true);
+  const b = new THREE.Box3();
+  if (design.type === "ring") {
+    // a ring's top: the stones and what holds them, not the band
+    obj.traverse((o) => { if (["center", "sides", "extra", "accents", "motif"].includes(o.userData.part)) b.expandByObject(o); });
+  }
+  if (b.isEmpty()) b.setFromObject(obj);
+  const sz = b.getSize(new THREE.Vector3());
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  if (design.type === "ring") return { widthMm: r1(sz.x), lengthMm: r1(sz.z), depthMm: r1(sz.y), what: "the ring's top" };
+  if (piece.upright) return { widthMm: r1(sz.x), lengthMm: r1(sz.y), depthMm: r1(sz.z), what };
+  return { widthMm: r1(sz.x), lengthMm: r1(sz.z), depthMm: r1(sz.y), what };
+}
+
+/** Lets the outside ask for a true-to-scale cutout: one frame drawn with a flat (orthographic) camera on a clear background. */
+function Grabber({ piece, design, handle }: { piece: Piece; design: Design; handle?: React.MutableRefObject<RingCanvasHandle | null> }) {
+  const { gl, scene } = useThree();
+  const latest = useRef({ piece, design });
+  latest.current = { piece, design };
+  useEffect(() => {
+    if (!handle?.current) return;
+    handle.current.cutout = () => {
+      const { piece, design } = latest.current;
+      const { obj, hide } = subjectOf(piece, design);
+      piece.group.updateWorldMatrix(true, true);
+      hide.forEach((h) => (h.visible = false));
+      const box = new THREE.Box3().setFromObject(obj);
+      hide.forEach((h) => (h.visible = true));
+      if (box.isEmpty()) return null;
+      const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+      // looking down on flat pieces (and rings, stone up); upright hoops are seen from the front
+      const front = piece.upright && design.type !== "ring";
+      const spanX = size.x, spanY = front ? size.y : size.z, depth = front ? size.z : size.y;
+      const el = gl.domElement, cw = el.width, ch = el.height;
+      const pad = 1.08, aspect = cw / ch;
+      let fw = spanX * pad, fh = spanY * pad;
+      if (fw / fh > aspect) fh = fw / aspect; else fw = fh * aspect;
+      const cam = new THREE.OrthographicCamera(-fw / 2, fw / 2, fh / 2, -fh / 2, 0.1, depth * 4 + 200);
+      if (front) { cam.position.set(c.x, c.y, c.z + depth + 100); cam.up.set(0, 1, 0); }
+      else { cam.position.set(c.x, c.y + depth + 100, c.z); cam.up.set(0, 0, -1); }
+      cam.lookAt(c);
+      cam.updateProjectionMatrix();
+      // hide everything but the piece (shadow, floor) and the background for this one frame
+      const hidden: THREE.Object3D[] = [];
+      scene.children.forEach((o) => { if (o !== piece.group && o.visible && !(o as THREE.Light).isLight) { o.visible = false; hidden.push(o); } });
+      hide.forEach((h) => { h.visible = false; hidden.push(h); });
+      const bg = scene.background, clear = gl.getClearAlpha();
+      scene.background = null; gl.setClearAlpha(0);
+      gl.render(scene, cam);
+      const mmPerPx = fw / cw;
+      const wPx = Math.ceil(spanX / mmPerPx), hPx = Math.ceil(spanY / mmPerPx);
+      const out = document.createElement("canvas");
+      out.width = wPx; out.height = hPx;
+      out.getContext("2d")!.drawImage(el, (cw - wPx) / 2, (ch - hPx) / 2, wPx, hPx, 0, 0, wPx, hPx);
+      scene.background = bg; gl.setClearAlpha(clear);
+      hidden.forEach((o) => (o.visible = true));
+      return { url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY };
+    };
+  }, [gl, scene, handle]);
+  return null;
+}
 
 function Model({ piece }: { piece: Piece }) {
   useEffect(() => () => disposeGroup(piece.group), [piece]);
@@ -125,9 +203,12 @@ function StudioLights() {
 }
 
 /** `handle` is a plain prop, not a ref: next/dynamic does not forward refs, so a ref would silently stay null. */
-type Props = { design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>; onPick?: (p: Pick) => void; onMiss?: () => void };
+type Props = {
+  design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>;
+  onPick?: (p: Pick) => void; onMiss?: () => void; onMeasure?: (m: Measure) => void;
+};
 
-export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss }: Props) {
+export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
   const piece = useMemo(() => buildPiece(design), [design]);
@@ -135,6 +216,9 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
     const box = new THREE.Box3().setFromObject(piece.group);
     return { y: box.min.y - 0.05, scale: Math.max(40, (box.max.x - box.min.x) * 1.6, (box.max.z - box.min.z) * 1.6) };
   }, [piece]);
+  const measureCb = useRef(onMeasure);
+  measureCb.current = onMeasure;
+  useEffect(() => { measureCb.current?.(measurePiece(piece, design)); }, [piece, design]);
   useEffect(() => {
     if (!handle) return;
     handle.current = {
@@ -156,6 +240,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
       <Model piece={piece} />
       <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
+      <Grabber piece={piece} design={design} handle={handle} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
       <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
       <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}:${design.drop.parts.map((x) => x.kind[0] + Math.round(x.stone.lengthMm / 4)).join("")}:${design.options.hoopShape}`} controls={controls} />

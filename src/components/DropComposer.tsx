@@ -46,6 +46,15 @@ function Chips<T extends string>({ name, options, value, fmt, onPick }: { name: 
   );
 }
 
+/** plain-words direction presets for pears, hearts, marquises and briolettes */
+function Dir({ value, options, onPick }: { value: number; options: [number, string][]; onPick: (deg: number) => void }) {
+  return (
+    <div className="chips" role="group" aria-label="Which way the stones point">
+      {options.map(([deg, text]) => <button key={deg} type="button" className="chip" style={{ textTransform: "none" }} aria-pressed={value === deg} onClick={() => onPick(deg)}>{text}</button>)}
+    </div>
+  );
+}
+
 /** Build drops, chandeliers and drop pendants part by part, from the top down. */
 export default function DropComposer({ design: d, onChange, focusIndex }: Props) {
   const parts = d.drop.parts;
@@ -130,7 +139,8 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
                       <Num id={id("len")} text="Length" value={p.stone.lengthMm} min={1} max={30} step={0.1} onChange={(lengthMm) => setStone({ lengthMm })} />
                       <Num id={id("wid")} text="Width" value={p.stone.widthMm} min={1} max={30} step={0.1} onChange={(widthMm) => setStone({ widthMm })} />
                     </div>
-                    <Num id={id("rot")} text="Angle (pears: 180 points up)" value={p.stone.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setStone({ rotation })} />
+                    <Dir value={p.stone.rotation} onPick={(rotation) => setStone({ rotation })} options={[[0, "Tip down"], [180, "Tip up"], [90, "Tip left"], [-90, "Tip right"]]} />
+                    <Num id={id("rot")} text="Angle" value={p.stone.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setStone({ rotation })} />
                   </>
                 )}
               </>
@@ -175,10 +185,12 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
                       <Pick id={id("scut")} text="Cut" value={p.small.cut} options={CUTS} onPick={(cut) => setSmall({ cut })} />
                     </div>
                     <span className="small muted">Shapes in order{p.kind === "strands" ? " down each strand" : ", repeating"}</span>
+                    <Dir value={p.small.rotation} onPick={(rotation) => setSmall({ rotation })}
+                      options={p.kind === "strands" ? [[0, "Tips down"], [180, "Tips up"]] : [[0, "Tips pointing out"], [180, "Tips pointing in"], [90, "Swirl"]]} />
                     <ShapeOrder shapes={p.small.shapes} turns={p.small.turns} max={8} onChange={(shapes, turns) => setSmall({ shapes, turns })} />
                     <div className="row2">
                       <Num id={id("sw")} text="Each, width" value={p.small.widthMm} min={0.8} max={20} step={0.1} onChange={(widthMm) => setSmall({ widthMm })} />
-                      <Num id={id("sr")} text={p.kind === "strands" ? "Turn (180 = point up)" : "Turn (180 = point in)"} value={p.small.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setSmall({ rotation })} />
+                      <Num id={id("sr")} text="Turn all" value={p.small.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setSmall({ rotation })} />
                     </div>
                   </>
                 )}

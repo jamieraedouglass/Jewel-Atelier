@@ -73,3 +73,18 @@ create policy "delete own files" on storage.objects for delete to authenticated
   using (bucket_id in ('stones','inspiration','thumbnails') and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "read own private files" on storage.objects for select to authenticated
   using (bucket_id in ('stones','inspiration','thumbnails') and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Saved versions of each design (every save keeps a copy; newest 40 kept) ---------
+create table if not exists public.design_versions (
+  id         uuid primary key default gen_random_uuid(),
+  design_id  uuid not null references public.designs(id) on delete cascade,
+  owner      uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name       text not null,
+  data       jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists design_versions_idx on public.design_versions(design_id, created_at desc);
+alter table public.design_versions enable row level security;
+create policy "read own versions" on public.design_versions for select using (owner = auth.uid());
+create policy "insert own versions" on public.design_versions for insert with check (owner = auth.uid() and exists (select 1 from public.designs d where d.id = design_id and d.owner = auth.uid()));
+create policy "delete own versions" on public.design_versions for delete using (owner = auth.uid());

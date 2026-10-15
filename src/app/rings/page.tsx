@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { deleteDesign } from "@/app/actions";
+import { copyDesign, deleteDesign } from "@/app/actions";
 import { describeDesign, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import HoverSpin from "@/components/HoverSpin";
@@ -34,6 +34,7 @@ export default async function MyRings() {
                 </Link>
                 <div className="meta" style={{ display: "flex", gap: 8, paddingTop: 0 }}>
                   <Link className="btn" href={`/d/${r.id}`}>View</Link>
+                  <form action={copyDesign.bind(null, r.id)}><button className="btn">Copy</button></form>
                   <form action={deleteDesign.bind(null, r.id)}><button className="btn">Delete</button></form>
                 </div>
               </div>
