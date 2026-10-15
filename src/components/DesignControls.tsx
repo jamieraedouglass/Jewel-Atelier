@@ -2,6 +2,7 @@
 
 import MotifPanel from "./MotifPanel";
 import DropComposer from "./DropComposer";
+import ShapeOrder from "./ShapeOrder";
 import {
   BAND_FINISHES, BANGLE_SIZES, BEAD_GEMS, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
   SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
@@ -198,23 +199,16 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           <Chips name="Accent cut" options={["faceted", "polki", "rose-cut"] as const} value={d.accents.cut} onPick={(cut) => onChange({ accents: { cut } })} />
           {!BEAD_GEMS.has(d.accents.gem) && (
             <>
-              <span className="small muted">Pattern, repeated along every line of these stones. Add the same shape as often as you like (up to 12 stones per repeat); tap a stone to remove it.</span>
-              <div className="chips" role="group" aria-label="Pattern">
-                {d.accents.shapes.map((s, i) => (
-                  <button key={`${s}-${i}`} type="button" className="chip" aria-pressed="true" disabled={d.accents.shapes.length === 1}
-                    onClick={() => onChange({ accents: { shapes: d.accents.shapes.filter((_, j) => j !== i) } })}>{label(s)} ×</button>
-                ))}
-              </div>
-              <div className="chips" role="group" aria-label="Add shape">
-                {SHAPES.map((s) => (
-                  <button key={s} type="button" className="chip" disabled={d.accents.shapes.length >= 12}
-                    onClick={() => onChange({ accents: { shapes: [...d.accents.shapes, s] } })}>+ {label(s)}</button>
-                ))}
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"] } })}>Oval–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"] } })}>Emerald–round–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"] } })}>Pear–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"] } })}>3 rounds + marquise</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"] } })}>All hearts</button>
+              <span className="small muted">Pattern, repeated along every line of these stones. Add the same shape as often as you like (up to 12 stones per repeat).</span>
+              <ShapeOrder chips shapes={d.accents.shapes} turns={d.accents.turns} max={12} onChange={(shapes, turns) => onChange({ accents: { shapes, turns } })} />
+              <div className="chips" role="group" aria-label="Quick patterns">
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"], turns: [] } })}>Oval–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"], turns: [] } })}>Emerald–round–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"], turns: [] } })}>Pear–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [] } })}>3 rounds + marquise</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [0, 0, 0, 90] } })}>3 rounds + marquise turned across</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "pear"], turns: [0, 180] } })}>Pears, alternating up and down</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"], turns: [] } })}>All hearts</button>
               </div>
               <span className="small muted">Stone direction</span>
               <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}

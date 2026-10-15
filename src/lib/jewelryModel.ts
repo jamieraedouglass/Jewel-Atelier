@@ -361,9 +361,15 @@ function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from:
   const dims = patternDims(d, opts.maxW);
   const orient = d.accents.orientation;
   const along = (i: number) => orient === "along" || (orient === "alternate" && i % 2 === 0);
-  // stones turned across a narrow band are shrunk so their length still fits it
-  const fit = (s: (typeof dims)[number], i: number) => (!along(i) && opts.maxW && s.L > opts.maxW ? opts.maxW / s.L : 1);
-  const foot = (s: (typeof dims)[number], i: number) => (along(i) ? s.L : s.W) * fit(s, i);
+  const turnOf = (i: number) => THREE.MathUtils.degToRad(d.accents.turns[i % dims.length] ?? 0);
+  // extent of a stone along the line and across it, once pointed along/across and given its own turn
+  const ext = (s: (typeof dims)[number], i: number) => {
+    const a = along(i) ? s.L : s.W, b = along(i) ? s.W : s.L, t = turnOf(i), c = Math.abs(Math.cos(t)), n = Math.abs(Math.sin(t));
+    return { line: c * a + n * b, cross: c * b + n * a };
+  };
+  // stones turned across a narrow band are shrunk so they still fit it
+  const fit = (s: (typeof dims)[number], i: number) => { const x = ext(s, i).cross; return opts.maxW && x > opts.maxW ? opts.maxW / x : 1; };
+  const foot = (s: (typeof dims)[number], i: number) => ext(s, i).line * fit(s, i);
   const curveLen = curve.getLength();
   const total = curveLen * (to - from);
   const gap = opts.gap ?? Math.max(0.15, Math.min(...dims.map((x) => x.W)) * 0.08);
@@ -392,7 +398,8 @@ function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from:
     const X = new THREE.Vector3().crossVectors(up, Z).normalize();
     basis.makeBasis(X, up, Z);
     const pos = curve.getPointAt(u).add(opts.offset?.(u) ?? new THREE.Vector3());
-    (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos, dia: s.W * fit(s, i), quat: new THREE.Quaternion().setFromRotationMatrix(basis) });
+    const quat = new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turnOf(i)));
+    (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos, dia: s.W * fit(s, i), quat });
     at += f + gap + spare;
   });
   const g = new THREE.Group();
@@ -415,7 +422,8 @@ function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number;
     const tp = sp.tan.clone().addScaledVector(up, -sp.tan.dot(up)).normalize();
     const Z = along ? tp : new THREE.Vector3().crossVectors(up, tp).normalize();
     basis.makeBasis(new THREE.Vector3().crossVectors(up, Z).normalize(), up, Z);
-    (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia, quat: new THREE.Quaternion().setFromRotationMatrix(basis) });
+    const turn = THREE.MathUtils.degToRad(d.accents.turns[i % d.accents.shapes.length] ?? 0);
+    (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia, quat: new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn)) });
   });
   const g = new THREE.Group();
   byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
@@ -859,7 +867,7 @@ const briolRatio = (shape: CenterStone["shape"], cut: CenterStone["cut"]) => (cu
 /** the accent settings swapped for a drop part's own small stones, so halos and pavé reuse the pattern engine */
 function paveDesign(d: Design, p: DropPart): Design {
   const cut = PAVE_CUTS.has(p.small.cut) ? (p.small.cut as "faceted" | "polki" | "rose-cut") : "faceted";
-  return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along" } };
+  return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [] } };
 }
 function partStone(d: Design, p: DropPart): CenterStone {
   return { ...d.center, ...p.stone, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
@@ -912,12 +920,13 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
       // the stone's edge in this direction (an ellipse, turned with the stone)
       const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
       const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
-      const shape = p.small.shapes[i % p.small.shapes.length];
+      const slot = i % p.small.shapes.length, shape = p.small.shapes[slot];
       const sc = smallStone(d, p, shape);
+      const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
       const pos = dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
       const s = setStoneRaw(sc, setFor(d, sc), m);
       s.position.copy(pos).setY(-0.15);
-      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -rot : rot);
+      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
       g.add(s);
       g.add(tube(m, [v3(0, -0.9, 0), pos.clone().setY(-0.9)], 0.3));
     });
@@ -953,12 +962,16 @@ function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
     z += 0.7;
     if (extra > 0.2) { g.add(tube(m, [v3(x, -0.3, z - 0.2), v3(x, -0.3, z + extra)], 0.16)); z += extra; }
     for (let j = 0; j < p.perStrand; j++) {
-      const sc = smallStone(d, p, p.small.shapes[j % p.small.shapes.length]);
+      const slot = j % p.small.shapes.length;
+      const sc = smallStone(d, p, p.small.shapes[slot]);
       const s = setStoneRaw(sc, setFor(d, sc), m);
-      s.rotation.y = THREE.MathUtils.degToRad(p.small.rotation);
-      s.position.set(x, 0, z + sc.lengthMm / 2);
+      const turn = THREE.MathUtils.degToRad(p.small.rotation + (p.small.turns[slot] ?? 0));
+      s.rotation.y = turn;
+      // a turned stone takes up less (or more) room down the strand
+      const tall = Math.abs(Math.cos(turn)) * sc.lengthMm + Math.abs(Math.sin(turn)) * sc.widthMm;
+      s.position.set(x, 0, z + tall / 2);
       g.add(s);
-      z += sc.lengthMm;
+      z += tall;
       if (j < p.perStrand - 1) { g.add(jumpRing(m, 0.45, 0.14, v3(x, -0.2, z + 0.35))); z += 0.7; }
     }
     if (Math.abs(i - mid) < 0.01) hang = z;
@@ -1141,7 +1154,9 @@ function earringPiece(d: Design, m: Mats): Piece {
       const shape = d.accents.shapes[i % d.accents.shapes.length];
       const along = orient === "along" || (orient === "alternate" && i % 2 === 0);
       const W = accentDia * (1.4 - 0.8 * (i / (n - 1)));
-      return { W, foot: along ? W * ASPECT[shape] : W };
+      const t = THREE.MathUtils.degToRad(d.accents.turns[i % d.accents.shapes.length] ?? 0);
+      const a = along ? W * ASPECT[shape] : W, b = along ? W : W * ASPECT[shape];
+      return { W, foot: Math.abs(Math.cos(t)) * a + Math.abs(Math.sin(t)) * b };
     });
     const len = curveC.getLength(), need = spec.reduce((a, x) => a + x.foot + 0.25, 0);
     const k = Math.min(1, len / need);

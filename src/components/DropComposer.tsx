@@ -1,5 +1,6 @@
 "use client";
 
+import ShapeOrder from "./ShapeOrder";
 import {
   CUTS, DROP_ARRANGE, DROP_KINDS, DROP_PRESETS, DropPartSchema, GEMS, GEM_LOOK, SHAPES, SHAPE_RATIO,
   type Design, type DesignPatch, type DropPart, type Gem, label,
@@ -13,7 +14,7 @@ const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));
 
 const NEW_PART: Record<DropPart["kind"], Partial<DropPart>> = {
   stone: { kind: "stone", gapMm: 0.8 },
-  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180 }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
+  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
   frame: { kind: "frame", showStone: false, halo: true, stone: { ...DropPartSchema.parse({}).stone, shape: "octagon", lengthMm: 14, widthMm: 12 }, gapMm: 0.8 },
   bow: { kind: "bow", halo: true, haloMm: 1.1, spreadMm: 18, stone: { ...DropPartSchema.parse({}).stone, shape: "baguette", lengthMm: 4, widthMm: 2 }, gapMm: 0.8 },
 };
@@ -173,17 +174,8 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
                       </label>
                       <Pick id={id("scut")} text="Cut" value={p.small.cut} options={CUTS} onPick={(cut) => setSmall({ cut })} />
                     </div>
-                    <span className="small muted">Shapes in order{p.kind === "strands" ? " down each strand" : ", repeating"} — tap one to remove</span>
-                    <div className="chips" role="group" aria-label="Shape order">
-                      {p.small.shapes.map((s, k) => (
-                        <button key={`${s}-${k}`} type="button" className="chip" aria-pressed="true" disabled={p.small.shapes.length === 1}
-                          onClick={() => setSmall({ shapes: p.small.shapes.filter((_, j) => j !== k) })}>{label(s)} ×</button>
-                      ))}
-                      <select aria-label="Add a shape" value="" disabled={p.small.shapes.length >= 8} onChange={(e) => e.target.value && setSmall({ shapes: [...p.small.shapes, e.target.value as DropPart["small"]["shapes"][number]] })}>
-                        <option value="">+ shape</option>
-                        {SHAPES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
-                      </select>
-                    </div>
+                    <span className="small muted">Shapes in order{p.kind === "strands" ? " down each strand" : ", repeating"}</span>
+                    <ShapeOrder shapes={p.small.shapes} turns={p.small.turns} max={8} onChange={(shapes, turns) => setSmall({ shapes, turns })} />
                     <div className="row2">
                       <Num id={id("sw")} text="Each, width" value={p.small.widthMm} min={0.8} max={20} step={0.1} onChange={(widthMm) => setSmall({ widthMm })} />
                       <Num id={id("sr")} text={p.kind === "strands" ? "Turn (180 = point up)" : "Turn (180 = point in)"} value={p.small.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setSmall({ rotation })} />
