@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -9,6 +9,8 @@ import type { Design } from "@/lib/design";
 import { buildPiece, type Piece } from "@/lib/jewelryModel";
 import { disposeGroup } from "@/lib/ringModel";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { MeshRefractionMaterial } from "@react-three/drei/materials/MeshRefractionMaterial";
+import { MeshBVH, MeshBVHUniformStruct, SAH } from "three-mesh-bvh";
 
 export type View = "hero" | "top" | "detail";
 export const VIEW_LABEL: Record<View, string> = { hero: "¾", top: "Top", detail: "Detail" };
@@ -148,6 +150,72 @@ function StoneLight({ piece }: { piece: Piece }) {
   return null;
 }
 
+/**
+ * Real diamond optics for the individually set stones: light is traced through the actual facets (bouncing inside,
+ * with a little fire), instead of the faster mirror-and-glass look. Small pavé stones are instanced and keep the fast look.
+ */
+let studioCube: THREE.CubeTexture | null = null;
+const bvhCache = new Map<string, MeshBVHUniformStruct>();
+type RefractMat = THREE.ShaderMaterial & { bvh: MeshBVHUniformStruct; envMap: THREE.Texture; color: THREE.Color; resolution: THREE.Vector2; viewMatrixInverse: THREE.Matrix4; projectionMatrixInverse: THREE.Matrix4; bounces: number; ior: number; aberrationStrength: number; fresnel: number };
+function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
+  const { gl, size } = useThree();
+  const mats = useRef<RefractMat[]>([]);
+  useEffect(() => {
+    if (!enabled) return;
+    if (!studioCube) {
+      const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      const cam = new THREE.CubeCamera(0.1, 100, rt);
+      cam.update(gl, new RoomEnvironment());
+      studioCube = rt.texture as unknown as THREE.CubeTexture;
+    }
+    const made: RefractMat[] = [];
+    const swaps: { mesh: THREE.Mesh; before: THREE.Material | THREE.Material[]; hidden: THREE.Object3D[] }[] = [];
+    piece.group.updateWorldMatrix(true, true);
+    piece.group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || Array.isArray(mesh.material)) return;
+      const mirror = mesh.material as THREE.MeshPhysicalMaterial;
+      if (!mirror.flatShading || mirror.metalness < 0.9 || !mesh.parent) return;
+      // the stone body drawn on top of the mirror shares its geometry: use its colour, then hide it
+      const twin = mesh.parent.children.find((c) => c !== mesh && (c as THREE.Mesh).geometry === mesh.geometry) as THREE.Mesh | undefined;
+      const body = twin?.material as THREE.MeshPhysicalMaterial | undefined;
+      const colorless = !body || body.opacity < 0.5;
+      const tint = colorless ? new THREE.Color(1, 1, 1) : body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08);
+      const key = mesh.geometry.uuid;
+      let bvh = bvhCache.get(key);
+      if (!bvh) {
+        bvh = new MeshBVHUniformStruct();
+        bvh.updateFrom(new MeshBVH(mesh.geometry.index ? mesh.geometry.clone().toNonIndexed() : mesh.geometry.clone(), { strategy: SAH }));
+        bvhCache.set(key, bvh);
+      }
+      const mat = new (MeshRefractionMaterial as unknown as new () => RefractMat)();
+      mat.defines = { CUBEUV_TEXEL_WIDTH: `${1 / 768}`, CUBEUV_TEXEL_HEIGHT: `${1 / 1024}`, CUBEUV_MAX_MIP: "8.0", ENVMAP_TYPE_CUBEM: "", CHROMATIC_ABERRATIONS: "", FAST_CHROMA: "" };
+      mat.envMap = studioCube!;
+      mat.bvh = bvh;
+      mat.color = tint;
+      mat.bounces = colorless ? 3 : 2;
+      mat.ior = colorless ? 2.42 : 1.72;
+      mat.aberrationStrength = colorless ? 0.012 : 0.004;
+      mat.fresnel = 1;
+      mat.resolution = new THREE.Vector2(size.width, size.height);
+      made.push(mat);
+      swaps.push({ mesh, before: mesh.material, hidden: twin ? [twin] : [] });
+      mesh.material = mat;
+      if (twin) twin.visible = false;
+    });
+    mats.current = made;
+    return () => {
+      swaps.forEach(({ mesh, before, hidden }) => { mesh.material = before; hidden.forEach((h) => (h.visible = true)); });
+      made.forEach((m) => m.dispose());
+      mats.current = [];
+    };
+  }, [piece, gl, enabled, size.width, size.height]);
+  useFrame(({ camera }) => {
+    for (const m of mats.current) { m.viewMatrixInverse = camera.matrixWorld; m.projectionMatrixInverse = camera.projectionMatrixInverse; }
+  });
+  return null;
+}
+
 function Model({ piece }: { piece: Piece }) {
   useEffect(() => () => disposeGroup(piece.group), [piece]);
   return <primitive object={piece.group} />;
@@ -238,9 +306,11 @@ function StudioLights() {
 type Props = {
   design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>;
   onPick?: (p: Pick) => void; onMiss?: () => void; onMeasure?: (m: Measure) => void;
+  /** fast rendering for small previews */
+  lite?: boolean;
 };
 
-export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure }: Props) {
+export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure, lite }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
   const piece = useMemo(() => buildPiece(design), [design]);
@@ -259,12 +329,14 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
     return () => { handle.current = null; };
   }, [handle]);
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // gallery thumbnails and very small views keep the fast stone look
+  const lowPower = !!lite;
   return (
     <Canvas
       className={className}
       dpr={[1, 2]}
       camera={{ fov: FOV, position: [20, 30, 52], near: 0.2, far: 5000 }}
-      gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
+      gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
       onCreated={({ gl }) => { canvasEl.current = gl.domElement; }}
     >
       <color attach="background" args={["#17130f"]} />
@@ -272,6 +344,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
       <Model piece={piece} />
       <StoneLight piece={piece} />
+      <Refraction piece={piece} enabled={!lowPower} />
       <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
       <Grabber piece={piece} design={design} handle={handle} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
