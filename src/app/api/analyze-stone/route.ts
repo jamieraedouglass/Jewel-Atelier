@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { callTool, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/claude";
-import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone } from "@/lib/design";
+import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone, diamondGrade } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -32,6 +32,11 @@ const Analysis = z.object({
   cautions: z.array(z.string()),
   confidence: z.number(),
   pairing: z.string().nullish(),
+  diamond_color: z.string().nullish(),
+  inclusions: z.number().nullish(),
+  inclusion_notes: z.string().nullish(),
+  phenomenon: z.string().nullish(),
+  star_rays: z.number().nullish(),
 });
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -69,6 +74,9 @@ export async function POST(req: Request) {
     let dims = { lengthMm: a.length_mm ?? 10, widthMm: a.width_mm ?? 8, domeMm: a.dome_mm ?? 3 };
     if (carat && a.size_basis !== "scale reference") dims = estimateDims(a.gem, a.cut, a.shape, carat);
 
+    const grade = diamondGrade(a.diamond_color);
+    // a star or cat's eye only shows on a cabochon
+    const effect = (a.phenomenon === "star" || a.phenomenon === "cats-eye") && (a.cut === "cabochon" || a.cut === "carved") ? a.phenomenon : "none";
     const stone: Partial<CenterStone> = {
       gem: a.gem,
       cut: a.cut,
@@ -77,12 +85,18 @@ export async function POST(req: Request) {
       lengthMm: clamp(dims.lengthMm, 2, 30),
       widthMm: clamp(dims.widthMm, 2, 30),
       domeMm: clamp(dims.domeMm, 0.5, 15),
-      color: /^#[0-9a-f]{6}$/i.test(a.color_hex) ? a.color_hex : "#0c2394",
+      // a diamond's colour comes from its grade: photo white balance makes the raw colour unreliable for near-white stones
+      color: grade && a.gem === "diamond" ? grade.color : /^#[0-9a-f]{6}$/i.test(a.color_hex) ? a.color_hex : "#0c2394",
+      colorGrade: grade && a.gem === "diamond" ? grade.id : null,
+      inclusions: clamp(a.inclusions ?? 0, 0, 1),
+      phenomenon: effect,
+      rays: (a.star_rays === 4 || a.star_rays === 12 ? a.star_rays : 6) as 4 | 6 | 12,
       clarity: clamp(a.clarity, 0, 1),
       label: a.label.slice(0, 120),
       photoPath: paths[0],
     };
-    return NextResponse.json({ stone, analysis: { observations: a.observations, cautions: a.cautions, confidence: a.confidence, pairing: a.pairing ?? null, sizeBasis: carat && a.size_basis !== "scale reference" ? "carat weight" : a.size_basis } });
+    const character = [a.inclusion_notes && !/^none/i.test(a.inclusion_notes) ? a.inclusion_notes : null, a.phenomenon === "colour-change" ? "Shows a colour change between lights (not drawn in 3D)." : null].filter(Boolean).join(" ");
+    return NextResponse.json({ stone, analysis: { observations: character ? `${a.observations} ${character}` : a.observations, cautions: a.cautions, confidence: a.confidence, pairing: a.pairing ?? null, sizeBasis: carat && a.size_basis !== "scale reference" ? "carat weight" : a.size_basis } });
   } catch (e) {
     await charge.refund();
     return aiFailure(e, "Stone analysis");

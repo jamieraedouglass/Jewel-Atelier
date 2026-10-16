@@ -1,6 +1,6 @@
 "use client";
 
-import { BEAD_GEMS, GEMS, GEM_LOOK, accentsOptional, type Design, type DesignPatch } from "@/lib/design";
+import { BEAD_GEMS, GEMS, GEM_LOOK, accentsOptional, noAccentsYet, type Design, type DesignPatch } from "@/lib/design";
 import ShapeOrder from "../ShapeOrder";
 import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type SectionProps } from "./fields";
 import ColourGrade from "./ColourGrade";
@@ -45,7 +45,8 @@ export default function AccentsSection({ d, onChange, usesShapes }: SectionProps
   return (
     <section id="sec-accents" style={sectionStyle}>
       <h3>Accent stones</h3>
-      {accentsOptional(d) && (
+      {noAccentsYet(d) && <p className="small muted" style={{ margin: 0 }}>{noAccentsYet(d)}</p>}
+      {accentsOptional(d) && !noAccentsYet(d) && (
         <Toggle id="acc-on" checked={a.enabled} onChange={(enabled) => setAccents({ enabled })}>
           Accent stones {a.enabled ? "on" : "off (just the main stone and the metal)"}
         </Toggle>

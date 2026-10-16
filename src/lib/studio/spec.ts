@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import {
-  STYLES, TYPE_LABEL, caratFromDims, describeDesign, gemLabel, indianRingSize, isSolidBracelet, label, metalName, uses,
+  STYLES, TYPE_LABEL, caratFromDims, characterNotes, describeDesign, gemLabel, indianRingSize, isSolidBracelet, label, metalName, uses,
   type CenterStone, type Design,
 } from "../design";
 import { sizeText } from "./links";
@@ -138,6 +138,10 @@ export function buildSpec(d: Design): Spec {
   if (d.fringe.enabled && uses(d, "fringe")) notes.push(`${gemLabel(d.fringe.gem)} fringe beads, ${d.fringe.sizeMm} mm.`);
   if (d.type === "ring" && d.gallery.roseCut) notes.push(d.gallery.under === "hidden-halo" ? "Hidden halo of small rose-cuts round the gallery." : "Two rose-cut diamonds peeking out of the gallery.");
   if (d.center.glow > 0) notes.push("Centre stone chosen for its glow (strong fluorescence and saturation): confirm the stone in daylight.");
+  if (uses(d, "center") && !d.center.none) {
+    const character = characterNotes(d.center);
+    if (character.length) notes.push(`Centre stone: ${character.join(" · ").toLowerCase()}${d.center.phenomenon !== "none" ? " (orient the stone so the star or band sits centred under the light)" : ""}.`);
+  }
   notes.push("Stone weights marked ≈ are estimated from their size; metal weight is estimated from the 3D model. Confirm both before quoting.");
 
   return { title: d.name, summary: describeDesign(d), facts, stones, metal: { name: metalName(d), weightG, density }, notes };

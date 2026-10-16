@@ -51,6 +51,13 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
             fmt={(v) => (v === "finger" ? "At the ends, along the finger" : "At the sides, along the band")} onPick={(flowerPlace) => setOpt({ flowerPlace })} />
         </>
       )}
+      {d.style === "two-stone" && d.type === "ring" && (
+        <>
+          <span className="small muted">The two stones</span>
+          <Chips name="The two stones" options={["apart", "touching"] as const} value={o.pairSpacing}
+            fmt={(v) => (v === "apart" ? "A little apart" : "Touching")} onPick={(pairSpacing) => setOpt({ pairSpacing })} />
+        </>
+      )}
       {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{haloLabel(d.style)}</Toggle>}
       {has("accentTop") && <Toggle id="acc-top" checked={o.accentTop} onChange={(accentTop) => setOpt({ accentTop })}>Accent stone at the top</Toggle>}
       {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>{paveLabel(d.style)}</Toggle>}

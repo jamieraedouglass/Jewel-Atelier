@@ -87,7 +87,7 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       const twin = mesh.parent.children.find((c) => c !== mesh && (c as THREE.Mesh).geometry === mesh.geometry) as THREE.Mesh | undefined;
       const body = twin?.material as THREE.MeshPhysicalMaterial | undefined;
       const colorless = !body || body.opacity < 0.5;
-      const tint = colorless ? new THREE.Color(1, 1, 1) : glowTint(body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08), body!.userData.glow ?? 0);
+      const tint = colorless ? new THREE.Color(mesh.userData.tint ?? 0xffffff) : glowTint(body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08), body!.userData.glow ?? 0);
       const bvh = acquireBvh(mesh.geometry);
       bvhKeys.push(mesh.geometry.uuid);
       const mat = new (MeshRefractionMaterial as unknown as new () => RefractMat)();

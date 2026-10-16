@@ -4,6 +4,7 @@ import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
 import { cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
 import { metalTone, textureBump } from "./metal";
 import { bandSection, shankGeo } from "./band";
+import { inclusionSpecks, phenomenonLayer } from "../jewelry/character";
 
 /**
  * Builds the whole ring as a plain three.js Group from a Design.
@@ -75,6 +76,15 @@ export function buildRing(d: Design): THREE.Group {
     const g = centerFacetedGeo(c.shape, fn, W, Math.max(0.6, c.domeMm));
     const inner = mirror.clone(); inner.color = colorless ? new THREE.Color(0xf2f5ff) : color.clone().lerp(new THREE.Color(0xffffff), 0.15);
     stone.add(new THREE.Mesh(g, inner), new THREE.Mesh(g, stoneMat));
+  }
+  // the stone's character: a star or cat's-eye band on a cabochon, inclusions inside
+  if (isCab && c.cut !== "bead") {
+    const star = phenomenonLayer(c, (stone.children[0] as THREE.Mesh).geometry, L, W);
+    if (star) stone.add(star);
+  }
+  if (c.cut !== "bead") {
+    const specks = inclusionSpecks(c, fn, L, W, Math.max(0.25, c.domeMm));
+    if (specks) stone.add(specks);
   }
   stone.position.y = GY;
   head.add(stone);
