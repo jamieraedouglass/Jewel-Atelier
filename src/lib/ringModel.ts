@@ -311,7 +311,7 @@ export function textureBump() {
  * round (mm either side of the top) the widening reaches.
  */
 /** band thickness and width at angle th (0 = top), shared by the band and the stones set into it */
-export function bandSection(width: number, th: number, top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic", rin = 8.5) {
+export function bandSection(width: number, th: number, top?: { topW: number; topT: number; spread: number; round?: boolean }, shape: Design["band"]["shape"] = "classic", rin = 8.5) {
   let tp: number, tpW: number;
   const ease = (a: number, t0: number, t1: number) => { const x = Math.min(1, Math.max(0, (a - t0) / (t1 - t0))); return 1 - x * x * (3 - 2 * x); };
   if (top) {
@@ -332,10 +332,10 @@ export function bandSection(width: number, th: number, top?: { topW: number; top
   const back = shape === "cigar" ? 0.8 + 0.2 * (0.5 + 0.5 * Math.cos(th)) : 1;
   const w = width * back + (top ? Math.max(1.6, top.topW - width) : 1.6 * swell) * tpW;
   // where stones are set into the band its section squares up: a flat top and straight walls hold them
-  return { t, w, flat: top ? tp : 0 };
+  return { t, w, flat: top ? tp * (top.round ? 0.35 : 1) : 0 };
 }
 
-export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic") {
+export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number; round?: boolean }, shape: Design["band"]["shape"] = "classic") {
   const segs = 220, prof = shape === "flat" ? 40 : 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
   // cross-section roundness: flat bands are almost square in section, cigar bands domed on top
   const eu = shape === "flat" ? 0.12 : shape === "cigar" ? 0.4 : 0.55, ev = shape === "flat" ? 0.12 : shape === "cigar" ? 0.3 : 0.55;
@@ -371,7 +371,7 @@ export function shankGeo(rin: number, width: number, finish: Design["band"]["fin
 export function buildRing(d: Design): THREE.Group {
   const root = new THREE.Group();
   const tone = metalTone(d);
-  const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.3, clearcoat: 0.3, clearcoatRoughness: 0.1 });
+  const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 });
   const bandMetal = metal.clone();
   if (d.band.finish === "textured") {
     const bump = textureBump();
@@ -544,7 +544,7 @@ export function buildRing(d: Design): THREE.Group {
       const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
       // stones set into a band are cut a little shallower and sit in a closed metal seat: the band is made deep and wide
       // enough at the shoulders that no stone shows below or beside the metal
-      const pavF = 0.6, pavD = pav * pavF;
+      const pavF = 0.85, pavD = pav * pavF; // nearly full depth: a shallow pavilion lets light leak out the back and the stone looks hazy
       const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
       shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);

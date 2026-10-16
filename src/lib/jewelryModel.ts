@@ -31,7 +31,7 @@ function makeMaterials(d: Design) {
     return cache.get(key) as T;
   };
   return {
-    metal: memo("metal", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.3, clearcoat: 0.3, clearcoatRoughness: 0.1 })),
+    metal: memo("metal", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 })),
     enamel: memo("enamel", () => new THREE.MeshPhysicalMaterial({ color: d.enamel.color, metalness: 0, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.2 })),
     skin: memo("skin", () => new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0, transparent: true, opacity: 0.22, specularIntensity: 1, envMapIntensity: 3, flatShading: true, depthWrite: false })),
     mirror: (tint: THREE.ColorRepresentation = 0xf2f5ff, intensity = 3.6) =>
@@ -796,7 +796,8 @@ function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
     geo.rotateX(Math.PI / 2); geo.translate(0, y - 0.75, 0);
     // a satin finish on the flat plate, as a jeweller would leave it, so it reads as metal rather than a black mirror
     const satin = (m.metal as THREE.MeshPhysicalMaterial).clone();
-    satin.roughness = 0.32;
+    satin.roughness = 0.38;
+    satin.envMapIntensity = 0.7;
     const plate = new THREE.Mesh(geo, satin);
     plate.userData.part = "metal";
     g.add(plate);
@@ -946,6 +947,12 @@ function ringPiece(d: Design): Piece {
     partner.position.set(b + 0.4 + e.dx, gy0, e.dz);
     partner.userData.part = "extra";
     group.add(partner);
+    if (d.options.halo) {
+      // a surround round each stone (baguettes, pavé, any shape in the accent pattern)
+      const hm = halo(d, mm, d.center); hm.group.position.set(-(a + 0.4), gy0, 0); hm.group.rotation.y = THREE.MathUtils.degToRad(d.center.rotation); group.add(hm.group);
+      const pc = { ...d.center, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false };
+      const hp = halo(d, mm, pc); hp.group.position.set(b + 0.4 + e.dx, gy0, e.dz); hp.group.rotation.y = THREE.MathUtils.degToRad(e.rotation); group.add(hp.group);
+    }
     // a bridge under both stones into the shank
     group.add(tube(mm, [v3(-(a + 0.4), gy0 - 1.6, 0), v3(0, gy0 - 2.4, 0), v3(b + 0.4 + e.dx, gy0 - 1.6, e.dz)], 0.6));
     applyProfile(group, d, gy0);
@@ -958,6 +965,7 @@ function ringPiece(d: Design): Piece {
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
   const at = (o: THREE.Object3D) => { o.position.y += gy; group.add(o); };
   if (st === "halo") at(halo(d, m, c).group);
+  if (st === "posy") { const f = flowerCluster(d, m); f.scale.setScalar(Math.max(1, (Math.max(c.lengthMm, c.widthMm) + 6) / 11)); at(f); }
   if (st === "deco") at(decoFrames(d, m, c).group);
   if (st === "swirl") group.add(swirlArms(d, m, c, gy, ringInnerDiameter(d.ringSize) / 2));
   if (st === "polki-cocktail") {
@@ -1014,7 +1022,9 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
   const rows = b.paveRows;
   const W = b.paveMm;
-  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: [b.paveShape], orientation: "along", turns: [], twins: [], sizes: [], colors: [] } };
+  // a vine: elongated stones (marquise leaves) angled alternately left and right along the band
+  const ang = b.paveAngle;
+  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [] } };
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
   for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
     const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
@@ -1057,7 +1067,8 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     const topT = Math.min(7, Math.max(2.6, belly + 0.7));
     const c0 = d.center;
     const prevTop = shank.userData.top as { topW: number; topT: number; spread: number } | undefined;
-    const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm + 1.4, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.6, prevTop?.spread ?? 0) };
+    // only as wide as the stone needs right under it (a tapered cathedral), not a platform
+    const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm * 0.92, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.3, prevTop?.spread ?? 0), round: !prevTop };
     shank.geometry.dispose();
     shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
     shank.userData.top = top;

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:render": "node scripts/render-check.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.16.11",

@@ -81,7 +81,8 @@ const CORE: Use[] = ["center", "setting"];
 export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   ring: {
     "three-stone": { label: "Three-stone", blurb: "Centre stone with a matched pair of side stones.", uses: [...CORE, "sides", "band", "ringSize"] },
-    "two-stone": { label: "Two-stone (toi-et-moi)", blurb: "Two stones side by side, each its own gem, shape, size and angle.", uses: [...CORE, "extraStones", "band", "ringSize"] },
+    "two-stone": { label: "Two-stone (toi-et-moi)", blurb: "Two stones side by side, each its own gem, shape, size and angle, with an optional surround of baguettes or pavé.", uses: [...CORE, "extraStones", "halo", "accents", "band", "ringSize"] },
+    posy: { label: "Flower posy", blurb: "A cluster of little flowers round the centre, gold or set with diamonds.", uses: [...CORE, "accents", "count", "pave", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 9, pave: true }, accents: { sizeCt: 0.03 } } },
     solitaire: { label: "Solitaire", blurb: "One stone, nothing competing.", uses: [...CORE, "band", "ringSize"] },
     halo: { label: "Halo", blurb: "A ring of small stones framing the centre.", uses: [...CORE, "accents", "sides", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.04 } } },
     cluster: { label: "Cluster", blurb: "Petal stones around the centre, like a flower.", uses: [...CORE, "accents", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.4 } } },
@@ -525,6 +526,8 @@ export const DesignSchema = z
       paveColor: hex.default("#f4f6fb"),
       paveShape: z.enum(SHAPES).default("round"),
       paveMm: z.number().min(0.8).max(4).default(1.5),
+      /** a vine: stones angled alternately left and right by this many degrees (marquise leaves), 0 = in a line */
+      paveAngle: z.number().min(0).max(80).default(0),
     }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     /** more stones in each stud (toi-et-moi, clusters), stacked below the main stone */
@@ -755,5 +758,8 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Round and baguette line bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["round", "round", "baguette", "round"], sizes: [2, 1, 1.2, 1], turns: [0, 0, 0, 0], sizeCt: 0.2 } } },
   { name: "Gold band with diamond edges", type: "ring", style: "wide-band", patch: { metal: "white-gold", band: { widthMm: 7.5 }, options: { layers: 2, halo: true } } },
   { name: "Three-diamond pendant", type: "necklace", style: "three-stone-pendant", patch: { metal: "white-gold" } },
+  { name: "Yellow heart with a marquise vine", type: "ring", style: "solitaire", patch: { metal: "yellow-gold", center: { gem: "yellow-sapphire", cut: "faceted", shape: "heart", lengthMm: 9, widthMm: 9, domeMm: 1.4, color: "#f2c230", clarity: 0.75, label: "Yellow heart", carat: null, rotation: 0, none: false }, band: { pave: "half", paveShape: "marquise", paveMm: 1.6, paveAngle: 40, paveRows: 1 } } },
+  { name: "Diamond flower posy ring", type: "ring", style: "posy", patch: { metal: "white-gold", options: { count: 9, pave: true } } },
+  { name: "Two-stone with a baguette surround", type: "ring", style: "two-stone", patch: { metal: "platinum", options: { halo: true }, accents: { shapes: ["baguette"], orientation: "along", sizeCt: 0.05 } } },
   { name: "Gold flower posy studs", type: "earrings", style: "flowers", patch: { metal: "yellow-gold", purity: { karat: 22 } } },
 ];

@@ -97,3 +97,18 @@ export async function saveStyleProfile(input: { icons: string[]; notes: string; 
     .upsert({ user_id: user.id, icons, notes: input.notes.slice(0, 2000), image_paths, updated_at: new Date().toISOString() });
   return error ? { error: error.message } : {};
 }
+
+/** bring designs back from a backup file: each becomes a new design (nothing existing is overwritten) */
+export async function importDesigns(json: string): Promise<{ count?: number; error?: string }> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Sign in first." };
+  let parsed: { designs?: { name?: string; data?: unknown }[] };
+  try { parsed = JSON.parse(json); } catch { return { error: "That file isn't a designs backup." }; }
+  const list = Array.isArray(parsed.designs) ? parsed.designs.slice(0, 500) : [];
+  if (!list.length) return { error: "No designs found in that file." };
+  const rows = list.map((x) => { const data = normalizeDesign(x.data); data.center.photoPath = null; return { data, name: data.name }; });
+  const { error } = await supabase.from("designs").insert(rows);
+  if (error) return { error: error.message };
+  revalidatePath("/rings");
+  return { count: rows.length };
+}

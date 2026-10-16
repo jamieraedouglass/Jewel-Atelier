@@ -133,12 +133,15 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
 
   /* ---- real size ---- */
   const [measure, setMeasure] = useState<Measure | null>(null);
-  const [tryOn, setTryOn] = useState<{ whole: Cutout; front: Cutout | null } | null>(null);
+  const [tryOn, setTryOn] = useState<{ whole: Cutout; front: Cutout | null; right: Cutout | null } | null>(null);
   function openTryOn() {
-    const loop = ["bracelet", "necklace", "anklet"].includes(designRef.current.type);
+    const d0 = designRef.current;
+    const loop = ["bracelet", "necklace", "anklet"].includes(d0.type);
     const whole = canvas.current?.cutout?.("whole");
     const front = loop ? canvas.current?.cutout?.("front") ?? null : null;
-    if (whole) { setSpin(false); setTryOn({ whole, front }); } else flash("Couldn't capture the piece. Try again in a moment.");
+    // earrings: either earring can be tried on (they differ when the pair isn't matching or is mirrored)
+    const right = d0.type === "earrings" ? canvas.current?.cutout?.("whole", "right") ?? null : null;
+    if (whole) { setSpin(false); setTryOn({ whole, front, right }); } else flash("Couldn't capture the piece. Try again in a moment.");
   }
 
   /* ---- copies and versions ---- */
@@ -163,7 +166,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   async function saveThumbnail(designId: string) {
     if (!userId) return;
     try {
-      const blob = await canvas.current?.snapshot();
+      const blob = (await canvas.current?.hero?.()) ?? (await canvas.current?.snapshot());
       if (!blob || blob.size < 2000) return; // nothing drawn yet
       const path = `${userId}/${designId}.jpg`;
       const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
@@ -255,7 +258,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           </div>
         )}
         {started && <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} quality={quality} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
-        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} title={design.name} onClose={() => setTryOn(null)} />}
+        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} onClose={() => setTryOn(null)} />}
         <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
         {pick && !spin && <QuickEdit pick={pick} design={editing} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
         <div className="stage-ui" style={started ? undefined : { display: "none" }}>

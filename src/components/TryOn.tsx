@@ -13,17 +13,21 @@ const REFS = [
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;
 
-type Props = { cutout: Cutout; front?: Cutout | null; title: string; onClose: () => void };
+type Props = { cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void };
 type Pt = { x: number; y: number };
 
 /**
  * Try a piece on a real photo at true size. A coin or card in the photo sets the scale (mm per pixel);
  * the piece is then drawn at exactly that scale, and you can move and turn it, but not resize it.
  */
-export default function TryOn({ cutout: whole, front = null, title, onClose }: Props) {
+export default function TryOn({ cutout: whole, front = null, right = null, title, onClose }: Props) {
   // bracelets, anklets and necklaces start as worn: only the front of the loop shows
   const [showFront, setShowFront] = useState(!!front);
-  const cutout = showFront && front ? front : whole;
+  const [ear, setEar] = useState<"left" | "right">("left");
+  // how much the loop curves: a bracelet on a wrist, seen from above, is much flatter than the loop lying on a table
+  const [curve, setCurve] = useState(0.45);
+  const cutout = showFront && front ? front : ear === "right" && right ? right : whole;
+  const squash = showFront && front ? curve : 1;
   const fileIn = useRef<HTMLInputElement>(null);
   const camIn = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -69,7 +73,7 @@ export default function TryOn({ cutout: whole, front = null, title, onClose }: P
   }
 
   // the piece's size in photo pixels
-  const pieceW = mmPerPhotoPx ? cutout.widthMm / mmPerPhotoPx : 0, pieceH = mmPerPhotoPx ? cutout.heightMm / mmPerPhotoPx : 0;
+  const pieceW = mmPerPhotoPx ? cutout.widthMm / mmPerPhotoPx : 0, pieceH = mmPerPhotoPx ? (cutout.heightMm * squash) / mmPerPhotoPx : 0;
 
   async function savePicture() {
     if (!photo || !mmPerPhotoPx) return;
@@ -143,6 +147,17 @@ export default function TryOn({ cutout: whole, front = null, title, onClose }: P
 
           {placing ? (
             <>
+              {right && (
+                <div className="chips" role="group" aria-label="Which earring">
+                  <button type="button" className="chip" aria-pressed={ear === "left"} onClick={() => setEar("left")}>Left earring</button>
+                  <button type="button" className="chip" aria-pressed={ear === "right"} onClick={() => setEar("right")}>Right earring</button>
+                </div>
+              )}
+              {front && showFront && (
+                <label className="field"><span>How it curves round · {Math.round(curve * 100)}%</span>
+                  <input type="range" min={0.15} max={1} step={0.05} value={curve} onChange={(e) => setCurve(Number(e.target.value))} />
+                </label>
+              )}
               {front && (
                 <div className="chips" role="group" aria-label="How much of the piece">
                   <button type="button" className="chip" aria-pressed={showFront} onClick={() => setShowFront(true)}>As worn (front of the loop)</button>

@@ -22,7 +22,9 @@ export type Cutout = { url: string; mmPerPx: number; widthMm: number; heightMm: 
 export type RingCanvasHandle = {
   snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null>;
   /** a true-to-scale picture of one piece (one earring of a pair) on a clear background, for trying it on a photo */
-  cutout?: (mode?: "whole" | "front") => Cutout | null;
+  cutout?: (mode?: "whole" | "front", ear?: "left" | "right") => Cutout | null;
+  /** a picture from the standard ¾ view, whatever angle the viewer has turned to (for gallery thumbnails) */
+  hero?: () => Promise<Blob | null>;
 };
 /** real size of the piece, mm: across, top to bottom, and how thick */
 export type Measure = { widthMm: number; lengthMm: number; depthMm: number; what: string };
@@ -53,9 +55,12 @@ export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra"
 export type Pick = { part: Part; x: number; y: number; index?: number; ear?: "left" | "right" };
 
 /** the part worth measuring: one earring of a pair, a ring's head, otherwise the whole piece */
-function subjectOf(piece: Piece, design: Design): { obj: THREE.Object3D; hide: THREE.Object3D[]; what: string } {
+function subjectOf(piece: Piece, design: Design, ear: "left" | "right" = "left"): { obj: THREE.Object3D; hide: THREE.Object3D[]; what: string } {
   const g = piece.group;
-  if (design.type === "earrings" && g.children.length >= 2) return { obj: g.children[0], hide: g.children.slice(1), what: "each earring" };
+  if (design.type === "earrings" && g.children.length >= 2) {
+    const i = ear === "right" ? 1 : 0;
+    return { obj: g.children[i], hide: g.children.filter((_, j) => j !== i), what: "each earring" };
+  }
   return { obj: g, hide: [], what: design.type === "ring" ? "the ring" : "the piece" };
 }
 
@@ -82,9 +87,20 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
   latest.current = { piece, design };
   useEffect(() => {
     if (!handle?.current) return;
-    handle.current.cutout = (mode = "whole") => {
+    handle.current.hero = () => new Promise((res) => {
+      const { piece } = latest.current;
+      const el = gl.domElement;
+      const { pos, target } = framing(piece, "hero");
+      const cam = new THREE.PerspectiveCamera(FOV, el.width / el.height, 0.2, pos.distanceTo(target) * 10);
+      cam.position.copy(pos); cam.lookAt(target); cam.updateProjectionMatrix();
+      const auto = gl.autoClear, rt = gl.getRenderTarget();
+      gl.setRenderTarget(null); gl.autoClear = true;
+      gl.render(scene, cam);
+      el.toBlob((b) => { gl.autoClear = auto; gl.setRenderTarget(rt); res(b); }, "image/jpeg", 0.9);
+    });
+    handle.current.cutout = (mode = "whole", ear = "left") => {
       const { piece, design } = latest.current;
-      const { obj, hide } = subjectOf(piece, design);
+      const { obj, hide } = subjectOf(piece, design, ear);
       piece.group.updateWorldMatrix(true, true);
       hide.forEach((h) => (h.visible = false));
       const box = new THREE.Box3().setFromObject(obj);
@@ -459,7 +475,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
         // flashes (the sparkle you see in person), anti-aliasing, then the same neutral tone mapping as before
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={2.2} intensity={1.6} distanceFalloff={0.6} color="#000000" quality="medium" />
-          <Bloom mipmapBlur luminanceThreshold={0.97} luminanceSmoothing={0.12} intensity={0.55} radius={0.55} />
+          <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.1} intensity={0.35} radius={0.5} />
           <ToneMapping mode={ToneMappingMode.NEUTRAL} />
           <SMAA />
         </EffectComposer>
