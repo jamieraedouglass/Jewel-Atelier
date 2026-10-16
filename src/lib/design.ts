@@ -506,6 +506,8 @@ export const DesignSchema = z
       hug: z.boolean().default(true),
       /** how much of the centre stone's side they cover when hugging */
       hugFrac: z.number().min(0.4).max(1).default(0.78),
+      /** level: up beside the centre stone; band: curving down with the band, set flush into its surface */
+      follow: z.enum(["level", "band"]).default("level"),
     }).default({}),
     gallery: z.object({ roseCut: z.boolean().default(true) }).default({}),
     band: z.object({

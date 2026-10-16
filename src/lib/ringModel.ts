@@ -435,7 +435,7 @@ export function buildRing(d: Design): THREE.Group {
   } else {
     head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
     // side stones that hug the centre take over the claws on those sides (they share them), so nothing holds them apart
-    const hugging = d.sides.kind !== "none" && d.sides.hug;
+    const hugging = d.sides.kind !== "none" && d.sides.hug && d.sides.follow !== "band";
     const positions = clawDegrees(c.shape, L, W, d.setting.style).filter((deg) => {
       if (!hugging) return true;
       const a = ((deg % 360) + 360) % 360;
@@ -515,7 +515,47 @@ export function buildRing(d: Design): THREE.Group {
         geo.computeVertexNormals();
       }
     }
-    for (const side of [1, -1]) {
+    if (d.sides.follow === "band") {
+      /* curving with the band: the band thickens and widens under the side stones, and each stone (with its rim) is bent
+         along the band's own curve and set into its surface, so it sits flush instead of standing up beside the centre */
+      const spanX = Math.max(...ol.map(([x]) => x)) || 1;
+      const isCabC = c.cut === "cabochon";
+      const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
+      const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : 0;
+      const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.2), topT: Math.max(2.4, pav * 0.55 + 0.9, setIn), spread: gap + spanX * 0.9 };
+      shankMesh.geometry.dispose();
+      shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
+      shankMesh.userData.top = top;
+      const surf = (a: number) => RIN + bandSection(d.band.widthMm, a, top, d.band.shape, RIN).t;
+      const Rmid = surf(0);
+      const bend = (x: number, y: number, z: number) => {
+        const a = (gap + x) / Rmid;
+        const r = surf(a) - 0.12 + y;
+        return new THREE.Vector3(r * Math.sin(a), r * Math.cos(a), z);
+      };
+      const bent = (geo: THREE.BufferGeometry) => {
+        const out = geo.clone();
+        const pos = out.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) { const v = bend(pos.getX(i), pos.getY(i), pos.getZ(i)); pos.setXYZ(i, v.x, v.y, v.z); }
+        pos.needsUpdate = true; out.computeVertexNormals();
+        return out;
+      };
+      const gb = bent(g), bzb = bent(bz);
+      for (const side of [1, -1]) {
+        const grp = new THREE.Group();
+        grp.userData.part = "sides";
+        grp.userData.onBand = true;
+        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, metal));
+        // small claws at the corners, on the band's curve
+        for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 10), metal);
+          tip.position.copy(bend(x, 0.22, zEnd * (sl / 2) * (x ? 1 : 0.94)));
+          grp.add(tip);
+        }
+        if (side < 0) grp.rotation.y = Math.PI;
+        root.add(grp);
+      }
+    } else for (const side of [1, -1]) {
       const grp = new THREE.Group();
       grp.userData.part = "sides";
       grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond), new THREE.Mesh(bz, metal));

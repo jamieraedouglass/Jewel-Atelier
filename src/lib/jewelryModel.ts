@@ -1015,7 +1015,8 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
   if (!shank) return;
   const RIN = ringInnerDiameter(d.ringSize) / 2;
-  const rest = group.children.filter((o) => o !== shank);
+  // stones already curving in the band stay where they are
+  const rest = group.children.filter((o) => o !== shank && !o.userData.onBand);
   const box = new THREE.Box3();
   group.updateWorldMatrix(true, true);
   rest.forEach((o) => box.expandByObject(o));
@@ -1028,6 +1029,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     // the girdle ends up just above the band's top surface; the pavilion may open into the finger hole (an open gallery)
     const target = RIN + Math.max(2.9, belly * 0.75 + 0.6);
     const topT = target - 0.3 - RIN;
+    if (shank.userData.top) { drop = gy - target; rest.forEach((o) => (o.position.y -= drop)); return; } // band already built for stones in it
     shank.geometry.dispose();
     shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape);
     shank.userData.top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };
