@@ -4,6 +4,7 @@ import { copyDesign, deleteDesign } from "@/app/actions";
 import { describeDesign, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import HoverSpin from "@/components/HoverSpin";
+import BackupButtons from "@/components/BackupButtons";
 
 export const metadata = { title: "My designs · Atelier" };
 
@@ -15,7 +16,10 @@ export default async function MyRings() {
     <main className="page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 40 }}>My designs</h1>
-        <Link href="/design" className="btn primary">New design</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <BackupButtons />
+          <Link href="/design" className="btn primary">New design</Link>
+        </div>
       </div>
       {!rows?.length ? (
         <p className="muted">Nothing saved yet. Start a design, upload a stone, and press Save.</p>

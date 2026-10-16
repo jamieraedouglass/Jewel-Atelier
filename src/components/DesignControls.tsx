@@ -6,7 +6,7 @@ import ShapeOrder from "./ShapeOrder";
 import FramesEditor from "./FramesEditor";
 import {
   BAND_FINISHES, BANGLE_SIZES, BEAD_GEMS, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
-  SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
+  SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, defaultDesign, estimateDims, indianRingSize, isGold, label, styleMeta,
 } from "@/lib/design";
 
 type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void; dropFocus?: number | null };
@@ -293,9 +293,9 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {has("setting") && d.type === "ring" && (
             <Range id="height" label="Height" value={d.setting.height} min={0} max={1} step={0.05} format={(n) => (n < 0.2 ? "Low, seated in shank" : n < 0.6 ? "Medium" : "Tall cathedral")} onChange={(height) => onChange({ setting: { height } })} />
           )}
-          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{d.style === "tennis" ? "A halo round every stone" : d.style === "wide-band" ? "Rows on the edges, gold between" : "Halo of accent stones"}</Toggle>}
+          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{d.style === "tennis" ? "A halo round every stone" : d.style === "wide-band" ? "Rows on the edges, gold between" : d.style === "two-stone" ? "A surround round each stone" : "Halo of accent stones"}</Toggle>}
           {has("accentTop") && <Toggle id="acc-top" checked={o.accentTop} onChange={(accentTop) => setOpt({ accentTop })}>Accent stone at the top</Toggle>}
-          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>{d.style === "flowers" ? "A diamond in each flower" : d.style === "open-bangle" ? "A channel of stones along the bangle" : "Set with stones"}</Toggle>}
+          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>{d.style === "flowers" || d.style === "posy" ? "A diamond in each flower" : d.style === "open-bangle" ? "A channel of stones along the bangle" : "Set with stones"}</Toggle>}
           {has("pave") && o.pave && (d.style === "hoop" || d.style === "huggie") && (
             <>
               <span className="small muted">How far the stones run</span>
@@ -316,7 +316,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {has("hoop") && <Range id="hoop" label="Diameter" value={o.hoopDiameterMm} min={8} max={70} step={1} format={(n) => `${n} mm`} onChange={(hoopDiameterMm) => setOpt({ hoopDiameterMm })} />}
           {has("length") && <Range id="length" label="Length" value={o.lengthIn} min={12} max={40} step={1} format={(n) => `${n}" (${Math.round(n * 2.54)} cm) · ${lengthName(n)}`} onChange={(lengthIn) => setOpt({ lengthIn })} />}
           {has("chain") && <Chips name="Chain" options={CHAIN_STYLES} value={o.chain} onPick={(chain) => setOpt({ chain })} />}
-          {has("count") && <Range id="count" label={d.style === "swirl" ? "Ribbons" : d.style === "flowers" ? "Flowers" : d.style === "tassel" ? "Strands" : d.style === "payal" ? "Bells" : "Stones"} value={o.count} min={1} max={d.style === "swirl" ? 5 : d.style === "flowers" ? 12 : 80} step={1} onChange={(count) => setOpt({ count })} />}
+          {has("count") && <Range id="count" label={d.style === "swirl" ? "Ribbons" : d.style === "flowers" || d.style === "posy" ? "Flowers" : d.style === "tassel" ? "Strands" : d.style === "payal" ? "Bells" : "Stones"} value={o.count} min={1} max={d.style === "swirl" ? 5 : d.style === "flowers" || d.style === "posy" ? 12 : 80} step={1} onChange={(count) => setOpt({ count })} />}
           {has("links") && <Chips name="Links" options={["x", "chevron"] as const} value={o.linkStyle} fmt={(v) => (v === "x" ? "X links with pavé" : "Chevrons with stone rows")} onPick={(linkStyle) => setOpt({ linkStyle })} />}
           {has("layers") && <Range id="layers" label={d.style === "tennis" || d.style === "wide-band" ? "Rows" : d.style === "by-the-yard" ? "Times round the neck" : "Rows / strands"} value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
           {has("wrist") && (solidBracelet
@@ -374,6 +374,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
                 <Range id="bp-mm" label="Each, width" value={d.band.paveMm} min={0.8} max={4} step={0.1} format={(n) => `${n} mm`} onChange={(paveMm) => onChange({ band: { paveMm } })} />
                 <Range id="bp-rows" label="Rows" value={d.band.paveRows} min={1} max={4} step={1} onChange={(paveRows) => onChange({ band: { paveRows } })} />
               </div>
+              <Range id="bp-angle" label="Vine (stones angled left and right)" value={d.band.paveAngle} min={0} max={80} step={5} format={(n) => (n ? `${n}°` : "Straight line")} onChange={(paveAngle) => onChange({ band: { paveAngle } })} />
             </>
           )}
           <div className="row2">
@@ -398,5 +399,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
 
 /** apply a showcase entry: switch type/style (with its defaults), then its own patch */
 function chooseStyleWith(d: Design, s: (typeof SHOWCASE)[number]): Design {
-  return applyPatch(chooseStyle(d, s.type, s.style), s.patch);
+  // start clean, so nothing from the piece on screen (its stones, colours, band) leaks into the showcase; keep the wearer's sizes
+  const fresh = applyPatch(defaultDesign(), { ringSize: d.ringSize, options: { wristCm: d.options.wristCm, bangleSize: d.options.bangleSize } });
+  return applyPatch(chooseStyle(fresh, s.type, s.style), s.patch);
 }
