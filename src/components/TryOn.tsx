@@ -13,21 +13,30 @@ const REFS = [
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;
 
-type Props = { cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void };
+type Props = { cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void; recut?: (flatten: number) => Cutout | null };
 type Pt = { x: number; y: number };
 
 /**
  * Try a piece on a real photo at true size. A coin or card in the photo sets the scale (mm per pixel);
  * the piece is then drawn at exactly that scale, and you can move and turn it, but not resize it.
  */
-export default function TryOn({ cutout: whole, front = null, right = null, title, onClose }: Props) {
+export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut }: Props) {
   // bracelets, anklets and necklaces start as worn: only the front of the loop shows
-  const [showFront, setShowFront] = useState(!!front);
+  const [showFront, setShowFront] = useState(!!front0);
   const [ear, setEar] = useState<"left" | "right">("left");
   // how much the loop curves: a bracelet on a wrist, seen from above, is much flatter than the loop lying on a table
   const [curve, setCurve] = useState(0.45);
+  // the worn picture is rebuilt for each curve (the loop flattens; stones keep their own shape)
+  const [front, setFront] = useState<Cutout | null>(front0);
+  const recutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const changeCurve = (v: number) => {
+    setCurve(v);
+    if (!recut) return;
+    if (recutTimer.current) clearTimeout(recutTimer.current);
+    recutTimer.current = setTimeout(() => { const c = recut(v); if (c) setFront(c); }, 180);
+  };
   const cutout = showFront && front ? front : ear === "right" && right ? right : whole;
-  const squash = showFront && front ? curve : 1;
+  const squash = 1;
   const fileIn = useRef<HTMLInputElement>(null);
   const camIn = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -155,7 +164,7 @@ export default function TryOn({ cutout: whole, front = null, right = null, title
               )}
               {front && showFront && (
                 <label className="field"><span>How it curves round · {Math.round(curve * 100)}%</span>
-                  <input type="range" min={0.15} max={1} step={0.05} value={curve} onChange={(e) => setCurve(Number(e.target.value))} />
+                  <input type="range" min={0.15} max={1} step={0.05} value={curve} onChange={(e) => changeCurve(Number(e.target.value))} />
                 </label>
               )}
               {front && (

@@ -138,7 +138,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     const d0 = designRef.current;
     const loop = ["bracelet", "necklace", "anklet"].includes(d0.type);
     const whole = canvas.current?.cutout?.("whole");
-    const front = loop ? canvas.current?.cutout?.("front") ?? null : null;
+    const front = loop ? canvas.current?.cutout?.("front", "left", 0.45) ?? null : null;
     // earrings: either earring can be tried on (they differ when the pair isn't matching or is mirrored)
     const right = d0.type === "earrings" ? canvas.current?.cutout?.("whole", "right") ?? null : null;
     if (whole) { setSpin(false); setTryOn({ whole, front, right }); } else flash("Couldn't capture the piece. Try again in a moment.");
@@ -258,7 +258,8 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           </div>
         )}
         {started && <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} quality={quality} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
-        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} onClose={() => setTryOn(null)} />}
+        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} onClose={() => setTryOn(null)}
+          recut={(flatten) => canvas.current?.cutout?.("front", "left", flatten) ?? null} />}
         <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
         {pick && !spin && <QuickEdit pick={pick} design={editing} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
         <div className="stage-ui" style={started ? undefined : { display: "none" }}>
