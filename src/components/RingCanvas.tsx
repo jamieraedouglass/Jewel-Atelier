@@ -176,7 +176,12 @@ function StoneLight({ piece }: { piece: Piece }) {
   useEffect(() => {
     if (!roomEnv) {
       const pm = new THREE.PMREMGenerator(gl);
-      roomEnv = pm.fromScene(new RoomEnvironment(), 0.005).texture;
+      // a bright room with a big softbox overhead, so stones seen from above (the Top view) light up instead of going grey
+      const room = new RoomEnvironment();
+      const box = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(6), side: THREE.DoubleSide }));
+      box.rotation.x = Math.PI / 2; box.position.y = 9;
+      room.add(box);
+      roomEnv = pm.fromScene(room, 0.005).texture;
       pm.dispose();
     }
     piece.group.traverse((o) => {
@@ -219,15 +224,22 @@ function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
       const cam = new THREE.CubeCamera(0.1, 100, rt);
       // a bright room: diamonds read white and lively; the studio HDR stays for the metal
       const env = new RoomEnvironment();
+      const over = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(4), side: THREE.DoubleSide }));
+      over.rotation.x = Math.PI / 2; over.position.y = 9;
+      env.add(over);
       cam.update(gl, env);
       studioCube = rt.texture as unknown as THREE.CubeTexture;
     }
     const made: RefractMat[] = [];
     const swaps: { mesh: THREE.Mesh; before: THREE.Material | THREE.Material[]; hidden: THREE.Object3D[] }[] = [];
+    let instCount = 0;
     piece.group.updateWorldMatrix(true, true);
     piece.group.traverse((o) => {
       const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || Array.isArray(mesh.material)) return;
+      if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+      const inst = (mesh as THREE.InstancedMesh).isInstancedMesh;
+      // pavé and lines of small stones are traced too (instanced), up to a sensible number of stones
+      if (inst && (instCount += (mesh as THREE.InstancedMesh).count) > 1600) return;
       const mirror = mesh.material as THREE.MeshPhysicalMaterial;
       if (!mirror.flatShading || mirror.metalness < 0.9 || !mesh.parent) return;
       // the stone body drawn on top of the mirror shares its geometry: use its colour, then hide it
@@ -247,7 +259,7 @@ function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
       mat.envMap = studioCube!;
       mat.bvh = bvh;
       mat.color = tint;
-      mat.bounces = colorless ? 3 : 2;
+      mat.bounces = inst ? 2 : colorless ? 3 : 2;
       mat.ior = colorless ? 2.42 : 1.72;
       mat.aberrationStrength = colorless ? 0.012 : 0.004;
       mat.fresnel = 1;

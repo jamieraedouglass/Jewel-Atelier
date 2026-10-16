@@ -1604,7 +1604,8 @@ function necklacePiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
   const group = new THREE.Group();
   const L = o.lengthIn * 25.4;
-  const pointy = st === "pendant" || st === "lariat" || st === "rani-haar" || st === "mangalsutra" ? 0.22 : 0.08;
+  // laid flat, a necklace falls into a soft U (a full line of stones more so), not a circle
+  const pointy = st === "pendant" || st === "lariat" || st === "rani-haar" || st === "mangalsutra" ? 0.22 : st === "line" || st === "riviera" || st === "by-the-yard" ? 0.16 : 0.08;
   const { curve, front } = loopCurve(L, 0.85, pointy);
   const fp = curve.getPointAt(front);
   let focus = fp.clone(), focusSize = Math.max(c.lengthMm, c.widthMm) * 2.5;
@@ -1654,11 +1655,16 @@ function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "line": {
       // a full line of stones round the neck in your own pattern of shapes and sizes
-      const run = patternRun(d, m, curve, front - 0.47, front + 0.47, { gap: 0.35 });
+      // stones set edge to edge all the way round, with a box clasp at the back
+      const run = patternRun(d, m, curve, front - 0.485, front + 0.485, { gap: 0.18 });
       group.add(run.group);
-      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.4, run.maxW * 0.06), 8, true), m.metal);
-      rail.position.y = -run.maxW * 0.4;
+      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.35, run.maxW * 0.05), 8, true), m.metal);
+      rail.position.y = -run.maxW * 0.42;
       group.add(rail);
+      const back = wrap(front + 0.5), bp = curve.getPointAt(back);
+      const clasp = new THREE.Mesh(new THREE.BoxGeometry(run.maxW * 0.9, run.maxW * 0.6, run.maxW * 1.6), m.metal);
+      clasp.position.copy(bp); clasp.rotation.y = yawAt(curve, back) + Math.PI / 2;
+      group.add(clasp);
       focusSize = 60;
       break;
     }
