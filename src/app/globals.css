@@ -162,3 +162,4 @@ input[type="range"] { width: 100%; accent-color: var(--fg); }
 }
 details.pos { border-top: 1px dashed var(--line); padding-top: 8px; }
 details.pos summary { cursor: pointer; color: var(--muted); }
+.pairbar { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }

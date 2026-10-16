@@ -181,7 +181,6 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
               Try a toi-et-moi
             </button>
           </div>
-          {d.type === "earrings" && <Toggle id="mirror" checked={d.mirrorPair} onChange={(mirrorPair) => onChange({ mirrorPair })}>Mirror the second earring</Toggle>}
         </section>
       )}
 

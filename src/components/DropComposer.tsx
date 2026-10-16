@@ -271,10 +271,6 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
       {earrings && (
         <>
           <Chips name="Top" options={["post", "hook"] as const} value={d.drop.top} fmt={(v) => (v === "post" ? "Stud post" : "French hook")} onPick={(top) => onChange({ drop: { top } } as DesignPatch)} />
-          <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <input type="checkbox" checked={d.mirrorPair} onChange={(e) => onChange({ mirrorPair: e.target.checked })} />
-            Mirror the second earring
-          </label>
         </>
       )}
     </section>
