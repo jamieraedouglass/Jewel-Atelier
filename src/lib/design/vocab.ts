@@ -5,7 +5,7 @@
 
 export const GEMS = [
   "diamond", "sapphire", "yellow-sapphire", "ruby", "emerald", "spinel", "pearl", "coral", "hessonite", "cats-eye",
-  "tourmaline", "aquamarine", "tanzanite", "amethyst", "citrine", "garnet", "morganite", "peridot", "opal", "turquoise", "onyx", "other",
+  "tourmaline", "aquamarine", "tanzanite", "amethyst", "citrine", "garnet", "morganite", "peridot", "opal", "turquoise", "onyx", "jade", "other",
 ] as const;
 export const SHAPES = [
   "round", "oval", "cushion", "pear", "marquise", "heart", "emerald", "asscher", "princess", "radiant", "baguette",
@@ -24,7 +24,7 @@ export const SHAPE_FILL: Record<(typeof SHAPES)[number], number> = {
   radiant: 0.66, baguette: 0.75, octagon: 0.64, hexagon: 0.62, trillion: 0.38, kite: 0.45, shield: 0.55, "half-moon": 0.5, "old-mine": 0.58,
 };
 /** polki = flat uncut diamond with a foil back; rose-cut = faceted dome with a flat base */
-export const CUTS = ["faceted", "cabochon", "rose-cut", "polki", "briolette", "bead"] as const;
+export const CUTS = ["faceted", "cabochon", "rose-cut", "polki", "briolette", "bead", "carved"] as const;
 export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round", "oval", "pear"] as const;
 export const SETTINGS = ["double-claw", "six-claw", "four-claw", "bezel"] as const;
 export const METALS = ["yellow-gold", "rose-gold", "white-gold", "platinum", "oxidised-silver"] as const;
@@ -48,7 +48,7 @@ const BASE_LOOK: Record<Gem, { color: string; clarity: number }> = {
   "cats-eye": { color: "#b9a24a", clarity: 0.2 }, tourmaline: { color: "#2f8f6f", clarity: 0.55 }, aquamarine: { color: "#9fd7e8", clarity: 0.85 },
   tanzanite: { color: "#4b3fb0", clarity: 0.6 }, amethyst: { color: "#7a3fa6", clarity: 0.65 }, citrine: { color: "#e9a227", clarity: 0.75 },
   garnet: { color: "#7a0f1c", clarity: 0.5 }, morganite: { color: "#f0b4ae", clarity: 0.75 }, peridot: { color: "#8fbf2a", clarity: 0.7 },
-  opal: { color: "#e8eef2", clarity: 0.15 }, turquoise: { color: "#3fb7b0", clarity: 0 }, onyx: { color: "#101012", clarity: 0 }, other: { color: "#888888", clarity: 0.5 },
+  opal: { color: "#e8eef2", clarity: 0.15 }, turquoise: { color: "#3fb7b0", clarity: 0 }, onyx: { color: "#101012", clarity: 0 }, jade: { color: "#3e8f5a", clarity: 0.25 }, other: { color: "#888888", clarity: 0.5 },
 };
 
 /** each gem's everyday look; glow 0, so choosing a gem also clears any trade colour grade's glow (see varieties.ts) */

@@ -23,9 +23,9 @@ const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false, loading: 
 
 type Tab = "design" | "photo" | "stone" | "chat";
 const TAB_LABEL: Record<Tab, string> = { design: "Design", photo: "From a photo", stone: "Upload stone", chat: "Ask the designer" };
-type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean; hasThumbnail?: boolean; blank?: boolean; status?: Status };
+type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean; hasThumbnail?: boolean; blank?: boolean; status?: Status; isStudioAdmin?: boolean };
 
-export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false, hasThumbnail = true, blank = false, status = "idea" }: Props) {
+export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false, hasThumbnail = true, blank = false, status = "idea", isStudioAdmin = false }: Props) {
   const canvas = useRef<RingCanvasHandle | null>(null);
   const [tab, setTab] = useState<Tab>("design");
   const [view, setView] = useState<View>("hero");
@@ -169,6 +169,10 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           <button className="btn" type="button" onClick={saving.makeCopy} title="Try a variation without changing this one">Make a copy</button>
           {saving.id && <button className="btn" type="button" aria-pressed={!!versions} onClick={showVersions}>Versions</button>}
           {saving.isPublic && <button className="btn" type="button" onClick={saving.makePrivate} title="Stop anyone else opening this design">Turn off link</button>}
+          {isStudioAdmin && (
+            <button className="btn" type="button" title="Send this design to a client as a private link"
+              onClick={async () => { const id = saving.id ?? (await saving.save()); if (id) window.location.href = `/studio/send?designs=${id}`; }}>Send to client</button>
+          )}
           {userId && <StatusChips id={saving.id} initial={status} onSaveFirst={saving.save} flash={flash} />}
           {statusMsg && <span className="small muted" role="status">{statusMsg}</span>}
         </div>

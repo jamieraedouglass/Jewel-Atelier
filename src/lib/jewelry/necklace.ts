@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { type Design, roundDiameter } from "../design";
+import { type Design, resolveClasp, roundDiameter } from "../design";
+import { claspAt } from "./clasps";
 import { type Piece, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStone, tube } from "./stones";
@@ -131,15 +132,14 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     case "line": {
       // a full line of stones round the neck in your own pattern of shapes and sizes
       // stones set edge to edge all the way round, with a box clasp at the back
-      const run = patternRun(d, m, curve, front - 0.485, front + 0.485, { gap: 0.18 });
+      const kind = resolveClasp(st, o.clasp);
+      // hidden: the stones run unbroken round the neck; otherwise a gap at the back for the clasp
+      const run = kind === "hidden" ? patternRun(d, m, curve, front, front + 1, { gap: 0.18, closed: true }) : patternRun(d, m, curve, front - 0.485, front + 0.485, { gap: 0.18 });
       group.add(run.group);
       const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.35, run.maxW * 0.05), 8, true), m.metal);
       rail.position.y = -run.maxW * 0.42;
       group.add(rail);
-      const back = wrap(front + 0.5), bp = curve.getPointAt(back);
-      const clasp = new THREE.Mesh(new THREE.BoxGeometry(run.maxW * 0.9, run.maxW * 0.6, run.maxW * 1.6), m.metal);
-      clasp.position.copy(bp); clasp.rotation.y = yawAt(curve, back) + Math.PI / 2;
-      group.add(clasp);
+      if (kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), run.maxW));
       focusSize = 60;
       break;
     }
@@ -377,15 +377,22 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const layers = Math.max(1, o.layers);
       for (let i = 0; i < layers; i++) {
         const { curve: cv, front: fr } = layeredLoop(L, i * 38, 0.85, 0.08);
-        group.add(beadStrand(m, cv, d.fringe.gem, d.fringe.color, d.fringe.sizeMm, 0, fr + 0.505, fr + 1.495));
-        if (i === 0) {
-          const clasp = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 4), m.metal);
-          clasp.position.copy(cv.getPointAt(wrap(fr + 0.5)));
-          group.add(clasp);
-        }
+        const kind = resolveClasp(st, o.clasp);
+        // hidden: the beads run all the way round; otherwise they stop either side of the clasp
+        group.add(kind === "hidden"
+          ? beadStrand(m, cv, d.fringe.gem, d.fringe.color, d.fringe.sizeMm, 0, fr, fr + 1)
+          : beadStrand(m, cv, d.fringe.gem, d.fringe.color, d.fringe.sizeMm, 0, fr + 0.505, fr + 1.495));
+        if (i === 0 && kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, cv, wrap(fr + 0.5), Math.max(3, d.fringe.sizeMm * 0.9)));
       }
       focusSize = d.fringe.sizeMm * 10;
     }
   }
+  // chain necklaces: a clasp on the chain at the back, when one is chosen
+  if (CHAIN_STYLES_WITH_CLASP.has(st)) {
+    const kind = resolveClasp(st, o.clasp);
+    if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), 3.2));
+  }
   return { group, focus, focusSize, upright: false };
 }
+
+const CHAIN_STYLES_WITH_CLASP = new Set(["pendant", "drop-pendant", "three-stone-pendant", "station"]);

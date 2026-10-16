@@ -274,6 +274,8 @@ export const DesignSchema = z
          * hanging below from a bail in a row (below), or one stone below another (drop)
          */
         hang: z.enum(["on-chain", "in-chain", "below", "drop"]).default("on-chain"),
+        /** the clasp: the style's usual (auto), a plain or stone-set box, hidden (stones run unbroken), or a chain clasp */
+        clasp: z.enum(["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"]).default("auto"),
         /** half-flower ring: flowers at the stone's ends along the finger, or at its sides along the band */
         flowerPlace: z.enum(["finger", "band"]).default("finger"),
         /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */

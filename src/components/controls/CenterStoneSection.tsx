@@ -6,7 +6,7 @@ import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type Se
 import ColourGrade from "./ColourGrade";
 
 /** typical crown (or dome) height as a share of width, by cut, when there is no carat weight to work from */
-const DOME_SHARE: Record<Design["center"]["cut"], number> = { cabochon: 0.45, "rose-cut": 0.3, polki: 0.07, faceted: 0.14, briolette: 0.14, bead: 0.5 };
+const DOME_SHARE: Record<Design["center"]["cut"], number> = { cabochon: 0.45, "rose-cut": 0.3, polki: 0.07, faceted: 0.14, briolette: 0.14, bead: 0.5, carved: 0.4 };
 
 /** the main (centre) stone: gem, carat, cut, shape, size, colour and angle */
 export default function CenterStoneSection({ d, onChange }: SectionProps) {

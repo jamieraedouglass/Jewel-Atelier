@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { STYLES, TYPES, TYPE_LABEL } from "@/lib/design";
+import { BRAND } from "@/lib/brand";
 
 export default function Home() {
   return (
     <main className="page">
       <section className="hero">
-        <h1>Design the piece <em>around</em> the stone.</h1>
-        <p className="muted">
-          Upload a photo or a short video of a gemstone. It&apos;s measured and placed into a 3D piece: a ring, jhumkas, a rani haar,
-          a kada, a maang tikka. Work through settings, polki and meenakari, karat and metal, and ask the design consultant for ideas
-          drawn from your own style board. Download the render or send it on WhatsApp.
-        </p>
+        <h1>{BRAND.hero.title} <em>{BRAND.hero.emphasis}</em> {BRAND.hero.after}</h1>
+        <p className="muted">{BRAND.hero.body}</p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href="/design" className="btn primary">Start a design</Link>
           <Link href="/style" className="btn">Build your style profile</Link>

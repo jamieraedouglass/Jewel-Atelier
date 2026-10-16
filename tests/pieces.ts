@@ -15,6 +15,11 @@ export function allDesigns(): { name: string; design: Design }[] {
   // options that change how a style is built
   for (const hang of ["in-chain", "below", "drop"] as const)
     out.push({ name: `option three-stone pendant hangs ${hang}`, design: applyPatch(chooseStyle(defaultDesign(), "necklace", "three-stone-pendant"), { options: { hang } }) });
+  for (const clasp of ["jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const)
+    out.push({ name: `option line necklace clasp ${clasp}`, design: applyPatch(chooseStyle(defaultDesign(), "necklace", "line"), { options: { clasp } }) });
+  for (const clasp of ["box", "toggle"] as const)
+    out.push({ name: `option tennis clasp ${clasp}`, design: applyPatch(chooseStyle(defaultDesign(), "bracelet", "tennis"), { options: { clasp } }) });
+  out.push({ name: "option pendant lobster clasp", design: applyPatch(chooseStyle(defaultDesign(), "necklace", "pendant"), { options: { clasp: "lobster" } }) });
   out.push({ name: "option pendant set into the chain", design: applyPatch(chooseStyle(defaultDesign(), "necklace", "pendant"), { options: { hang: "in-chain" } }) });
   for (const [t, st] of [["ring", "halo"], ["ring", "cluster"], ["earrings", "stud"], ["necklace", "pendant"]] as const)
     out.push({ name: `option ${t}/${st} accents off`, design: applyPatch(chooseStyle(defaultDesign(), t, st), { options: { halo: true }, accents: { enabled: false } }) });

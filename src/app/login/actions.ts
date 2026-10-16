@@ -5,12 +5,12 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safeNext";
+import { emailForName, slugify } from "@/lib/names";
 
 /**
  * Name-only sign-in. Each name maps to one account: the server derives a hidden email and password
  * from the name, so nobody types a password. Optional STUDIO_CODE keeps strangers out.
  */
-const slugify = (name: string) => name.trim().toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
 
 function secretFor(slug: string) {
   const secret = process.env.NAME_LOGIN_SECRET;
@@ -34,7 +34,7 @@ export async function signInWithName(_: { error?: string } | null, form: FormDat
   const slug = slugify(name);
   if (!slug) return { error: "Use letters or numbers in your name." };
 
-  const email = `${slug}@users.jewel-atelier.invalid`;
+  const email = emailForName(name);
   let password: string;
   try { password = secretFor(slug); } catch (e) { return { error: (e as Error).message }; }
 

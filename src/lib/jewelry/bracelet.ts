@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { type Design, SOLID_BRACELETS, bangleDiameter, roundDiameter } from "../design";
+import { type Design, SOLID_BRACELETS, bangleDiameter, resolveClasp, roundDiameter } from "../design";
+import { claspAt, claspGap } from "./clasps";
 import { type Piece, Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStone } from "./stones";
@@ -25,10 +26,13 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     const haloItems: Item[] = [];
     const pitch = W0 + (o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.5 : 0.5);
     let maxW = W0;
+    const kind = resolveClasp(st, o.clasp);
+    // hidden (the usual for tennis): stones all the way round; otherwise a gap at the back for the clasp
+    const gapU = kind === "hidden" ? 0 : claspGap(curve, W0 + (rows - 1) * pitch) / 2;
     for (let r = 0; r < rows; r++) {
       const off = (r - (rows - 1) / 2) * pitch;
-      const run = patternRun(d, m, curve, front, front + 1, {
-        closed: true, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
+      const run = patternRun(d, m, curve, gapU ? front + 0.5 + gapU : front, gapU ? front + 1.5 - gapU : front + 1, {
+        closed: !gapU, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
         offset: (u) => outwardAt(curve, u).multiplyScalar(off),
         onPlace: o.halo ? (pos, quat, W, L) => haloRing(pos, quat, W, L, haloItems) : undefined,
       });
@@ -40,6 +44,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       group.add(under);
     }
     if (haloItems.length) group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, haloItems));
+    if (kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), W0 + (rows - 1) * pitch));
     focusSize = maxW * 7 + (rows - 1) * pitch * 2;
   } else if (st === "open-bangle") {
     const thick = 2.2;
@@ -113,6 +118,11 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       const u = wrap(front + i / o.count);
       group.add(place(setStone(c, d.setting.style, m), curve.getPointAt(u).add(v3(0, 0.2, 0)), yawAt(curve, u)));
     }
+  }
+  // chain and bead bracelets: a clasp at the back, when one is chosen
+  if (st === "station" || st === "charm" || st === "beaded") {
+    const kind = resolveClasp(st, o.clasp);
+    if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), st === "beaded" ? Math.max(3, d.fringe.sizeMm) : 3.2));
   }
   return { group, focus, focusSize, upright: false };
 }

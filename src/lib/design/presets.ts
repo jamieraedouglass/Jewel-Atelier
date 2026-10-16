@@ -178,6 +178,22 @@ export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[]; colle
     ],
   },
   {
+    name: "Carved stone pendant", collection: KOTHARI, blurb: "A pavé bar, a carved aquamarine in claws, a diamond cap and a golden South Sea pearl.",
+    parts: [
+      { kind: "bow", showStone: false, halo: true, haloMm: 1, spreadMm: 26, small: sm(["round"], 1), gapMm: 0 },
+      { kind: "stone", stone: { ...col("aquamarine", "carved", "cushion", 26, 19), domeMm: 6, clarity: 0.8 }, gapMm: 0.6, link: "direct" },
+      { kind: "stone", stone: dia("round", 2.2, 2.2), halo: true, haloMm: 1.1, small: sm(["round"], 1), gapMm: 0.5, link: "direct" },
+      { kind: "stone", stone: { ...pearl("pear", 16, 13.5), color: "#d8b46a" }, gapMm: 0.3, link: "direct" },
+    ],
+  },
+  {
+    name: "Carved jade drop", collection: KOTHARI, blurb: "A diamond stud with a carved jade drop, in the Mughal manner.",
+    parts: [
+      { kind: "stone", stone: dia("round", 4, 4), halo: true, haloMm: 1, gapMm: 0 },
+      { kind: "stone", stone: { ...col("jade", "carved", "pear", 20, 14, 0), domeMm: 4.5 }, gapMm: 0.6 },
+    ],
+  },
+  {
     name: "Rainbow sapphire line drop", collection: KOTHARI, blurb: "Oval sapphires in a line, orange through yellow and green to blue, each in a fine claw setting.",
     parts: ["#e2581c", "#f08a1e", "#f2b81e", "#d8c63a", "#8aa86a", "#6f8fb8", "#4f6fc0"].map((color, i) => ({
       kind: "stone" as const, stone: { ...col("sapphire", "faceted", "oval", 6 + i * 0.15, 4.6 + i * 0.1, 0, color), clarity: 0.6 }, gapMm: i ? 0.25 : 0, link: "direct" as const,

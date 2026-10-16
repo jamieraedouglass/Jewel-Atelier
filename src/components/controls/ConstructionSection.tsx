@@ -1,10 +1,15 @@
 "use client";
 
-import { BANGLE_SIZES, CHAIN_STYLES, NECKLACE_LENGTHS, SETTINGS, type Design, type Use, isSolidBracelet, label } from "@/lib/design";
+import { BANGLE_SIZES, CHAIN_STYLES, NECKLACE_LENGTHS, SETTINGS, type ClaspChoice, type Design, type Use, claspChoices, isSolidBracelet, label } from "@/lib/design";
+
+const CLASP_LABEL: Record<ClaspChoice, string> = {
+  auto: "Usual for this piece", box: "Box clasp", jewelled: "Jewelled box (the design runs onto it)", hidden: "Hidden (stones unbroken)",
+  lobster: "Lobster claw", "spring-ring": "Spring ring", toggle: "Toggle",
+};
 import { Chips, Range, Toggle, sectionStyle, type SectionProps } from "./fields";
 
 /** the controls this section can show; it is hidden when the style uses none of them */
-export const CONSTRUCTION_USES: Use[] = ["setting", "halo", "accentTop", "pave", "hoop", "length", "chain", "count", "layers", "wrist", "links", "hang"];
+export const CONSTRUCTION_USES: Use[] = ["setting", "halo", "accentTop", "pave", "hoop", "length", "chain", "count", "layers", "wrist", "links", "hang", "clasp"];
 
 const lengthName = (n: number) => NECKLACE_LENGTHS.reduce((a, b) => (Math.abs(b.in - n) < Math.abs(a.in - n) ? b : a)).name;
 
@@ -72,6 +77,12 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
       {has("count") && <Range id="count" label={countLabel(d.style)} value={o.count} min={1} max={countMax(d.style)} step={1} onChange={(count) => setOpt({ count })} />}
       {has("links") && <Chips name="Links" options={["x", "chevron"] as const} value={o.linkStyle} fmt={(v) => (v === "x" ? "X links with pavé" : "Chevrons with stone rows")} onPick={(linkStyle) => setOpt({ linkStyle })} />}
       {has("layers") && <Range id="layers" label={layersLabel(d.style)} value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
+      {has("clasp") && (
+        <>
+          <span className="small muted">Clasp</span>
+          <Chips name="Clasp" options={claspChoices(d.style)} value={o.clasp} fmt={(v) => CLASP_LABEL[v]} onPick={(clasp) => setOpt({ clasp })} />
+        </>
+      )}
       {has("wrist") && (isSolidBracelet(d)
         ? <><span className="small muted">Bangle size (Indian)</span><Chips name="Bangle size" options={BANGLE_SIZES} value={o.bangleSize} fmt={(s) => s} onPick={(bangleSize) => setOpt({ bangleSize })} /></>
         : <Range id="wrist" label="Wrist" value={o.wristCm} min={13} max={24} step={0.5} format={(n) => `${n} cm`} onChange={(wristCm) => setOpt({ wristCm })} />)}

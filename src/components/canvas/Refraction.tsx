@@ -13,6 +13,8 @@ import { glowTint } from "@/lib/glow";
  * with a little fire), instead of the faster mirror-and-glass look. Small pavé stones are instanced and keep the fast look.
  */
 const studioCubes = new WeakMap<THREE.WebGLRenderer, THREE.CubeTexture>();
+/** after the browser restores a lost 3D context, rendered textures are empty: draw the studio again */
+export const forgetStudioCube = (gl: THREE.WebGLRenderer) => studioCubes.delete(gl);
 /** what diamonds see, rendered once per renderer (a texture drawn in one WebGL context is empty in any other) */
 function studioCubeFor(gl: THREE.WebGLRenderer) {
   let cube = studioCubes.get(gl);

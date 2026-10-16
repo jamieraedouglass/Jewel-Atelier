@@ -97,6 +97,9 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Rainbow sapphire line drops", collection: KOTHARI, type: "earrings", style: "pendant", patch: { metal: "yellow-gold", drop: { ...dropOf("Rainbow sapphire line drop"), top: "post" } } as DesignPatch },
   { name: "Rainbow sapphire eternity band", collection: KOTHARI, type: "ring", style: "eternity", patch: { metal: "yellow-gold", band: { widthMm: 4.5 }, accents: { gem: "sapphire", shapes: ["oval", "round", "round"], orientation: "along", turns: [], twins: [], sizes: [1.9, 0.8, 0.8], sizeCt: 0.12, colors: RAINBOW_WITH_DIAMONDS } } as DesignPatch },
   { name: "Matched Asscher studs", collection: KOTHARI, type: "earrings", style: "stud", patch: { metal: "platinum", center: diamond("asscher", 3, "Asscher-cut diamond"), setting: { style: "four-claw" } } },
+  { name: "Carved aquamarine and golden pearl pendant", collection: KOTHARI, type: "necklace", style: "drop-pendant", patch: { metal: "yellow-gold", drop: dropOf("Carved stone pendant"), options: { lengthIn: 22, chain: "fine" } } as DesignPatch },
+  { name: "Mughal carved emerald ring", collection: KOTHARI, type: "ring", style: "solitaire", patch: { metal: "yellow-gold", purity: { karat: 22 }, setting: { style: "four-claw" }, center: { gem: "emerald", cut: "carved", shape: "cushion", lengthMm: 16, widthMm: 13, domeMm: 4.5, ...graded("emerald", "colombian"), label: "Carved Colombian emerald", carat: null, rotation: 0, none: false } } },
+  { name: "Carved jade drops", collection: KOTHARI, type: "earrings", style: "pendant", patch: { metal: "yellow-gold", purity: { karat: 22 }, drop: { ...dropOf("Carved jade drop"), top: "post" } } as DesignPatch },
 ];
 
 export type ShowcasePiece = (typeof SHOWCASE)[number];

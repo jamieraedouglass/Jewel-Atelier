@@ -9,6 +9,8 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
  * bounces light around inside, so the stone facets (and only those; metal keeps the dark light box) reflect a bright room.
  */
 const roomEnvs = new WeakMap<THREE.WebGLRenderer, THREE.Texture>();
+/** after the browser restores a lost 3D context, rendered textures are empty: draw the room again */
+export const forgetRoomEnv = (gl: THREE.WebGLRenderer) => roomEnvs.delete(gl);
 /** the bright room, rendered once per renderer: a texture drawn in one WebGL context is empty in any other */
 function roomEnvFor(gl: THREE.WebGLRenderer) {
   let env = roomEnvs.get(gl);

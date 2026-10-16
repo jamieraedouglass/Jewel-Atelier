@@ -46,11 +46,11 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   g.userData.part = "accents";
   if (!items.length) return g;
   const o = new THREE.Object3D();
-  if (cutIn === "cabochon") {
+  if (cutIn === "cabochon" || cutIn === "carved") {
     // little domed stones (sapphire petals, turquoise, emerald leaves) in a thin gold rim
     const asp0 = ASPECT[shape];
     const meshes = [
-      new THREE.InstancedMesh(cutGeometry("cabochon", shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: "cabochon", color, clarity: 0.45 }, 1), items.length),
+      new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.45 }, 1), items.length),
       new THREE.InstancedMesh(shapedRim(shape, asp0, 0.06), m.metal, items.length),
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });

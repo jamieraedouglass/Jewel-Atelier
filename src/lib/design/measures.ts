@@ -7,10 +7,10 @@ import { type CenterStone, type Design } from "./schema";
 export const DENSITY: Record<Gem, number> = {
   diamond: 3.52, sapphire: 4.0, "yellow-sapphire": 4.0, ruby: 4.0, emerald: 2.72, spinel: 3.6, pearl: 2.7, coral: 2.65, hessonite: 3.65,
   "cats-eye": 3.72, tourmaline: 3.06, aquamarine: 2.7, tanzanite: 3.35, amethyst: 2.65, citrine: 2.65, garnet: 3.9, morganite: 2.8,
-  peridot: 3.34, opal: 2.1, turquoise: 2.7, onyx: 2.65, other: 3.5,
+  peridot: 3.34, opal: 2.1, turquoise: 2.7, onyx: 2.65, jade: 3.3, other: 3.5,
 };
 
-const DEPTH: Record<CenterStone["cut"], number> = { faceted: 0.62, "rose-cut": 0.4, polki: 0.22, cabochon: 0.6, briolette: 0.75, bead: 1 };
+const DEPTH: Record<CenterStone["cut"], number> = { faceted: 0.62, "rose-cut": 0.4, polki: 0.22, cabochon: 0.6, briolette: 0.75, bead: 1, carved: 0.6 };
 
 /**
  * Rough dimensions from carat weight. Volume = ct × 0.2 g / SG.
@@ -23,7 +23,7 @@ export function estimateDims(gem: Gem, cut: CenterStone["cut"], shape: CenterSto
     const w = Math.cbrt((6 * volMm3) / (Math.PI * ratio * (shape === "pear" ? 0.8 : 1)));
     return fitStone(w * ratio, w, w / 2);
   }
-  if (cut === "cabochon") {
+  if (cut === "cabochon" || cut === "carved") {
     const k = (2 / 3) * Math.PI * ratio * 1.17;
     const b = Math.cbrt(volMm3 / k);
     return fitStone(2 * b * ratio, 2 * b, 0.9 * b);
@@ -104,3 +104,16 @@ export const proportionPresets = (shape: (typeof SHAPES)[number]): [string, numb
   return [["Short & wide", round2(base * 0.85)], ["Classic", round2(base)], ["Long & slim", round2(base * 1.2)]];
 };
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * The carat weight a stone of this size would be: the inverse of estimateDims, using its actual length and width.
+ * An estimate for the spec sheet when the stated weight no longer applies (a client resized or swapped the stone).
+ */
+export function caratFromDims(gem: Gem, cut: CenterStone["cut"], shape: CenterStone["shape"], lengthMm: number, widthMm: number) {
+  const L = Math.max(lengthMm, widthMm), W = Math.min(lengthMm, widthMm);
+  let volMm3: number;
+  if (cut === "bead") volMm3 = (Math.PI / 6) * L * W * W * (shape === "pear" ? 0.8 : 1);
+  else if (cut === "cabochon" || cut === "carved") volMm3 = (2 / 3) * Math.PI * (L / 2) * (W / 2) * (W / 2) * 1.17;
+  else volMm3 = L * W * W * DEPTH[cut] * SHAPE_FILL[shape] * (cut === "faceted" ? FACETED_FILL : 1.35);
+  return Math.round(((volMm3 / 1000) * DENSITY[gem] / 0.2) * 100) / 100;
+}

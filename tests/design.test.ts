@@ -298,3 +298,19 @@ describe("half-flower and gallery options", async () => {
     expect(none).toBe(0);
   });
 });
+
+describe("clasps", async () => {
+  const { resolveClasp, claspChoices } = await import("@/lib/design");
+  it("default to each piece's usual clasp", () => {
+    expect(resolveClasp("line", "auto")).toBe("box");
+    expect(resolveClasp("pearl-strand", "auto")).toBe("box");
+    expect(resolveClasp("tennis", "auto")).toBe("hidden");
+    expect(resolveClasp("pendant", "auto")).toBe("none");
+  });
+  it("only hide or jewel the clasp on lines of stones", () => {
+    expect(claspChoices("line")).toContain("hidden");
+    expect(claspChoices("pendant")).not.toContain("hidden");
+    expect(resolveClasp("pendant", "hidden")).toBe("none");
+    expect(resolveClasp("pendant", "lobster")).toBe("lobster");
+  });
+});
