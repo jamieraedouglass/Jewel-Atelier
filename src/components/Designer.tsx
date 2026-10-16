@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { duplicateDesign, listVersions, saveDesign, setPublic, setThumbnail } from "@/app/actions";
-import { applyPatch, describeDesign, normalizeDesign, type Design, type DesignPatch } from "@/lib/design";
+import { applyPatch, asRightEar, describeDesign, normalizeDesign, rightEarDesign, type Design, type DesignPatch } from "@/lib/design";
 import { createClient } from "@/lib/supabase/client";
 import { VIEW_LABEL, type Cutout, type Measure, type Pick, type RingCanvasHandle, type View } from "./RingCanvas";
 import TryOn from "./TryOn";
@@ -40,6 +40,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   /** a click on the paused piece: open the quick editor there, kept inside the view */
   function onPick(p: Pick) {
     if (spinRef.current) return; // clicks edit only while the piece is paused
+    if (p.ear && designRef.current.rightEar) setEar(p.ear);
     const w = stageEl.current?.clientWidth ?? 800, h = stageEl.current?.clientHeight ?? 600;
     setPick({ ...p, x: Math.max(8, Math.min(p.x + 12, w - 296)), y: Math.max(8, Math.min(p.y - 20, h - 340)) });
   }
@@ -95,8 +96,34 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const change = (patch: DesignPatch) => record(applyPatch(designRef.current, patch), true);
-  const replace = (d: Design) => record(d, false);
+  /* ---- earrings: a matching pair, or each earring designed on its own ---- */
+  const [ear, setEar] = useState<"left" | "right">("left");
+  const earRef = useRef(ear);
+  earRef.current = ear;
+  const unmatched = design.type === "earrings" && !!design.rightEar;
+  const onRight = () => designRef.current.type === "earrings" && !!designRef.current.rightEar && earRef.current === "right";
+  // the pair's own settings always apply to both earrings
+  const PAIR_KEYS = new Set(["metal", "purity", "name", "rightEar", "mirrorPair"]);
+  const change = (patch: DesignPatch) => {
+    const cur = designRef.current;
+    if (!onRight() || patch.type) return record(applyPatch(cur, patch), true);
+    // split the change: pair settings to the pair, the rest to the right earring
+    const pairPart: Record<string, unknown> = {}, earPart: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) (PAIR_KEYS.has(k) ? pairPart : earPart)[k] = v;
+    const base = Object.keys(pairPart).length ? applyPatch(cur, pairPart as DesignPatch) : cur;
+    record({ ...base, rightEar: asRightEar(applyPatch(rightEarDesign(base), earPart as DesignPatch)) }, true);
+  };
+  const replace = (d: Design) => {
+    const cur = designRef.current;
+    if (onRight() && d.type === "earrings") return record({ ...cur, rightEar: asRightEar(d) }, false);
+    record(d, false);
+  };
+  function setMatched(matched: boolean) {
+    const cur = designRef.current;
+    if (matched) { record({ ...cur, rightEar: null }, false); setEar("left"); }
+    else record({ ...cur, rightEar: asRightEar(cur) }, false);
+  }
+  const editing = unmatched && ear === "right" ? rightEarDesign(design) : design;
 
   /* ---- real size ---- */
   const [measure, setMeasure] = useState<Measure | null>(null);
@@ -212,7 +239,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
         <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />
         {tryOn && <TryOn cutout={tryOn} title={design.name} onClose={() => setTryOn(null)} />}
         <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
-        {pick && !spin && <QuickEdit pick={pick} design={design} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
+        {pick && !spin && <QuickEdit pick={pick} design={editing} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
         <div className="stage-ui">
           <div>
             <p className="summary">{describeDesign(design)}</p>
@@ -266,8 +293,34 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
               ))}
             </section>
           )}
-          {tab === "design" && <DesignControls design={design} userId={userId} onChange={change} onReplace={replace} />}
-          {tab === "photo" && <PhotoToDesign userId={userId} design={design} onReplace={replace} />}
+          {design.type === "earrings" && (tab === "design" || tab === "photo" || tab === "stone") && (
+            <section className="pairbar" aria-label="The pair">
+              <div className="chips" role="group" aria-label="Matching">
+                <button type="button" className="chip" aria-pressed={!unmatched} onClick={() => setMatched(true)}>Matching pair</button>
+                <button type="button" className="chip" aria-pressed={unmatched} onClick={() => setMatched(false)}>Each earring different</button>
+              </div>
+              {unmatched ? (
+                <>
+                  <div className="chips" role="group" aria-label="Which earring you're editing">
+                    <span className="small muted" style={{ alignSelf: "center" }}>Editing</span>
+                    <button type="button" className="chip" aria-pressed={ear === "left"} onClick={() => setEar("left")}>Left earring</button>
+                    <button type="button" className="chip" aria-pressed={ear === "right"} onClick={() => setEar("right")}>Right earring</button>
+                  </div>
+                  <span className="small muted">Changes go to the {ear} earring only. Metal and karat are shared. Click an earring on the paused piece to switch to it.</span>
+                </>
+              ) : (
+                <>
+                  <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <input type="checkbox" checked={design.mirrorPair} onChange={(e) => change({ mirrorPair: e.target.checked })} />
+                    Mirror the second earring (angled stones and side parts face the other way)
+                  </label>
+                  <span className="small muted">Every change applies to both earrings.</span>
+                </>
+              )}
+            </section>
+          )}
+          {tab === "design" && <DesignControls design={editing} userId={userId} onChange={change} onReplace={replace} />}
+          {tab === "photo" && <PhotoToDesign userId={userId} design={editing} onReplace={replace} />}
           {tab === "stone" && <StoneUploader userId={userId} onApply={(stone) => { change({ center: stone }); setTab("design"); }} />}
           {tab === "chat" && <DesignChat userId={userId} design={design} onApply={change} />}
         </div>

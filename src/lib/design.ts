@@ -439,6 +439,8 @@ export const DesignSchema = z
       /** earrings: a stud post behind the top part, or a hook above it */
       top: z.enum(["post", "hook"]).default("post"),
     }).default({}),
+    /** earrings: null = a matching pair (one design for both); otherwise the right earring's own design */
+    rightEar: z.record(z.unknown()).nullable().default(null),
     /** mirror the second earring of a pair */
     mirrorPair: z.boolean().default(true),
     /** a custom shape, used by the motif styles */
@@ -473,6 +475,25 @@ export type CenterStone = z.infer<typeof CenterStoneSchema>;
 export type Design = z.output<typeof DesignSchema>;
 
 export const defaultDesign = (): Design => DesignSchema.parse({});
+
+const HOOPS = new Set(["hoop", "huggie"]);
+/**
+ * The right earring when the pair isn't matching. Metal and karat always follow the pair; hoops and huggies
+ * stay hoops on both sides (they are built standing up, the other styles lie flat).
+ */
+export function rightEarDesign(d: Design): Design {
+  const raw = (d.rightEar ?? {}) as Record<string, unknown>;
+  let style = typeof raw.style === "string" ? raw.style : d.style;
+  if (HOOPS.has(d.style) !== HOOPS.has(style) || !STYLES.earrings[style]) style = d.style;
+  const r = DesignSchema.safeParse({ ...raw, type: "earrings", style, metal: d.metal, purity: d.purity, rightEar: null, name: d.name });
+  return r.success ? r.data : { ...d, rightEar: null };
+}
+/** what gets stored as the right earring */
+export function asRightEar(r: Design): Record<string, unknown> {
+  const { rightEar: _r, name: _n, type: _t, ...rest } = r;
+  void _r; void _n; void _t;
+  return rest as Record<string, unknown>;
+}
 
 /** Parse anything (DB row, Claude output) into a complete, valid design. */
 export function normalizeDesign(input: unknown): Design {

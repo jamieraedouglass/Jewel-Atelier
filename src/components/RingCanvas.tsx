@@ -46,7 +46,7 @@ function framing(piece: Piece, view: View) {
 }
 
 export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif" | "drop";
-export type Pick = { part: Part; x: number; y: number; index?: number };
+export type Pick = { part: Part; x: number; y: number; index?: number; ear?: "left" | "right" };
 
 /** the part worth measuring: one earring of a pair, a ring's head, otherwise the whole piece */
 function subjectOf(piece: Piece, design: Design): { obj: THREE.Object3D; hide: THREE.Object3D[]; what: string } {
@@ -247,7 +247,9 @@ function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: (p: Pic
       while (o && !o.userData.part) o = o.parent;
       // inside a drop part, the part number lives on the part's group
       for (let q: THREE.Object3D | null = o; q; q = q.parent) if (typeof q.userData.dropIndex === "number") { index = q.userData.dropIndex; break; }
-      onPick({ part: index !== undefined ? "drop" : ((o?.userData.part as Part) ?? "metal"), index, x: e.clientX - r.left, y: e.clientY - r.top });
+      let ear: "left" | "right" | undefined;
+      for (let q: THREE.Object3D | null = hit.object; q; q = q.parent) if (q.userData.ear) { ear = q.userData.ear; break; }
+      onPick({ part: index !== undefined ? "drop" : ((o?.userData.part as Part) ?? "metal"), index, ear, x: e.clientX - r.left, y: e.clientY - r.top });
     };
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointerup", onUp);

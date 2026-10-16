@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BEAD_GEMS, SHAPE_RATIO, type CenterStone, type Design, type DropPart, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
+import { BEAD_GEMS, SHAPE_RATIO, rightEarDesign, type CenterStone, type Design, type DropPart, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
 import { motifPlate, motifShapes } from "./motifModel";
 import { clawDegrees, metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
 
@@ -876,9 +876,10 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   return { group: g, R, T, low };
 }
 
-function hoopPair(d: Design, m: Mats, huggie: boolean): Piece {
-  const left = hoopEarring(d, m, huggie), right = hoopEarring(d, m, huggie);
-  const sep = left.R + left.T + 6;
+function hoopPair(d: Design, m: Mats, huggie: boolean, rd: Design | null = null): Piece {
+  const left = hoopEarring(d, m, huggie), right = hoopEarring(rd ?? d, m, (rd ?? d).style === "huggie");
+  left.group.userData.ear = "left"; right.group.userData.ear = "right";
+  const sep = Math.max(left.R + left.T, right.R + right.T) + 6;
   left.group.position.x = -sep; left.group.rotation.y = 0.35;
   right.group.position.x = sep; right.group.rotation.y = -0.35;
   const group = new THREE.Group();
@@ -1132,6 +1133,26 @@ function hook(m: Mats, top: number) {
 }
 
 function earringPiece(d: Design, m: Mats): Piece {
+  const rd = d.rightEar ? rightEarDesign(d) : null;
+  if (d.style === "hoop" || d.style === "huggie") return hoopPair(d, m, d.style === "huggie", rd);
+  const L = earringOne(d, m, false);
+  const studMirror = d.style === "stud" && d.mirrorPair && !rd;
+  const R = rd ? earringOne(rd, m, false) : studMirror ? earringOne(d, m, true) : { one: L.one.clone(), focus: L.focus, focusSize: L.focusSize };
+  const wOf = (g: THREE.Object3D) => { const b = new THREE.Box3().setFromObject(g); return { w: b.max.x - b.min.x, c: (b.max.x + b.min.x) / 2 }; };
+  const a = wOf(L.one), b = wOf(R.one);
+  const sep = (a.w + b.w) / 2 + 10;
+  L.one.position.x = -sep / 2 - a.c; R.one.position.x = sep / 2 - b.c;
+  if (!rd && (d.style === "climber" || ((d.style === "chandelier" || d.style === "pendant") && d.mirrorPair))) { R.one.scale.x = -1; R.one.position.x = sep / 2 + b.c; }
+  if (rd && rd.style === "climber") { R.one.scale.x = -1; R.one.position.x = sep / 2 + b.c; }
+  L.one.userData.ear = "left"; R.one.userData.ear = "right";
+  const group = new THREE.Group();
+  group.add(L.one, R.one);
+  const focus = L.focus.clone(); focus.x += L.one.position.x;
+  return { group, focus, focusSize: Math.max(L.focusSize, rd ? R.focusSize : 0), upright: false };
+}
+
+/** one earring, centred where it was built (the pair is laid out by earringPiece) */
+function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group; focus: THREE.Vector3; focusSize: number } {
   const c = d.center, o = d.options, st = d.style;
   const one = new THREE.Group();
   let focus = v3(), focusSize = Math.max(c.lengthMm, c.widthMm) * 1.6;
@@ -1144,7 +1165,7 @@ function earringPiece(d: Design, m: Mats): Piece {
   };
 
   if (st === "stud") {
-    one.add(stud(d, m, false));
+    one.add(stud(d, m, mirrorStud));
     focusSize = Math.max(c.lengthMm, c.widthMm) * (1.6 + d.extraStones.length);
   } else if (st === "drop") {
     let top: number;
@@ -1157,8 +1178,6 @@ function earringPiece(d: Design, m: Mats): Piece {
     drop.position.set(0, 0, z);
     one.add(drop);
     focus = v3(0, 0, z);
-  } else if (st === "hoop" || st === "huggie") {
-    return hoopPair(d, m, st === "huggie");
   } else if (st === "chandelier" || st === "pendant") {
     const stack = dropStack(d, m);
     one.add(stack.group);
@@ -1248,16 +1267,7 @@ function earringPiece(d: Design, m: Mats): Piece {
     focus = v3(0, 0, capZ + 12); focusSize = 50;
   }
 
-  const box = new THREE.Box3().setFromObject(one);
-  const gap = box.max.x - box.min.x + 10;
-  // a mirrored partner for asymmetric studs (angled stones, side-shifted extras); otherwise an exact copy
-  const right = st === "stud" && d.mirrorPair ? (() => { const r = new THREE.Group(); r.add(stud(d, m, true)); return r; })() : one.clone();
-  one.position.x = -gap / 2; right.position.x = gap / 2;
-  if (st === "climber" || ((st === "chandelier" || st === "pendant") && d.mirrorPair)) right.scale.x = -1;
-  const group = new THREE.Group();
-  group.add(one, right);
-  focus.x -= gap / 2;
-  return { group, focus, focusSize, upright: false };
+  return { one, focus, focusSize };
 }
 
 function necklacePiece(d: Design, m: Mats): Piece {
