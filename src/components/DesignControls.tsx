@@ -300,6 +300,10 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           <h3>Side stones</h3>
           <Chips name="Side stones" options={SIDE_KINDS} value={d.sides.kind} onPick={(kind) => onChange({ sides: { kind } })} />
           {d.sides.kind !== "none" && d.type === "ring" && (
+            <Chips name="Side stones sit" options={["level", "band"] as const} value={d.sides.follow}
+              fmt={(v) => (v === "level" ? "Up beside the centre" : "Curving with the band, flush")} onPick={(follow) => onChange({ sides: { follow } })} />
+          )}
+          {d.sides.kind !== "none" && d.type === "ring" && (
             <Toggle id="side-hug" checked={d.sides.hug} onChange={(hug) => onChange({ sides: { hug } })}>Hug the centre stone (sized to it, set tight against it)</Toggle>
           )}
           {d.sides.kind !== "none" && d.sides.hug && d.type === "ring" && (
