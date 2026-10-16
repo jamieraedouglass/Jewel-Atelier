@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { DropPartSchema, applyPatch, chooseStyle, type Design, type DesignPatch, type PieceType } from "@/lib/design";
+import { useEffect, useRef, useState } from "react";
+import { applyPatchLenient, chooseStyle, type Design, type DesignPatch, type PieceType } from "@/lib/design";
 import { compressImage, uid } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,6 +13,9 @@ export default function PhotoToDesign({ userId, design, onReplace }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<Blob[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const previewsRef = useRef(previews);
+  previewsRef.current = previews;
+  useEffect(() => () => previewsRef.current.forEach(URL.revokeObjectURL), []);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,19 +58,8 @@ export default function PhotoToDesign({ userId, design, onReplace }: Props) {
   }
 
   function apply(r: Result) {
-    let d = chooseStyle(design, r.type, r.style);
-    const whole = applyPatch(d, { ...r.patch, type: r.type, style: r.style });
-    if (whole !== d) d = whole;
-    else {
-      // one out-of-range value shouldn't throw away the rest: apply field by field, and drop parts one by one
-      for (const [k, v] of Object.entries(r.patch ?? {})) {
-        if (k === "type" || k === "style") continue;
-        if (k === "drop" && v && typeof v === "object") {
-          const parts = ((v as { parts?: unknown[] }).parts ?? []).map((x) => DropPartSchema.safeParse(x)).filter((x) => x.success).map((x) => x.data!);
-          if (parts.length) d = applyPatch(d, { drop: { parts } } as DesignPatch);
-        } else d = applyPatch(d, { [k]: v } as DesignPatch);
-      }
-    }
+    // one out-of-range value shouldn't throw away the rest of the recreation
+    const d = applyPatchLenient(chooseStyle(design, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch);
     onReplace({ ...d, name: r.title });
   }
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { DropPartSchema, GEMS, GEM_LOOK, KARATS, METALS, SHAPES, SIDE_KINDS, type Design, type DesignPatch, type DropPart, type Gem, isGold, label } from "@/lib/design";
-import type { Pick } from "./RingCanvas";
+import { GEMS, GEM_LOOK, KARATS, METALS, SHAPES, SIDE_KINDS, type Design, type DesignPatch, type DropPart, type Gem, gemLabel, isGold, label, matchingVariety, updateDropPart, uses, varietiesOf, varietyLook } from "@/lib/design";
+import { accentMaxCt } from "./controls/AccentsSection";
+import type { Pick } from "./canvas/types";
 
 const TITLE: Record<Pick["part"], string> = {
   center: "Main stone", accents: "Small stones", sides: "Side stones", metal: "Metal", fringe: "Beads", extra: "Extra stone", motif: "Motif", drop: "Part",
 };
-const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));
 
 type Props = { pick: Pick; design: Design; onChange: (p: DesignPatch) => void; onMore: (part: Pick["part"], index?: number) => void; onClose: () => void };
 
@@ -23,7 +23,7 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
   const part = pick.part === "center" && d.center.none ? "metal" : pick.part;
   const di = pick.index ?? 0;
   const dp = part === "drop" ? d.drop.parts[di] : undefined;
-  const setDp = (x: Partial<DropPart>) => onChange({ drop: { parts: d.drop.parts.map((p, j) => (j === di ? DropPartSchema.parse({ ...p, ...x }) : p)) } } as DesignPatch);
+  const setDp = (x: Partial<DropPart>) => onChange({ drop: { parts: updateDropPart(d.drop.parts, di, x) } } as DesignPatch);
   const title = dp ? `Part ${di + 1}` : TITLE[part];
 
   return (
@@ -37,6 +37,12 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
       {part === "center" && (
         <>
           {gemSelect(d.center.gem, (gem) => onChange({ center: { gem, ...GEM_LOOK[gem], label: gemLabel(gem) } }))}
+          {varietiesOf(d.center.gem).length > 0 && (
+            <div className="chips" role="group" aria-label="Colour grade">
+              {varietiesOf(d.center.gem).map((v) => chip(matchingVariety(d.center.gem, d.center)?.id === v.id, v.name,
+                () => onChange({ center: { ...varietyLook(v), label: `${v.name} ${gemLabel(d.center.gem).toLowerCase()}` } })))}
+            </div>
+          )}
           <div className="chips">{SHAPES.slice(0, 10).map((s) => chip(d.center.shape === s, label(s), () => onChange({ center: { shape: s } })))}</div>
           <label className="field"><span>Angle · {d.center.rotation}°</span>
             <input type="range" min={-180} max={180} step={5} value={d.center.rotation} onChange={(e) => onChange({ center: { rotation: Number(e.target.value) } })} />
@@ -57,7 +63,7 @@ export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }
             {(["along", "across", "alternate"] as const).map((o) => chip(d.accents.orientation === o, o === "alternate" ? "Alternate" : label(o), () => onChange({ accents: { orientation: o } })))}
           </div>
           <label className="field"><span>Each · {d.accents.sizeCt.toFixed(3)} ct</span>
-            <input type="range" min={0.005} max={d.style === "tennis" ? 6 : 1.5} step={0.005} value={d.accents.sizeCt} onChange={(e) => onChange({ accents: { sizeCt: Number(e.target.value) } })} />
+            <input type="range" min={0.005} max={accentMaxCt(uses(d, "accentShapes"))} step={0.005} value={d.accents.sizeCt} onChange={(e) => onChange({ accents: { sizeCt: Number(e.target.value) } })} />
           </label>
         </>
       )}

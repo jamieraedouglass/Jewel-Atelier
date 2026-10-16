@@ -1,3 +1,4 @@
+import { LRU } from "./cache";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { Motif } from "./design";
@@ -9,12 +10,12 @@ import type { Motif } from "./design";
 
 export type MotifShapes = { shapes: THREE.Shape[]; scale: number; toLocal: (x: number, y: number) => THREE.Vector3; size: { w: number; h: number } };
 
-const shapeCache = new Map<string, MotifShapes | null>();
+const shapeCache = new LRU<string, MotifShapes | null>(50);
 
 export function motifShapes(m: Motif): MotifShapes | null {
   const [minX, minY, vw, vh] = m.viewBox;
-  const key = `${m.path.length}:${m.path.slice(0, 200)}:${m.path.slice(-200)}:${m.viewBox.join(",")}:${m.widthMm}`;
-  if (shapeCache.has(key)) return shapeCache.get(key)!;
+  const key = `${m.viewBox.join(",")}:${m.widthMm}:${m.path}`;
+  if (shapeCache.has(key)) return shapeCache.get(key) ?? null;
   let result: MotifShapes | null = null;
   try {
     if (typeof DOMParser === "undefined") return null;

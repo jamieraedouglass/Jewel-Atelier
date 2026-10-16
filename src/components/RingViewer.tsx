@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { Design } from "@/lib/design";
-import { VIEW_LABEL, type View } from "./RingCanvas";
+import { VIEW_LABEL, type View } from "./canvas/types";
 
 const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false });
 

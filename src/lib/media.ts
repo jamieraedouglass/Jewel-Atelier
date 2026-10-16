@@ -8,6 +8,7 @@ export async function compressImage(file: Blob, maxSide = 1600): Promise<Blob> {
   c.width = Math.round(bmp.width * scale);
   c.height = Math.round(bmp.height * scale);
   c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close();
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Couldn't process image"))), "image/jpeg", 0.88));
 }
 

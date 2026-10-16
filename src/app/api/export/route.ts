@@ -7,7 +7,10 @@ export const runtime = "nodejs";
 export async function GET() {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-  const { data: designs } = await supabase.from("designs").select("id, name, data, created_at, updated_at").eq("owner", user.id).order("updated_at", { ascending: false });
+  const list = (cols: string) => supabase.from("designs").select(cols).eq("owner", user.id).order("updated_at", { ascending: false });
+  let res = await list("id, name, data, created_at, updated_at, status, made_at, inventory");
+  if (res.error) res = await list("id, name, data, created_at, updated_at"); // before the status and inventory columns exist
+  const designs = res.data;
   const { data: versions } = await supabase.from("design_versions").select("design_id, name, data, created_at").eq("owner", user.id).order("created_at", { ascending: false });
   const body = JSON.stringify({ app: "jewel-atelier", exportedAt: new Date().toISOString(), designs: designs ?? [], versions: versions ?? [] }, null, 1);
   const day = new Date().toISOString().slice(0, 10);

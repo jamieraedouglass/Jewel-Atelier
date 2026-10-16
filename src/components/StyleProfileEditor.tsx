@@ -2,109 +2,98 @@
 
 import { useRef, useState } from "react";
 import { saveStyleProfile } from "@/app/actions";
-import { compressImage, uid } from "@/lib/media";
-import { createClient } from "@/lib/supabase/client";
+import { describeProfile, prefsFromTaste, profileCompleteness, type StylePrefs, type Taste } from "@/lib/style/profile";
+import InspirationPhotos, { type Img } from "./style/InspirationPhotos";
+import StyleIcons from "./style/StyleIcons";
+import PrefsSections from "./style/PrefsSections";
+import TasteCard from "./style/TasteCard";
 
-type Img = { path: string; url: string };
-type Props = { userId: string; initial: { icons: string[]; notes: string; images: Img[] } };
+type Props = {
+  userId: string; taste: Taste | null;
+  initial: { icons: string[]; notes: string; images: Img[]; prefs: StylePrefs; applied: string[]; dismissed: string[]; photoRead: string };
+};
 
-const ICON_IDEAS = ["Grace Kelly", "Jackie Kennedy", "Carolyn Bessette-Kennedy", "Sofia Richie Grainge", "Kelly Rutherford", "Princess Diana", "Audrey Hepburn", "Zendaya"];
-
-export default function StyleProfileEditor({ userId, initial }: Props) {
-  const input = useRef<HTMLInputElement>(null);
+/** The style profile: preferences, photos, icons and notes, plus what their designs say, and exactly what the designer reads. */
+export default function StyleProfileEditor({ userId, initial, taste }: Props) {
+  const [prefs, setPrefs] = useState(initial.prefs);
   const [icons, setIcons] = useState(initial.icons);
-  const [iconDraft, setIconDraft] = useState("");
   const [notes, setNotes] = useState(initial.notes);
-  const [images, setImages] = useState(initial.images);
+  const [images, setImagesState] = useState(initial.images);
+  const [dirty, setDirty] = useState(false);
+  // the latest values, for saves that happen after an upload finishes
+  const latest = useRef({ prefs, icons, notes, images });
+  latest.current = { prefs, icons, notes, images: latest.current.images };
   const [status, setStatus] = useState<string | null>(null);
-
-  const addIcon = (name: string) => {
-    const n = name.trim();
-    if (n && !icons.includes(n) && icons.length < 12) setIcons([...icons, n]);
-    setIconDraft("");
-  };
-
-  async function upload(files: FileList | null) {
-    if (!files?.length) return;
-    setStatus("Uploading…");
-    const supabase = createClient();
-    const added: Img[] = [];
-    for (const f of Array.from(files).slice(0, 12 - images.length)) {
-      if (!f.type.startsWith("image/")) continue;
-      try {
-        const blob = await compressImage(f, 1200);
-        const path = `${userId}/${uid()}.jpg`;
-        const { error } = await supabase.storage.from("inspiration").upload(path, blob, { contentType: "image/jpeg" });
-        if (!error) added.push({ path, url: URL.createObjectURL(blob) });
-      } catch { /* skip unreadable files */ }
-    }
-    const next = [...images, ...added];
-    setImages(next);
-    await persist(icons, notes, next, added.length ? `Added ${added.length} photo${added.length > 1 ? "s" : ""}` : "Those files couldn't be read");
+  // the studio's written read of the photos, which the designer uses instead of the photos themselves
+  const [photoRead, setPhotoRead] = useState(initial.photoRead);
+  const [reading, setReading] = useState(false);
+  async function readPhotos() {
+    if (!latest.current.images.length) { setPhotoRead(""); return; }
+    setReading(true);
+    try {
+      const res = await fetch("/api/style/read-photos", { method: "POST" });
+      const json = await res.json();
+      if (json.read !== undefined) setPhotoRead(json.read);
+      if (json.error) setStatus(json.error);
+    } catch { setStatus("Couldn't read the photos just now; the designer will look at them directly."); }
+    finally { setReading(false); }
   }
 
-  async function remove(path: string) {
-    const next = images.filter((i) => i.path !== path);
-    setImages(next);
-    await createClient().storage.from("inspiration").remove([path]);
-    await persist(icons, notes, next, "Removed");
-  }
-
-  async function persist(ic = icons, no = notes, im = images, msg = "Saved") {
+  async function persist(msg = "Saved") {
     setStatus("Saving…");
-    const r = await saveStyleProfile({ icons: ic, notes: no, image_paths: im.map((i) => i.path) });
-    setStatus(r.error ?? msg);
+    const cur = latest.current;
+    try {
+      const r = await saveStyleProfile({ icons: cur.icons, notes: cur.notes, image_paths: cur.images.map((i) => i.path), prefs: cur.prefs });
+      setStatus(r.error ?? msg);
+      if (!r.error) setDirty(false);
+    } catch {
+      setStatus("Couldn't save. Check your connection and try again.");
+    }
   }
+  const edit = <T,>(set: (v: T) => void) => (v: T) => { set(v); setDirty(true); };
+  const done = Math.round(profileCompleteness(prefs, icons, notes, images.length) * 100);
+  const reads = describeProfile({ prefs, icons, notes, taste, applied: initial.applied, dismissed: initial.dismissed, photoRead, photos: photoRead ? 0 : Math.min(8, images.length) });
 
   return (
     <div style={{ display: "grid", gap: 28 }}>
-      <section style={{ display: "grid", gap: 12 }}>
-        <h3>Inspiration photos</h3>
-        <div className="dropzone" role="button" tabIndex={0} onClick={() => input.current?.click()}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
-          onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); upload(e.dataTransfer.files); }}>
-          <strong>Drop photos here</strong>
-          <span className="muted small">Up to 12 · the consultant sees the first 8</span>
+      <div style={{ display: "grid", gap: 6 }}>
+        <div style={{ height: 6, borderRadius: 9, background: "var(--line)", overflow: "hidden" }} aria-label={`Profile ${done}% filled in`}>
+          <div style={{ width: `${done}%`, height: "100%", background: "var(--accent, #c9a96e)" }} />
         </div>
-        <input ref={input} id="insp-files" type="file" accept="image/*" multiple hidden onChange={(e) => upload(e.target.files)} />
-        {images.length > 0 && (
-          <div className="thumbs">
-            {images.map((i) => (
-              <figure key={i.path}>
-                <img src={i.url} alt="Inspiration" />
-                <button className="btn" style={{ padding: "4px 10px" }} type="button" onClick={() => remove(i.path)} aria-label="Remove photo">×</button>
-              </figure>
-            ))}
-          </div>
-        )}
-      </section>
+        <span className="small muted">{done < 100 ? `${done}% filled in. The more the designer knows, the more its suggestions fit.` : "Complete. Suggestions are tuned to all of this."}</span>
+      </div>
 
-      <section style={{ display: "grid", gap: 12 }}>
-        <h3>Style icons <span className="muted small">(optional)</span></h3>
-        <div className="chips">
-          {icons.map((n) => (
-            <button key={n} type="button" className="chip" aria-pressed="true" style={{ textTransform: "none" }} onClick={() => setIcons(icons.filter((x) => x !== n))}>{n} ×</button>
-          ))}
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); addIcon(iconDraft); }} style={{ display: "flex", gap: 8 }}>
-          <input id="icon-input" type="text" value={iconDraft} onChange={(e) => setIconDraft(e.target.value)} placeholder="Add a name" />
-          <button className="btn" type="submit">Add</button>
-        </form>
-        <div className="chips">
-          {ICON_IDEAS.filter((n) => !icons.includes(n)).map((n) => (
-            <button key={n} type="button" className="chip" style={{ textTransform: "none" }} onClick={() => addIcon(n)}>+ {n}</button>
-          ))}
-        </div>
-      </section>
+      <TasteCard taste={taste} onAdopt={() => { if (taste) { setPrefs(prefsFromTaste(taste, prefs)); setDirty(true); setStatus("Filled in from your designs. Check them, then save."); } }} />
+
+      <PrefsSections prefs={prefs} onChange={edit(setPrefs)} />
+
+      <InspirationPhotos userId={userId} images={images} latest={() => latest.current.images}
+        onStatus={setStatus}
+        onChange={(f, msg) => { latest.current.images = f(latest.current.images); setImagesState(latest.current.images); setPhotoRead(""); void persist(msg).then(readPhotos); }} />
+
+      {images.length > 0 && (
+        <section style={{ display: "grid", gap: 6 }}>
+          <span className="small muted">How the studio reads your photos</span>
+          <p className="small" style={{ margin: 0 }}>{reading ? "Reading your photos…" : photoRead || "Not read yet: the designer will look at the photos directly."}</p>
+          {!photoRead && !reading && <div><button type="button" className="btn" onClick={readPhotos}>Read my photos</button></div>}
+        </section>
+      )}
+
+      <StyleIcons icons={icons} onChange={edit(setIcons)} />
 
       <section style={{ display: "grid", gap: 12 }}>
         <h3>Notes</h3>
-        <textarea id="style-notes" value={notes} onChange={(e) => setNotes(e.target.value)}
-          placeholder="White gold only. Quiet, heirloom-feeling pieces. I love rose-cut diamonds and textured bands; no big halos." />
+        <textarea id="style-notes" value={notes} onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
+          placeholder="White gold only. Quiet, heirloom-feeling pieces. I love rose-cut diamonds and textured bands." />
       </section>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <button className="btn primary" type="button" onClick={() => persist()}>Save profile</button>
+      <details>
+        <summary className="small">What the designer reads</summary>
+        <pre className="small" style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", margin: "8px 0 0", color: "var(--fg)" }}>{reads || "Nothing yet: fill in anything above."}</pre>
+      </details>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", position: "sticky", bottom: 0, padding: "10px 0", background: "var(--bg)" }}>
+        <button className="btn primary" type="button" onClick={() => persist()}>{dirty ? "Save profile" : "Saved"}</button>
         {status && <span className="small muted" role="status">{status}</span>}
       </div>
     </div>

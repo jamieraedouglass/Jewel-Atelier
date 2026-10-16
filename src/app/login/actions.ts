@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safeNext";
 
 /**
  * Name-only sign-in. Each name maps to one account: the server derives a hidden email and password
@@ -27,7 +28,7 @@ function codeMatches(given: string) {
 export async function signInWithName(_: { error?: string } | null, form: FormData): Promise<{ error?: string }> {
   const name = String(form.get("name") ?? "").trim().replace(/\s+/g, " ");
   const code = String(form.get("code") ?? "");
-  const next = String(form.get("next") ?? "/design");
+  const next = safeNext(form.get("next"));
   if (name.length < 2 || name.length > 40) return { error: "Use a name between 2 and 40 characters." };
   if (!codeMatches(code)) return { error: "That studio code isn't right." };
   const slug = slugify(name);
@@ -51,5 +52,5 @@ export async function signInWithName(_: { error?: string } | null, form: FormDat
     ({ error } = await supabase.auth.signInWithPassword({ email, password }));
     if (error) return { error: error.message };
   }
-  redirect(next.startsWith("/") ? next : "/design");
+  redirect(next);
 }

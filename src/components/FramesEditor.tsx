@@ -1,14 +1,14 @@
 "use client";
 
+import { GroupedOptions } from "./controls/fields";
 import {
   CUTS, FRAME_KINDS, FRAME_PRESETS, FrameSchema, GEMS, GEM_LOOK, SHAPES,
-  type Design, type DesignPatch, type Frame, type Gem, label,
+  type Design, type DesignPatch, type Frame, type Gem, gemLabel, label,
 } from "@/lib/design";
 
 type Props = { design: Design; onChange: (patch: DesignPatch) => void };
 
 const KIND: Record<Frame["kind"], string> = { stones: "Stones", milgrain: "Milgrain border", metal: "Plain gold band" };
-const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));
 const OUTLINES = ["round", "oval", "cushion", "octagon", "hexagon", "emerald", "asscher", "marquise", "pear", "heart", "princess", "kite", "shield"] as const;
 
 function Sel<T extends string>({ id, text, value, options, fmt, onPick }: { id: string; text: string; value: T; options: readonly T[]; fmt?: (v: T) => string; onPick: (v: T) => void }) {
@@ -35,7 +35,7 @@ export default function FramesEditor({ design: d, onChange }: Props) {
           if (p) onChange({ frames: p.frames.map((f) => FrameSchema.parse(f)), ...(p.center ? { center: p.center } : {}), name: p.name } as DesignPatch);
         }}>
           <option value="">Choose…</option>
-          {FRAME_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name} — {p.blurb}</option>)}
+          <GroupedOptions items={FRAME_PRESETS} text={(p) => `${p.name} — ${p.blurb}`} />
         </select>
       </label>
       {frames.map((f, i) => {
@@ -56,12 +56,12 @@ export default function FramesEditor({ design: d, onChange }: Props) {
             </div>
             <div className="row2">
               <Sel id={id("outline")} text="Layer shape" value={f.outline} options={OUTLINES as unknown as readonly Frame["outline"][]} onPick={(outline) => set(i, { outline })} />
-              <label className="field" htmlFor={id("gap")}><span>Space inside · {f.gapMm} mm</span>
+              <label className="field" htmlFor={id("gap")}><span>Space inside · {+f.gapMm.toFixed(2)} mm</span>
                 <input id={id("gap")} type="range" min={0} max={4} step={0.05} value={f.gapMm} onChange={(e) => set(i, { gapMm: Number(e.target.value) })} />
               </label>
             </div>
             {f.kind !== "milgrain" && (
-              <label className="field" htmlFor={id("w")}><span>{f.kind === "stones" ? "Each stone, width" : "Band width"} · {f.widthMm} mm</span>
+              <label className="field" htmlFor={id("w")}><span>{f.kind === "stones" ? "Each stone, width" : "Band width"} · {+f.widthMm.toFixed(2)} mm</span>
                 <input id={id("w")} type="range" min={0.6} max={8} step={0.1} value={f.widthMm} onChange={(e) => set(i, { widthMm: Number(e.target.value) })} />
               </label>
             )}
