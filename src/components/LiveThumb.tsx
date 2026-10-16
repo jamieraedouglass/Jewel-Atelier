@@ -26,5 +26,5 @@ export default function LiveThumb({ design, id, userId }: { design: Design; id: 
     return () => { done = true; clearTimeout(t); };
   }, [id, userId]);
   if (src) return <img src={src} alt={design.name} />;
-  return <div className="ph" style={{ position: "relative" }}><RingCanvas design={design} autoRotate={false} handle={handle} /></div>;
+  return <div className="ph" style={{ position: "relative" }}><RingCanvas lite design={design} autoRotate={false} handle={handle} /></div>;
 }

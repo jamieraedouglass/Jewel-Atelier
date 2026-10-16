@@ -15,7 +15,7 @@ export default function HoverSpin({ design, id, userId, thumb }: { design: Desig
       {thumb ? <img src={thumb} alt={design.name} /> : <LiveThumb design={design} id={id} userId={userId} />}
       {live && (
         <div className="ph" style={{ position: "absolute", inset: 0 }}>
-          <RingCanvas design={design} autoRotate />
+          <RingCanvas lite design={design} autoRotate />
         </div>
       )}
     </div>
