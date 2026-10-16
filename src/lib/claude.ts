@@ -110,7 +110,7 @@ const designPatchSchema = {
         },
       },
     },
-    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" }, twins: { type: "array", items: { type: "boolean" }, description: "by position: true sets two stones side by side there (twin baguettes between rounds)" }, sizes: { type: "array", items: { type: "number" }, description: "by position: size multiple of each stone, e.g. [2, 1, 1.2, 1] for big round, small round, baguette, small round" } } },
+    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" }, twins: { type: "array", items: { type: "boolean" }, description: "by position: true sets two stones side by side there (twin baguettes between rounds)" }, colors: { type: "array", items: hexProp, description: "a colour for each stone in turn, repeating; use for rainbow, ombré or two-tone lines (e.g. 12–20 colours for a rainbow that runs there and back)" }, sizes: { type: "array", items: { type: "number" }, description: "by position: size multiple of each stone, e.g. [2, 1, 1.2, 1] for big round, small round, baguette, small round" } } },
     frames: {
       type: "array",
       description: "ring/earring style deco: layers round the centre stone, inside out. Replaces the whole list.",
@@ -253,6 +253,7 @@ How to choose:
 - Single studs: earrings "stud" (extraStones for multi-stone studs). Hoops: hoop or huggie with options.hoopShape and pave.
 - Rings, necklaces, bracelets and Indian pieces: the matching type and style, centre stone, accents and options.
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.
+If the stones in a line change colour (rainbow, ombré, alternating gems), list them in accents.colors in order, one hex per stone, repeating; don't flatten them to one colour.
 Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
 
 /**

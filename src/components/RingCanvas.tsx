@@ -20,7 +20,7 @@ export type Cutout = { url: string; mmPerPx: number; widthMm: number; heightMm: 
 export type RingCanvasHandle = {
   snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null>;
   /** a true-to-scale picture of one piece (one earring of a pair) on a clear background, for trying it on a photo */
-  cutout?: () => Cutout | null;
+  cutout?: (mode?: "whole" | "front") => Cutout | null;
 };
 /** real size of the piece, mm: across, top to bottom, and how thick */
 export type Measure = { widthMm: number; lengthMm: number; depthMm: number; what: string };
@@ -80,7 +80,7 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
   latest.current = { piece, design };
   useEffect(() => {
     if (!handle?.current) return;
-    handle.current.cutout = () => {
+    handle.current.cutout = (mode = "whole") => {
       const { piece, design } = latest.current;
       const { obj, hide } = subjectOf(piece, design);
       piece.group.updateWorldMatrix(true, true);
@@ -88,6 +88,13 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       const box = new THREE.Box3().setFromObject(obj);
       hide.forEach((h) => (h.visible = true));
       if (box.isEmpty()) return null;
+      // worn on a wrist, ankle or neck you only see the front of the loop: keep the front half
+      let clip: THREE.Plane | null = null;
+      if (mode === "front" && !piece.upright) {
+        const cz = (box.min.z + box.max.z) / 2;
+        clip = new THREE.Plane(new THREE.Vector3(0, 0, 1), -cz);
+        box.min.z = cz;
+      }
       const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
       // looking down on flat pieces (and rings, stone up); upright hoops are seen from the front
       const front = piece.upright && design.type !== "ring";
@@ -112,7 +119,10 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       gl.setClearColor(0x000000, 0);
       gl.autoClear = true;
       gl.clear(true, true, true);
+      const prevClip = gl.clippingPlanes;
+      if (clip) gl.clippingPlanes = [clip];
       gl.render(scene, cam);
+      gl.clippingPlanes = prevClip;
       const mmPerPx = fw / cw;
       const wPx = Math.ceil(spanX / mmPerPx), hPx = Math.ceil(spanY / mmPerPx);
       const out = document.createElement("canvas");
