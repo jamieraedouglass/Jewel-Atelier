@@ -3,7 +3,9 @@ import { z } from "zod";
 import { callTool, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/claude";
 import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
-import { spendAiCall } from "@/lib/usage";
+import { chargeAiCall } from "@/lib/usage";
+import { aiFailure } from "@/lib/apiError";
+import { profileText } from "@/lib/style/context";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,14 +22,16 @@ const Analysis = z.object({
   shape: z.enum(SHAPES),
   color_hex: z.string(),
   clarity: z.number(),
-  length_mm: z.number().optional(),
-  width_mm: z.number().optional(),
-  dome_mm: z.number().optional(),
+  // "leave empty" can arrive as null as well as missing
+  length_mm: z.number().nullish(),
+  width_mm: z.number().nullish(),
+  dome_mm: z.number().nullish(),
   size_basis: z.enum(["scale reference", "carat weight", "guess"]),
   label: z.string(),
   observations: z.string(),
   cautions: z.array(z.string()),
   confidence: z.number(),
+  pairing: z.string().nullish(),
 });
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -41,21 +45,25 @@ export async function POST(req: Request) {
   const { paths, carat, notes } = body.data;
   if (paths.some((p) => !p.startsWith(`${user.id}/`))) return NextResponse.json({ error: "Those files aren't yours." }, { status: 403 });
 
-  const limited = await spendAiCall(supabase);
-  if (limited) return NextResponse.json({ error: limited }, { status: 429 });
+  // read the uploads first, so a bad upload doesn't use up one of today's AI requests
   const images = await storageImages(supabase, "stones", paths);
   if (!images.length) return NextResponse.json({ error: "Couldn't read the uploaded images." }, { status: 400 });
+  // a failed or unusable reply gives the call back
+  const charge = await chargeAiCall(supabase, user.id);
+  if ("error" in charge) return NextResponse.json({ error: charge.error }, { status: 429 });
 
+  const profile = await profileText(supabase, user.id);
   const text = [
     images.length > 1 ? `These are ${images.length} frames of the same stone.` : "This is a photo of the stone.",
     carat ? `Stated carat weight: ${carat} ct.` : null,
     notes ? `Notes from the person: ${notes}` : null,
+    profile ? `Their style profile, for the pairing suggestion only:\n${profile}` : null,
   ].filter(Boolean).join("\n");
 
   try {
     const input = await callTool({ system: STONE_SYSTEM, tool: stoneAnalysisTool, content: [...images, { type: "text", text }], maxTokens: 1200 });
     const parsed = Analysis.safeParse(input);
-    if (!parsed.success) return NextResponse.json({ error: "The analysis came back incomplete. Try a clearer photo." }, { status: 502 });
+    if (!parsed.success) { await charge.refund(); return NextResponse.json({ error: "The analysis came back incomplete. Try a clearer photo." }, { status: 502 }); }
     const a = parsed.data;
 
     let dims = { lengthMm: a.length_mm ?? 10, widthMm: a.width_mm ?? 8, domeMm: a.dome_mm ?? 3 };
@@ -74,8 +82,9 @@ export async function POST(req: Request) {
       label: a.label.slice(0, 120),
       photoPath: paths[0],
     };
-    return NextResponse.json({ stone, analysis: { observations: a.observations, cautions: a.cautions, confidence: a.confidence, sizeBasis: carat && a.size_basis !== "scale reference" ? "carat weight" : a.size_basis } });
+    return NextResponse.json({ stone, analysis: { observations: a.observations, cautions: a.cautions, confidence: a.confidence, pairing: a.pairing ?? null, sizeBasis: carat && a.size_basis !== "scale reference" ? "carat weight" : a.size_basis } });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Analysis failed." }, { status: 500 });
+    await charge.refund();
+    return aiFailure(e, "Stone analysis");
   }
 }

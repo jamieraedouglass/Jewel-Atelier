@@ -5,13 +5,21 @@ import { describeDesign, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import HoverSpin from "@/components/HoverSpin";
 import BackupButtons from "@/components/BackupButtons";
+import ThumbStudio from "@/components/gallery/ThumbStudio";
+import { STATUSES, STATUS_LABEL, normalizeStatus, type Status } from "@/lib/inventory";
 
 export const metadata = { title: "My designs · Atelier" };
 
-export default async function MyRings() {
+export default async function MyRings({ searchParams }: { searchParams: { status?: string } }) {
   const { supabase, user } = await requireUser();
   if (!user) redirect("/login?next=/rings");
-  const { data: rows } = await supabase.from("designs").select("id, name, data, thumbnail_path, updated_at").eq("owner", user.id).order("updated_at", { ascending: false });
+  const list = (cols: string) => supabase.from("designs").select(cols).eq("owner", user.id).order("updated_at", { ascending: false });
+  let res = await list("id, name, data, thumbnail_path, updated_at, status");
+  if (res.error) res = await list("id, name, data, thumbnail_path, updated_at"); // before the status column exists
+  const all = (res.data ?? []) as unknown as { id: string; name: string; data: unknown; thumbnail_path: string | null; updated_at: string; status?: string }[];
+  const filter = (STATUSES as readonly string[]).includes(searchParams.status ?? "") ? (searchParams.status as Status) : null;
+  const rows = filter ? all.filter((r) => normalizeStatus(r.status) === filter) : all;
+  const counts = Object.fromEntries(STATUSES.map((s) => [s, all.filter((r) => normalizeStatus(r.status) === s).length])) as Record<Status, number>;
   return (
     <main className="page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
@@ -21,8 +29,12 @@ export default async function MyRings() {
           <Link href="/design" className="btn primary">New design</Link>
         </div>
       </div>
+      <div className="chips" role="group" aria-label="Show">
+        <Link className="chip" aria-pressed={!filter} href="/rings">All ({all.length})</Link>
+        {STATUSES.map((s) => <Link key={s} className="chip" aria-pressed={filter === s} href={`/rings?status=${s}`}>{STATUS_LABEL[s]} ({counts[s]})</Link>)}
+      </div>
       {!rows?.length ? (
-        <p className="muted">Nothing saved yet. Start a design, upload a stone, and press Save.</p>
+        <p className="muted">{filter ? `Nothing marked "${STATUS_LABEL[filter].toLowerCase()}" yet.` : "Nothing saved yet. Start a design, upload a stone, and press Save."}</p>
       ) : (
         <div className="grid">
           {rows.map((r) => {
@@ -32,7 +44,10 @@ export default async function MyRings() {
                 <Link href={`/design/${r.id}`} style={{ textDecoration: "none" }}>
                   <HoverSpin design={normalizeDesign(r.data)} id={r.id} userId={user.id} thumb={thumb ? `${thumb}?v=${new Date(r.updated_at).getTime()}` : null} />
                   <div className="meta">
-                    <strong>{r.name}</strong>
+                    <span style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                      <strong>{r.name}</strong>
+                      {normalizeStatus(r.status) !== "idea" && <span className={`badge ${normalizeStatus(r.status)}`}>{STATUS_LABEL[normalizeStatus(r.status)]}</span>}
+                    </span>
                     <span className="small muted">{describeDesign(normalizeDesign(r.data))}</span>
                   </div>
                 </Link>
@@ -46,6 +61,8 @@ export default async function MyRings() {
           })}
         </div>
       )}
+      {/* draws the cards that have no picture yet, one at a time, in a single shared 3D canvas */}
+      <ThumbStudio />
     </main>
   );
 }

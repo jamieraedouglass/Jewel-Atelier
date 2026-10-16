@@ -8,6 +8,9 @@ create table if not exists public.designs (
   data           jsonb not null,
   thumbnail_path text,
   is_public      boolean not null default false,  -- private until the owner shares a link
+  status         text not null default 'idea' check (status in ('idea', 'workshop', 'made')), -- idea → in the workshop → made
+  made_at        timestamptz,
+  inventory      jsonb not null default '{}'::jsonb, -- made pieces: reference, weight, price, availability (see src/lib/inventory.ts)
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
@@ -43,12 +46,26 @@ end $$;
 revoke all on function public.use_ai_call(int) from public;
 grant execute on function public.use_ai_call(int) to authenticated;
 
+-- Gives back one call when the request it paid for failed. Server only (service_role): not callable by people,
+-- so nobody can refund their own calls to get past the limit. Also in supabase/migrations/20261016_refund_ai_call.sql.
+create or replace function public.refund_ai_call(uid uuid)
+returns void language sql security definer set search_path = public as $$
+  update ai_usage set calls = calls - 1 where user_id = uid and day = current_date and calls > 0;
+$$;
+revoke all on function public.refund_ai_call(uuid) from public, anon, authenticated;
+grant execute on function public.refund_ai_call(uuid) to service_role;
+
 -- One style profile per person ------------------------------------------------
 create table if not exists public.style_profiles (
   user_id     uuid primary key default auth.uid() references auth.users(id) on delete cascade,
   icons       text[] not null default '{}',      -- e.g. {"Sofia Richie Grainge","Grace Kelly"}
   notes       text not null default '',          -- free-text taste notes
   image_paths text[] not null default '{}',      -- inspiration photos in the "inspiration" bucket
+  prefs       jsonb  not null default '{}'::jsonb, -- structured preferences: metals, gems, shapes, scale, sizes (see src/lib/style/profile.ts)
+  applied     jsonb  not null default '[]'::jsonb, -- the last design suggestions they applied, newest first
+  dismissed   jsonb  not null default '[]'::jsonb, -- suggestions they turned down, newest first
+  photo_read     text not null default '',        -- Claude's written read of the inspiration photos
+  photo_read_key text not null default '',        -- which photos that read was made from
   updated_at  timestamptz not null default now()
 );
 alter table public.style_profiles enable row level security;
@@ -88,3 +105,15 @@ alter table public.design_versions enable row level security;
 create policy "read own versions" on public.design_versions for select using (owner = auth.uid());
 create policy "insert own versions" on public.design_versions for insert with check (owner = auth.uid() and exists (select 1 from public.designs d where d.id = design_id and d.owner = auth.uid()));
 create policy "delete own versions" on public.design_versions for delete using (owner = auth.uid());
+
+-- Each saved design's conversation with the designer ------------------------------
+create table if not exists public.design_chats (
+  design_id  uuid primary key references public.designs(id) on delete cascade,
+  owner      uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  messages   jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.design_chats enable row level security;
+create policy "own design chats" on public.design_chats for all
+  using (owner = auth.uid())
+  with check (owner = auth.uid() and exists (select 1 from public.designs d where d.id = design_id and d.owner = auth.uid()));

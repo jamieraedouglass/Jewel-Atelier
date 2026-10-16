@@ -1,0 +1,5381 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`geometry snapshots > drop Aquamarine halo with leaves 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.95,
+      0,
+      9.49,
+    ],
+    "focusSize": 23.72,
+    "hash": "056f3226",
+    "instances": 296,
+    "meshes": 136,
+    "nonFinite": 0,
+    "size": [
+      37.8,
+      5.22,
+      18.77,
+    ],
+    "upright": false,
+    "vertices": 95758,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Asymmetric toi-et-moi drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -17.74,
+      0,
+      9.2,
+    ],
+    "focusSize": 22.99,
+    "hash": "aa470dd2",
+    "instances": 126,
+    "meshes": 126,
+    "nonFinite": 0,
+    "size": [
+      42.69,
+      3.53,
+      17.9,
+    ],
+    "upright": false,
+    "vertices": 42806,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Bow with pear drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -14.91,
+      0,
+      8.06,
+    ],
+    "focusSize": 20.15,
+    "hash": "9a298d72",
+    "instances": 920,
+    "meshes": 112,
+    "nonFinite": 0,
+    "size": [
+      49.63,
+      4.16,
+      19.85,
+    ],
+    "upright": false,
+    "vertices": 297334,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Briolette fringe drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.15,
+      0,
+      14.27,
+    ],
+    "focusSize": 35.68,
+    "hash": "e649ce86",
+    "instances": 432,
+    "meshes": 160,
+    "nonFinite": 0,
+    "size": [
+      42.68,
+      4.18,
+      28.54,
+    ],
+    "upright": false,
+    "vertices": 131078,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Burmese ruby cluster chandelier 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.11,
+      0,
+      25.99,
+    ],
+    "focusSize": 64.97,
+    "hash": "25082456",
+    "instances": 1342,
+    "meshes": 394,
+    "nonFinite": 0,
+    "size": [
+      42.05,
+      4.18,
+      51.98,
+    ],
+    "upright": false,
+    "vertices": 438258,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Emerald bead tassel 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.33,
+      0,
+      24.27,
+    ],
+    "focusSize": 60.69,
+    "hash": "0d3a708e",
+    "instances": 1664,
+    "meshes": 1322,
+    "nonFinite": 0,
+    "size": [
+      35.27,
+      4.89,
+      48.55,
+    ],
+    "upright": false,
+    "vertices": 642510,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Emerald cabochon drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12.03,
+      0,
+      18.01,
+    ],
+    "focusSize": 45.01,
+    "hash": "982c4dfe",
+    "instances": 802,
+    "meshes": 104,
+    "nonFinite": 0,
+    "size": [
+      38.05,
+      6.95,
+      36.01,
+    ],
+    "upright": false,
+    "vertices": 303986,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Emerald ribbon flower 1`] = `
+{
+  "fp": {
+    "focus": [
+      -17.9,
+      0,
+      12.9,
+    ],
+    "focusSize": 32.26,
+    "hash": "0d246081",
+    "instances": 578,
+    "meshes": 432,
+    "nonFinite": 0,
+    "size": [
+      61.62,
+      4.64,
+      25.81,
+    ],
+    "upright": false,
+    "vertices": 225328,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Fleur chandelier 1`] = `
+{
+  "fp": {
+    "focus": [
+      -16.63,
+      0,
+      31.84,
+    ],
+    "focusSize": 79.59,
+    "hash": "353e0b4a",
+    "instances": 1176,
+    "meshes": 820,
+    "nonFinite": 0,
+    "size": [
+      56.51,
+      5.51,
+      63.67,
+    ],
+    "upright": false,
+    "vertices": 378058,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Kashi Kamal 1`] = `
+{
+  "fp": {
+    "focus": [
+      -19.25,
+      0,
+      21.98,
+    ],
+    "focusSize": 54.96,
+    "hash": "418ec274",
+    "instances": 802,
+    "meshes": 592,
+    "nonFinite": 0,
+    "size": [
+      67,
+      10,
+      43.97,
+    ],
+    "upright": false,
+    "vertices": 251766,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Kite flower stud 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.98,
+      0,
+      6.98,
+    ],
+    "focusSize": 18,
+    "hash": "e7fa1332",
+    "instances": 326,
+    "meshes": 326,
+    "nonFinite": 0,
+    "size": [
+      37.9,
+      2.95,
+      13.95,
+    ],
+    "upright": false,
+    "vertices": 166518,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Octagon frame drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -15.56,
+      0,
+      16.81,
+    ],
+    "focusSize": 42.01,
+    "hash": "aaaed63d",
+    "instances": 916,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      52.16,
+      2.39,
+      33.61,
+    ],
+    "upright": false,
+    "vertices": 281880,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Pear cluster with drops 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.26,
+      0,
+      10.85,
+    ],
+    "focusSize": 27.12,
+    "hash": "348b31de",
+    "instances": 382,
+    "meshes": 382,
+    "nonFinite": 0,
+    "size": [
+      42.44,
+      2.76,
+      21.7,
+    ],
+    "upright": false,
+    "vertices": 118986,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Pear diamond cascade 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.31,
+      0,
+      23.46,
+    ],
+    "focusSize": 58.64,
+    "hash": "03a21478",
+    "instances": 522,
+    "meshes": 522,
+    "nonFinite": 0,
+    "size": [
+      42.17,
+      4.93,
+      46.91,
+    ],
+    "upright": false,
+    "vertices": 160066,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Pear with briolette fringe 1`] = `
+{
+  "fp": {
+    "focus": [
+      -10.05,
+      0,
+      11.56,
+    ],
+    "focusSize": 28.91,
+    "hash": "8e286e50",
+    "instances": 130,
+    "meshes": 130,
+    "nonFinite": 0,
+    "size": [
+      30.29,
+      3.65,
+      23.13,
+    ],
+    "upright": false,
+    "vertices": 35702,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Rainbow sapphire line drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -7.6,
+      0,
+      23.33,
+    ],
+    "focusSize": 58.31,
+    "hash": "b2ab7c74",
+    "instances": 278,
+    "meshes": 278,
+    "nonFinite": 0,
+    "size": [
+      20.4,
+      3.04,
+      46.65,
+    ],
+    "upright": false,
+    "vertices": 87342,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Ribbon bow 1`] = `
+{
+  "fp": {
+    "focus": [
+      -14.91,
+      0,
+      8.06,
+    ],
+    "focusSize": 20.15,
+    "hash": "dd81bbfe",
+    "instances": 876,
+    "meshes": 68,
+    "nonFinite": 0,
+    "size": [
+      49.63,
+      2.2,
+      19.85,
+    ],
+    "upright": false,
+    "vertices": 283810,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Ruby and diamond leaf drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.81,
+      0,
+      17.2,
+    ],
+    "focusSize": 43,
+    "hash": "4a0ac8b1",
+    "instances": 574,
+    "meshes": 316,
+    "nonFinite": 0,
+    "size": [
+      36.23,
+      4.06,
+      34.4,
+    ],
+    "upright": false,
+    "vertices": 183388,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Ruby flower stud 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12.94,
+      0,
+      8.79,
+    ],
+    "focusSize": 21.98,
+    "hash": "5040652e",
+    "instances": 434,
+    "meshes": 434,
+    "nonFinite": 0,
+    "size": [
+      41.75,
+      3.48,
+      17.36,
+    ],
+    "upright": false,
+    "vertices": 132930,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Ruby, emerald bead and pearl drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12,
+      0,
+      29.65,
+    ],
+    "focusSize": 74.12,
+    "hash": "7c6cdce7",
+    "instances": 492,
+    "meshes": 158,
+    "nonFinite": 0,
+    "size": [
+      38,
+      13.16,
+      59.3,
+    ],
+    "upright": false,
+    "vertices": 166068,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Stacked hearts 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.14,
+      0,
+      12.37,
+    ],
+    "focusSize": 30.92,
+    "hash": "731ff2e2",
+    "instances": 142,
+    "meshes": 142,
+    "nonFinite": 0,
+    "size": [
+      34.57,
+      6.38,
+      24.74,
+    ],
+    "upright": false,
+    "vertices": 52942,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Tiered chandelier 1`] = `
+{
+  "fp": {
+    "focus": [
+      -16.17,
+      0,
+      19.63,
+    ],
+    "focusSize": 49.09,
+    "hash": "cbfe4b64",
+    "instances": 1116,
+    "meshes": 622,
+    "nonFinite": 0,
+    "size": [
+      54.68,
+      3.1,
+      39.27,
+    ],
+    "upright": false,
+    "vertices": 371534,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > drop Twin side drops 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12.76,
+      0,
+      11.72,
+    ],
+    "focusSize": 29.3,
+    "hash": "3e80c290",
+    "instances": 452,
+    "meshes": 192,
+    "nonFinite": 0,
+    "size": [
+      39.37,
+      3.77,
+      23.04,
+    ],
+    "upright": false,
+    "vertices": 139670,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Asscher in a pavé octagon 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.11,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "53033736",
+    "instances": 701,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      22.52,
+      18,
+    ],
+    "upright": true,
+    "vertices": 222623,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Ballerina 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.11,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "0c0c74e2",
+    "instances": 458,
+    "meshes": 24,
+    "nonFinite": 0,
+    "size": [
+      26,
+      22.52,
+      26,
+    ],
+    "upright": true,
+    "vertices": 265724,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Briolette halo 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.64,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "8158b322",
+    "instances": 193,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      23.26,
+      22.65,
+      24.56,
+    ],
+    "upright": true,
+    "vertices": 101789,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Emerald & turquoise Deco 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "ddfc380f",
+    "instances": 630,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      22.41,
+      24.01,
+    ],
+    "upright": true,
+    "vertices": 424407,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Emerald in pear-diamond petals 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.32,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "a2580837",
+    "instances": 458,
+    "meshes": 24,
+    "nonFinite": 0,
+    "size": [
+      21.93,
+      22.33,
+      25.83,
+    ],
+    "upright": true,
+    "vertices": 160124,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Emerald scalloped halo 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.22,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "39892743",
+    "instances": 673,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      20.82,
+      22.82,
+      20.82,
+    ],
+    "upright": true,
+    "vertices": 212593,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Hexagon ruby Deco 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "b9e15254",
+    "instances": 762,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      21.04,
+      22.26,
+      20.94,
+    ],
+    "upright": true,
+    "vertices": 234708,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Marquise mosaic 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "b981fd80",
+    "instances": 463,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      23.3,
+      22.46,
+      42.11,
+    ],
+    "upright": true,
+    "vertices": 1019095,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Octagon ruby sunburst 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "c7c9dbf8",
+    "instances": 781,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      22.92,
+      22.26,
+      22.92,
+    ],
+    "upright": true,
+    "vertices": 296199,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Ruby labyrinth 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "2da86c03",
+    "instances": 1306,
+    "meshes": 34,
+    "nonFinite": 0,
+    "size": [
+      21.9,
+      22.26,
+      21.9,
+    ],
+    "upright": true,
+    "vertices": 400936,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Sapphire & diamond stripes 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "57329580",
+    "instances": 715,
+    "meshes": 34,
+    "nonFinite": 0,
+    "size": [
+      27.2,
+      22.26,
+      27.2,
+    ],
+    "upright": true,
+    "vertices": 304447,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > frames Sapphire petals 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.16,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "73826638",
+    "instances": 382,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      25.31,
+      22.77,
+      25.31,
+    ],
+    "upright": true,
+    "vertices": 920563,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > option earrings/stud accents off 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12.3,
+      0,
+      0,
+    ],
+    "focusSize": 10.4,
+    "hash": "47426b50",
+    "instances": 40,
+    "meshes": 40,
+    "nonFinite": 0,
+    "size": [
+      38.9,
+      3.8,
+      14.3,
+    ],
+    "upright": false,
+    "vertices": 18894,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > option necklace/pendant accents off 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.36,
+      0,
+      101.68,
+    ],
+    "focusSize": 16.25,
+    "hash": "fe606296",
+    "instances": 265,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      130.22,
+      3.8,
+      185.3,
+    ],
+    "upright": false,
+    "vertices": 47208,
+  },
+  "worn": {
+    "focus": [
+      -0.35,
+      0,
+      82.91,
+    ],
+    "focusSize": 16.25,
+    "hash": "5ef3c07f",
+    "instances": 265,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      175.15,
+      3.8,
+      141.93,
+    ],
+    "upright": false,
+    "vertices": 47208,
+  },
+}
+`;
+
+exports[`geometry snapshots > option pendant set into the chain 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.36,
+      0,
+      92.28,
+    ],
+    "focusSize": 24,
+    "hash": "c6bec1e1",
+    "instances": 260,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      130.22,
+      3.8,
+      172.06,
+    ],
+    "upright": false,
+    "vertices": 43208,
+  },
+  "worn": {
+    "focus": [
+      -0.35,
+      0,
+      73.51,
+    ],
+    "focusSize": 24,
+    "hash": "51ffa8a7",
+    "instances": 260,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      175.16,
+      3.8,
+      128.61,
+    ],
+    "upright": false,
+    "vertices": 43208,
+  },
+}
+`;
+
+exports[`geometry snapshots > option ring/cluster accents off 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "255ad7f5",
+    "instances": 81,
+    "meshes": 31,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      6.93,
+    ],
+    "upright": true,
+    "vertices": 26549,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > option ring/halo accents off 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "c1f4606b",
+    "instances": 82,
+    "meshes": 32,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      12.7,
+    ],
+    "upright": true,
+    "vertices": 29993,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > option three-stone pendant hangs below 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      -0.9,
+      88.7,
+    ],
+    "focusSize": 26,
+    "hash": "82adcbad",
+    "instances": 483,
+    "meshes": 61,
+    "nonFinite": 0,
+    "size": [
+      132.89,
+      3.8,
+      170.83,
+    ],
+    "upright": false,
+    "vertices": 83751,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      -0.9,
+      65.72,
+    ],
+    "focusSize": 26,
+    "hash": "a0e17f08",
+    "instances": 483,
+    "meshes": 61,
+    "nonFinite": 0,
+    "size": [
+      179.26,
+      3.8,
+      122.68,
+    ],
+    "upright": false,
+    "vertices": 83751,
+  },
+}
+`;
+
+exports[`geometry snapshots > option three-stone pendant hangs drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      -0.9,
+      95.35,
+    ],
+    "focusSize": 32.79,
+    "hash": "27ca2ac7",
+    "instances": 483,
+    "meshes": 61,
+    "nonFinite": 0,
+    "size": [
+      132.89,
+      3.8,
+      182.55,
+    ],
+    "upright": false,
+    "vertices": 83795,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      -0.9,
+      72.36,
+    ],
+    "focusSize": 32.79,
+    "hash": "eecb9732",
+    "instances": 483,
+    "meshes": 61,
+    "nonFinite": 0,
+    "size": [
+      179.26,
+      3.8,
+      134.4,
+    ],
+    "upright": false,
+    "vertices": 83795,
+  },
+}
+`;
+
+exports[`geometry snapshots > option three-stone pendant hangs in-chain 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      83.84,
+    ],
+    "focusSize": 30,
+    "hash": "f9312fb3",
+    "instances": 464,
+    "meshes": 62,
+    "nonFinite": 0,
+    "size": [
+      132.91,
+      3.8,
+      165.19,
+    ],
+    "upright": false,
+    "vertices": 80944,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      60.86,
+    ],
+    "focusSize": 30,
+    "hash": "2cfaf0a8",
+    "instances": 464,
+    "meshes": 62,
+    "nonFinite": 0,
+    "size": [
+      179.28,
+      3.8,
+      117.03,
+    ],
+    "upright": false,
+    "vertices": 80944,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Ballerina ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "32e11e7f",
+    "instances": 444,
+    "meshes": 24,
+    "nonFinite": 0,
+    "size": [
+      25.5,
+      22.16,
+      25.5,
+    ],
+    "upright": true,
+    "vertices": 257718,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Bridal maang tikka 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 42.9,
+    "hash": "a0faa643",
+    "instances": 217,
+    "meshes": 17,
+    "nonFinite": 0,
+    "size": [
+      35.06,
+      3.97,
+      106.73,
+    ],
+    "upright": false,
+    "vertices": 58787,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Bridal nath 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      10.2,
+    ],
+    "focusSize": 51,
+    "hash": "9d2f72c0",
+    "instances": 116,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      89.21,
+      3.5,
+      57.42,
+    ],
+    "upright": false,
+    "vertices": 25500,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Burmese ruby cluster chandeliers 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.11,
+      0,
+      25.99,
+    ],
+    "focusSize": 64.97,
+    "hash": "25082456",
+    "instances": 1342,
+    "meshes": 394,
+    "nonFinite": 0,
+    "size": [
+      42.05,
+      4.18,
+      51.98,
+    ],
+    "upright": false,
+    "vertices": 438258,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Burmese ruby halo bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 33.6,
+    "hash": "26cdb5fc",
+    "instances": 3382,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      67.17,
+      4.05,
+      60.76,
+    ],
+    "upright": false,
+    "vertices": 1009698,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 33.6,
+    "hash": "318d265c",
+    "instances": 3382,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      82.69,
+      4.05,
+      40.97,
+    ],
+    "upright": false,
+    "vertices": 1009698,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Burmese ruby halo ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.53,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "67daf41d",
+    "instances": 180,
+    "meshes": 36,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.74,
+      15.4,
+    ],
+    "upright": true,
+    "vertices": 59155,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Burmese ruby riviera 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 25.6,
+    "hash": "b6763e64",
+    "instances": 545,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      116.79,
+      3.65,
+      151.63,
+    ],
+    "upright": false,
+    "vertices": 144569,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 25.6,
+    "hash": "5d2129c8",
+    "instances": 545,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      157.42,
+      3.65,
+      111.36,
+    ],
+    "upright": false,
+    "vertices": 144569,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Burmese sapphire, half-moons 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.1,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "72b0b23f",
+    "instances": 90,
+    "meshes": 40,
+    "nonFinite": 0,
+    "size": [
+      23.24,
+      27.7,
+      15.01,
+    ],
+    "upright": true,
+    "vertices": 48785,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Calibré emerald sherwani buttons 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 59.4,
+    "hash": "2d4d878c",
+    "instances": 695,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      93.3,
+      4.75,
+      14.1,
+    ],
+    "upright": false,
+    "vertices": 309360,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Colombian emerald solitaire 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.69,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "b7492e3d",
+    "instances": 81,
+    "meshes": 31,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.99,
+      12.04,
+    ],
+    "upright": true,
+    "vertices": 28469,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Diamond flower posy ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "684c733b",
+    "instances": 199,
+    "meshes": 90,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      13.41,
+    ],
+    "upright": true,
+    "vertices": 54498,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Diamond riviera 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 20.8,
+    "hash": "52bd54ea",
+    "instances": 568,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      116.79,
+      2.94,
+      150.07,
+    ],
+    "upright": false,
+    "vertices": 145144,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 20.8,
+    "hash": "dcab1b0a",
+    "instances": 568,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      157.4,
+      2.94,
+      109.77,
+    ],
+    "upright": false,
+    "vertices": 145144,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Diamond tennis bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 21,
+    "hash": "77e3437d",
+    "instances": 365,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      64.12,
+      2.7,
+      57.67,
+    ],
+    "upright": false,
+    "vertices": 111925,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 21,
+    "hash": "a75fea37",
+    "instances": 365,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      79.83,
+      2.7,
+      37.81,
+    ],
+    "upright": false,
+    "vertices": 111925,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald bead choker 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.14,
+      0,
+      69.87,
+    ],
+    "focusSize": 60,
+    "hash": "f5f38f78",
+    "instances": 277,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      148.82,
+      6,
+      180.01,
+    ],
+    "upright": false,
+    "vertices": 68196,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      50.71,
+    ],
+    "focusSize": 60,
+    "hash": "7b38d535",
+    "instances": 277,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      198.93,
+      6,
+      128.07,
+    ],
+    "upright": false,
+    "vertices": 68196,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald bead tassel pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.29,
+      0,
+      166.41,
+    ],
+    "focusSize": 67.97,
+    "hash": "d2f2778a",
+    "instances": 1538,
+    "meshes": 663,
+    "nonFinite": 0,
+    "size": [
+      220.88,
+      4.89,
+      320.54,
+    ],
+    "upright": false,
+    "vertices": 429549,
+  },
+  "worn": {
+    "focus": [
+      0.06,
+      0,
+      128.1,
+    ],
+    "focusSize": 67.97,
+    "hash": "bf5b1c3a",
+    "instances": 1538,
+    "meshes": 663,
+    "nonFinite": 0,
+    "size": [
+      298.18,
+      4.89,
+      240.27,
+    ],
+    "upright": false,
+    "vertices": 429549,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald chandbalis 1`] = `
+{
+  "fp": {
+    "focus": [
+      -25.09,
+      0,
+      17.84,
+    ],
+    "focusSize": 40.89,
+    "hash": "5482c940",
+    "instances": 408,
+    "meshes": 76,
+    "nonFinite": 0,
+    "size": [
+      90.38,
+      5.5,
+      38.66,
+    ],
+    "upright": false,
+    "vertices": 225266,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald in pear-diamond petals ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.32,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "a2580837",
+    "instances": 458,
+    "meshes": 24,
+    "nonFinite": 0,
+    "size": [
+      21.93,
+      22.33,
+      25.83,
+    ],
+    "upright": true,
+    "vertices": 160124,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald ribbon flower studs 1`] = `
+{
+  "fp": {
+    "focus": [
+      -17.9,
+      0,
+      12.9,
+    ],
+    "focusSize": 32.26,
+    "hash": "0d246081",
+    "instances": 578,
+    "meshes": 432,
+    "nonFinite": 0,
+    "size": [
+      61.62,
+      4.64,
+      25.81,
+    ],
+    "upright": false,
+    "vertices": 225328,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald with a briolette halo 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.64,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "8158b322",
+    "instances": 193,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      23.26,
+      22.65,
+      24.56,
+    ],
+    "upright": true,
+    "vertices": 101789,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Emerald-cut emerald line necklace 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 60,
+    "hash": "edd1c7f5",
+    "instances": 282,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      129.05,
+      8.3,
+      156.2,
+    ],
+    "upright": false,
+    "vertices": 113833,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 60,
+    "hash": "89f62b35",
+    "instances": 282,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      170,
+      8.3,
+      116.77,
+    ],
+    "upright": false,
+    "vertices": 113833,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Five-row briolette fringe necklace 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.15,
+      0,
+      74.53,
+    ],
+    "focusSize": 80,
+    "hash": "2b1c4d37",
+    "instances": 5314,
+    "meshes": 525,
+    "nonFinite": 0,
+    "size": [
+      153.89,
+      3.32,
+      183.91,
+    ],
+    "upright": false,
+    "vertices": 1427120,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      54.09,
+    ],
+    "focusSize": 80,
+    "hash": "c8a7c7c9",
+    "instances": 5314,
+    "meshes": 525,
+    "nonFinite": 0,
+    "size": [
+      202.73,
+      3.32,
+      132.55,
+    ],
+    "upright": false,
+    "vertices": 1427120,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Ghungroo payal 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      37.51,
+    ],
+    "focusSize": 40,
+    "hash": "1a14944a",
+    "instances": 296,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      94.91,
+      4.2,
+      81.06,
+    ],
+    "upright": false,
+    "vertices": 33320,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      23.69,
+    ],
+    "focusSize": 40,
+    "hash": "48df9c2a",
+    "instances": 296,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      115.68,
+      4.2,
+      53.53,
+    ],
+    "upright": false,
+    "vertices": 33320,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Gold X-link collar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.14,
+      0,
+      69.87,
+    ],
+    "focusSize": 50,
+    "hash": "f0aa68d1",
+    "instances": 2520,
+    "meshes": 256,
+    "nonFinite": 0,
+    "size": [
+      117.22,
+      3.4,
+      133.22,
+    ],
+    "upright": false,
+    "vertices": 744120,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      50.71,
+    ],
+    "focusSize": 50,
+    "hash": "371bc033",
+    "instances": 2520,
+    "meshes": 256,
+    "nonFinite": 0,
+    "size": [
+      155.94,
+      3.4,
+      98.45,
+    ],
+    "upright": false,
+    "vertices": 744120,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Gold band with diamond edges 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.41,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "5f2e4df3",
+    "instances": 342,
+    "meshes": 14,
+    "nonFinite": 0,
+    "size": [
+      22.36,
+      22.36,
+      8.45,
+    ],
+    "upright": true,
+    "vertices": 107628,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Gold flower posy studs 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.56,
+      0,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "5834aaa0",
+    "instances": 110,
+    "meshes": 98,
+    "nonFinite": 0,
+    "size": [
+      36.28,
+      3.63,
+      12.55,
+    ],
+    "upright": false,
+    "vertices": 20090,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Half-flowered Burmese ruby ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.05,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "4f34207a",
+    "instances": 116,
+    "meshes": 32,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.66,
+      19.16,
+    ],
+    "upright": true,
+    "vertices": 36618,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Half-flowered emerald ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.21,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "081ef071",
+    "instances": 116,
+    "meshes": 32,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.91,
+      23.77,
+    ],
+    "upright": true,
+    "vertices": 38538,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Hexagon ruby Deco ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.11,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "1b9fd5fe",
+    "instances": 854,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      22.6,
+      22.32,
+      23.41,
+    ],
+    "upright": true,
+    "vertices": 260840,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Kashi Kamal earrings 1`] = `
+{
+  "fp": {
+    "focus": [
+      -19.25,
+      0,
+      21.98,
+    ],
+    "focusSize": 54.96,
+    "hash": "418ec274",
+    "instances": 802,
+    "meshes": 592,
+    "nonFinite": 0,
+    "size": [
+      67,
+      10,
+      43.97,
+    ],
+    "upright": false,
+    "vertices": 251766,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Kite flower studs 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.98,
+      0,
+      6.98,
+    ],
+    "focusSize": 18,
+    "hash": "e7fa1332",
+    "instances": 326,
+    "meshes": 326,
+    "nonFinite": 0,
+    "size": [
+      37.9,
+      2.95,
+      13.95,
+    ],
+    "upright": false,
+    "vertices": 166518,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Kundan choker 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.13,
+      0,
+      65.21,
+    ],
+    "focusSize": 65.45,
+    "hash": "625d5889",
+    "instances": 808,
+    "meshes": 84,
+    "nonFinite": 0,
+    "size": [
+      137.74,
+      4,
+      144.94,
+    ],
+    "upright": false,
+    "vertices": 308539,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      47.33,
+    ],
+    "focusSize": 65.45,
+    "hash": "92fc99a7",
+    "instances": 808,
+    "meshes": 84,
+    "nonFinite": 0,
+    "size": [
+      169.28,
+      3.98,
+      107.37,
+    ],
+    "upright": false,
+    "vertices": 308539,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Marquise mosaic cocktail ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.14,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "457b2481",
+    "instances": 487,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      24.12,
+      22.35,
+      43.93,
+    ],
+    "upright": true,
+    "vertices": 1087843,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Matched Asscher studs 1`] = `
+{
+  "fp": {
+    "focus": [
+      -9.25,
+      0,
+      0,
+    ],
+    "focusSize": 13.6,
+    "hash": "29201d5c",
+    "instances": 22,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      27,
+      4.86,
+      8.5,
+    ],
+    "upright": false,
+    "vertices": 12326,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Old-cut diamond huggie drops 1`] = `
+{
+  "fp": {
+    "focus": [
+      -15.9,
+      -6.53,
+      0,
+    ],
+    "focusSize": 51.8,
+    "hash": "bada49f9",
+    "instances": 162,
+    "meshes": 58,
+    "nonFinite": 0,
+    "size": [
+      47.37,
+      27.61,
+      8.85,
+    ],
+    "upright": true,
+    "vertices": 58792,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Old-mine and baguette line bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 45.5,
+    "hash": "28e511d9",
+    "instances": 239,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      68.3,
+      5.4,
+      61.96,
+    ],
+    "upright": false,
+    "vertices": 116863,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 45.5,
+    "hash": "301056de",
+    "instances": 239,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      84.11,
+      5.4,
+      42.11,
+    ],
+    "upright": false,
+    "vertices": 116863,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Oval trilogy ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.4,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "aaf6a746",
+    "instances": 91,
+    "meshes": 41,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.57,
+      9.88,
+    ],
+    "upright": true,
+    "vertices": 36001,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Pavé swirl ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.49,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "4556dd51",
+    "instances": 546,
+    "meshes": 46,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.7,
+      18.27,
+    ],
+    "upright": true,
+    "vertices": 169340,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Pear diamond cascade earrings 1`] = `
+{
+  "fp": {
+    "focus": [
+      -13.31,
+      0,
+      23.46,
+    ],
+    "focusSize": 58.64,
+    "hash": "03a21478",
+    "instances": 522,
+    "meshes": 522,
+    "nonFinite": 0,
+    "size": [
+      42.17,
+      4.93,
+      46.91,
+    ],
+    "upright": false,
+    "vertices": 160066,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Pear emerald tiara 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      -18,
+    ],
+    "focusSize": 170,
+    "hash": "f05a8f1c",
+    "instances": 1358,
+    "meshes": 299,
+    "nonFinite": 0,
+    "size": [
+      131.16,
+      5.15,
+      60.74,
+    ],
+    "upright": false,
+    "vertices": 408212,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Pink oval with hugging half-moons 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.99,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "486a14ea",
+    "instances": 91,
+    "meshes": 41,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.8,
+      13.11,
+    ],
+    "upright": true,
+    "vertices": 34417,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Polki bridal jhumkas 1`] = `
+{
+  "fp": {
+    "focus": [
+      -15.34,
+      0,
+      9.45,
+    ],
+    "focusSize": 33.82,
+    "hash": "21bbbc34",
+    "instances": 624,
+    "meshes": 40,
+    "nonFinite": 0,
+    "size": [
+      50.67,
+      17.22,
+      31.23,
+    ],
+    "upright": false,
+    "vertices": 190754,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Polki kada 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      28.43,
+    ],
+    "focusSize": 40,
+    "hash": "cb20b0fd",
+    "instances": 255,
+    "meshes": 6,
+    "nonFinite": 0,
+    "size": [
+      72.74,
+      9.46,
+      64.77,
+    ],
+    "upright": false,
+    "vertices": 83481,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.96,
+    ],
+    "focusSize": 40,
+    "hash": "595d5b14",
+    "instances": 255,
+    "meshes": 6,
+    "nonFinite": 0,
+    "size": [
+      89.48,
+      9.46,
+      43.82,
+    ],
+    "upright": false,
+    "vertices": 83481,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Rainbow sapphire eternity band 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.21,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "f7841d01",
+    "instances": 106,
+    "meshes": 25,
+    "nonFinite": 0,
+    "size": [
+      22.55,
+      22.7,
+      6.1,
+    ],
+    "upright": true,
+    "vertices": 37654,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Rainbow sapphire line drops 1`] = `
+{
+  "fp": {
+    "focus": [
+      -7.6,
+      0,
+      23.33,
+    ],
+    "focusSize": 58.31,
+    "hash": "b2ab7c74",
+    "instances": 278,
+    "meshes": 278,
+    "nonFinite": 0,
+    "size": [
+      20.4,
+      3.04,
+      46.65,
+    ],
+    "upright": false,
+    "vertices": 87342,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Rainbow sapphire line necklace 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 60,
+    "hash": "67685efd",
+    "instances": 247,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      125.48,
+      6.1,
+      156.8,
+    ],
+    "upright": false,
+    "vertices": 143738,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 60,
+    "hash": "732e2931",
+    "instances": 247,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      166.39,
+      6.1,
+      116.52,
+    ],
+    "upright": false,
+    "vertices": 143738,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Rani haar with emerald 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.78,
+      0,
+      230.4,
+    ],
+    "focusSize": 112.13,
+    "hash": "142ce628",
+    "instances": 1959,
+    "meshes": 21,
+    "nonFinite": 0,
+    "size": [
+      255.24,
+      9.49,
+      379.16,
+    ],
+    "upright": false,
+    "vertices": 383204,
+  },
+  "worn": {
+    "focus": [
+      -0.75,
+      0,
+      183.14,
+    ],
+    "focusSize": 112.13,
+    "hash": "ad67a07b",
+    "instances": 1959,
+    "meshes": 21,
+    "nonFinite": 0,
+    "size": [
+      344.11,
+      9.49,
+      293.62,
+    ],
+    "upright": false,
+    "vertices": 383204,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Rose-cut diamonds by the yard 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.93,
+      0,
+      157.8,
+    ],
+    "focusSize": 30,
+    "hash": "0ec451fd",
+    "instances": 544,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      139.08,
+      2.54,
+      174.6,
+    ],
+    "upright": false,
+    "vertices": 196384,
+  },
+  "worn": {
+    "focus": [
+      0.84,
+      0,
+      121.32,
+    ],
+    "focusSize": 30,
+    "hash": "e20c8f74",
+    "instances": 544,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      185.27,
+      2.54,
+      128.58,
+    ],
+    "upright": false,
+    "vertices": 196384,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Round and baguette line bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 53.2,
+    "hash": "c6733564",
+    "instances": 197,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      67.66,
+      6.31,
+      62.02,
+    ],
+    "upright": false,
+    "vertices": 75373,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 53.2,
+    "hash": "a9154ba0",
+    "instances": 197,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      83.07,
+      6.31,
+      42.97,
+    ],
+    "upright": false,
+    "vertices": 75373,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Round and baguette line necklace 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 60,
+    "hash": "ae04e855",
+    "instances": 499,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      124.69,
+      5.93,
+      153.03,
+    ],
+    "upright": false,
+    "vertices": 186086,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 60,
+    "hash": "87671612",
+    "instances": 499,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      163.97,
+      5.93,
+      113.96,
+    ],
+    "upright": false,
+    "vertices": 186086,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Round and twin-baguette bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 51.8,
+    "hash": "244b56d9",
+    "instances": 169,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      69.11,
+      6.14,
+      62.79,
+    ],
+    "upright": false,
+    "vertices": 84321,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 51.8,
+    "hash": "e153fcab",
+    "instances": 169,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      83.9,
+      6.14,
+      43.13,
+    ],
+    "upright": false,
+    "vertices": 84321,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Ruby and diamond leaf earrings 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.81,
+      0,
+      17.2,
+    ],
+    "focusSize": 43,
+    "hash": "4a0ac8b1",
+    "instances": 574,
+    "meshes": 316,
+    "nonFinite": 0,
+    "size": [
+      36.23,
+      4.06,
+      34.4,
+    ],
+    "upright": false,
+    "vertices": 183388,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Ruby chevron collar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.14,
+      0,
+      69.87,
+    ],
+    "focusSize": 50,
+    "hash": "0e5f7482",
+    "instances": 2026,
+    "meshes": 144,
+    "nonFinite": 0,
+    "size": [
+      118.64,
+      2.22,
+      136.42,
+    ],
+    "upright": false,
+    "vertices": 599810,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      50.71,
+    ],
+    "focusSize": 50,
+    "hash": "b815f0e6",
+    "instances": 2026,
+    "meshes": 144,
+    "nonFinite": 0,
+    "size": [
+      157.36,
+      2.22,
+      100.52,
+    ],
+    "upright": false,
+    "vertices": 599810,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Ruby, emerald bead and pearl earrings 1`] = `
+{
+  "fp": {
+    "focus": [
+      -12,
+      0,
+      29.65,
+    ],
+    "focusSize": 74.12,
+    "hash": "7c6cdce7",
+    "instances": 492,
+    "meshes": 158,
+    "nonFinite": 0,
+    "size": [
+      38,
+      13.16,
+      59.3,
+    ],
+    "upright": false,
+    "vertices": 166068,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Sapphire petal ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.17,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "ba9c2266",
+    "instances": 389,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      25.56,
+      22.48,
+      25.56,
+    ],
+    "upright": true,
+    "vertices": 953702,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Shield diamond open bangle 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      2.2,
+      28.43,
+    ],
+    "focusSize": 40,
+    "hash": "8f35e527",
+    "instances": 278,
+    "meshes": 51,
+    "nonFinite": 0,
+    "size": [
+      68.09,
+      7.21,
+      61.43,
+    ],
+    "upright": false,
+    "vertices": 156026,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      2.2,
+      17.96,
+    ],
+    "focusSize": 40,
+    "hash": "f0f23f70",
+    "instances": 278,
+    "meshes": 51,
+    "nonFinite": 0,
+    "size": [
+      84.83,
+      7.21,
+      42.16,
+    ],
+    "upright": false,
+    "vertices": 156026,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Sugarloaf emerald cufflinks 1`] = `
+{
+  "fp": {
+    "focus": [
+      -14.3,
+      0,
+      0,
+    ],
+    "focusSize": 37.21,
+    "hash": "d9aaec25",
+    "instances": 484,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      47.51,
+      10.7,
+      18.91,
+    ],
+    "upright": false,
+    "vertices": 325048,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Temple coin necklace 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.19,
+      0,
+      105.66,
+    ],
+    "focusSize": 60,
+    "hash": "19258456",
+    "instances": 1017,
+    "meshes": 54,
+    "nonFinite": 0,
+    "size": [
+      164.42,
+      4.16,
+      203.47,
+    ],
+    "upright": false,
+    "vertices": 237880,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      80.12,
+    ],
+    "focusSize": 60,
+    "hash": "6d245e73",
+    "instances": 1017,
+    "meshes": 54,
+    "nonFinite": 0,
+    "size": [
+      215.93,
+      4.16,
+      149.96,
+    ],
+    "upright": false,
+    "vertices": 237880,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Ten-carat round solitaire 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.87,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "da57ae4e",
+    "instances": 77,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      26.07,
+      16.06,
+    ],
+    "upright": true,
+    "vertices": 25197,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Three-diamond pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      89.29,
+    ],
+    "focusSize": 30,
+    "hash": "22aeb7ba",
+    "instances": 482,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      132.89,
+      3.8,
+      170.63,
+    ],
+    "upright": false,
+    "vertices": 83366,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      66.31,
+    ],
+    "focusSize": 30,
+    "hash": "57df6786",
+    "instances": 482,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      179.26,
+      3.8,
+      122.48,
+    ],
+    "upright": false,
+    "vertices": 83366,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Three-row diamond bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 47.1,
+    "hash": "16286c30",
+    "instances": 822,
+    "meshes": 15,
+    "nonFinite": 0,
+    "size": [
+      74.71,
+      3.53,
+      68.23,
+    ],
+    "upright": false,
+    "vertices": 254538,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 47.1,
+    "hash": "7e7aaf3d",
+    "instances": 822,
+    "meshes": 15,
+    "nonFinite": 0,
+    "size": [
+      90.4,
+      3.53,
+      48.37,
+    ],
+    "upright": false,
+    "vertices": 254538,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Three-row oval halo bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 60.09,
+    "hash": "bcebf34e",
+    "instances": 10146,
+    "meshes": 19,
+    "nonFinite": 0,
+    "size": [
+      80.55,
+      3.97,
+      74.19,
+    ],
+    "upright": false,
+    "vertices": 3029094,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 60.09,
+    "hash": "b1c4ac31",
+    "instances": 10146,
+    "meshes": 19,
+    "nonFinite": 0,
+    "size": [
+      95.51,
+      3.97,
+      54.42,
+    ],
+    "upright": false,
+    "vertices": 3029094,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Two-stone with a baguette surround 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 30,
+    "hash": "4db47349",
+    "instances": 189,
+    "meshes": 63,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      11.31,
+    ],
+    "upright": true,
+    "vertices": 88191,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Yellow heart with a marquise vine 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.9,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "c8a12293",
+    "instances": 183,
+    "meshes": 43,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.5,
+      10.45,
+    ],
+    "upright": true,
+    "vertices": 58791,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style anklet/payal 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      37.51,
+    ],
+    "focusSize": 40,
+    "hash": "1a14944a",
+    "instances": 296,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      94.91,
+      4.2,
+      81.06,
+    ],
+    "upright": false,
+    "vertices": 33320,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      23.69,
+    ],
+    "focusSize": 40,
+    "hash": "48df9c2a",
+    "instances": 296,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      115.68,
+      4.2,
+      53.53,
+    ],
+    "upright": false,
+    "vertices": 33320,
+  },
+}
+`;
+
+exports[`geometry snapshots > style anklet/station-anklet 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      36.76,
+    ],
+    "focusSize": 24,
+    "hash": "cacd2290",
+    "instances": 321,
+    "meshes": 96,
+    "nonFinite": 0,
+    "size": [
+      83.36,
+      2.95,
+      76.48,
+    ],
+    "upright": false,
+    "vertices": 64593,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      23.21,
+    ],
+    "focusSize": 24,
+    "hash": "dc886eca",
+    "instances": 321,
+    "meshes": 96,
+    "nonFinite": 0,
+    "size": [
+      104.89,
+      2.95,
+      49.39,
+    ],
+    "upright": false,
+    "vertices": 64593,
+  },
+}
+`;
+
+exports[`geometry snapshots > style armlet/bajuband 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      46.57,
+    ],
+    "focusSize": 33.94,
+    "hash": "03f6f557",
+    "instances": 351,
+    "meshes": 20,
+    "nonFinite": 0,
+    "size": [
+      90.27,
+      16.4,
+      95.87,
+    ],
+    "upright": false,
+    "vertices": 88049,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style bracelet/bangle 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      30.43,
+    ],
+    "focusSize": 30,
+    "hash": "745742f4",
+    "instances": 20,
+    "meshes": 20,
+    "nonFinite": 0,
+    "size": [
+      67.29,
+      6.5,
+      61.67,
+    ],
+    "upright": false,
+    "vertices": 16028,
+  },
+  "worn": {
+    "focus": [
+      0,
+      0,
+      19.96,
+    ],
+    "focusSize": 30,
+    "hash": "3d26c0f1",
+    "instances": 20,
+    "meshes": 20,
+    "nonFinite": 0,
+    "size": [
+      84.04,
+      6.5,
+      40.71,
+    ],
+    "upright": false,
+    "vertices": 16028,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/beaded 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 24,
+    "hash": "25096a80",
+    "instances": 29,
+    "meshes": 4,
+    "nonFinite": 0,
+    "size": [
+      66.18,
+      6,
+      60.48,
+    ],
+    "upright": false,
+    "vertices": 14486,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 24,
+    "hash": "034f9f6c",
+    "instances": 29,
+    "meshes": 4,
+    "nonFinite": 0,
+    "size": [
+      81.43,
+      6,
+      40.67,
+    ],
+    "upright": false,
+    "vertices": 14486,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/charm 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 40,
+    "hash": "3c3baf7a",
+    "instances": 124,
+    "meshes": 29,
+    "nonFinite": 0,
+    "size": [
+      75.21,
+      3.73,
+      67.98,
+    ],
+    "upright": false,
+    "vertices": 72459,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 40,
+    "hash": "1c578dad",
+    "instances": 124,
+    "meshes": 29,
+    "nonFinite": 0,
+    "size": [
+      86.26,
+      3.73,
+      49.83,
+    ],
+    "upright": false,
+    "vertices": 72459,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/cuff 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      30.23,
+    ],
+    "focusSize": 30,
+    "hash": "cb272c40",
+    "instances": 440,
+    "meshes": 36,
+    "nonFinite": 0,
+    "size": [
+      68.7,
+      22.4,
+      57.89,
+    ],
+    "upright": false,
+    "vertices": 141008,
+  },
+  "worn": {
+    "focus": [
+      0,
+      0,
+      19.76,
+    ],
+    "focusSize": 30,
+    "hash": "ded02212",
+    "instances": 440,
+    "meshes": 36,
+    "nonFinite": 0,
+    "size": [
+      85.42,
+      22.4,
+      38.97,
+    ],
+    "upright": false,
+    "vertices": 141008,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/kada 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      28.43,
+    ],
+    "focusSize": 40,
+    "hash": "2224f7fb",
+    "instances": 364,
+    "meshes": 6,
+    "nonFinite": 0,
+    "size": [
+      70.49,
+      9.39,
+      63.67,
+    ],
+    "upright": false,
+    "vertices": 109952,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.96,
+    ],
+    "focusSize": 40,
+    "hash": "c47e8acc",
+    "instances": 364,
+    "meshes": 6,
+    "nonFinite": 0,
+    "size": [
+      87.24,
+      9.39,
+      42.71,
+    ],
+    "upright": false,
+    "vertices": 109952,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/motif-station 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.22,
+      0,
+      28.21,
+    ],
+    "focusSize": 48,
+    "hash": "d7a9b56e",
+    "instances": 581,
+    "meshes": 121,
+    "nonFinite": 0,
+    "size": [
+      78.75,
+      2.21,
+      72.43,
+    ],
+    "upright": false,
+    "vertices": 160728,
+  },
+  "worn": {
+    "focus": [
+      0.17,
+      0,
+      18.68,
+    ],
+    "focusSize": 48,
+    "hash": "036799d1",
+    "instances": 581,
+    "meshes": 121,
+    "nonFinite": 0,
+    "size": [
+      86.71,
+      2.21,
+      56.38,
+    ],
+    "upright": false,
+    "vertices": 160728,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/open-bangle 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      2.2,
+      28.43,
+    ],
+    "focusSize": 40,
+    "hash": "ca6009f9",
+    "instances": 47,
+    "meshes": 47,
+    "nonFinite": 0,
+    "size": [
+      68.09,
+      7.21,
+      61.43,
+    ],
+    "upright": false,
+    "vertices": 23927,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      2.2,
+      17.96,
+    ],
+    "focusSize": 40,
+    "hash": "93f72f59",
+    "instances": 47,
+    "meshes": 47,
+    "nonFinite": 0,
+    "size": [
+      84.83,
+      7.21,
+      42.16,
+    ],
+    "upright": false,
+    "vertices": 23927,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/station 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 24,
+    "hash": "9de68583",
+    "instances": 261,
+    "meshes": 96,
+    "nonFinite": 0,
+    "size": [
+      63.79,
+      3.48,
+      57.46,
+    ],
+    "upright": false,
+    "vertices": 55413,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 24,
+    "hash": "14ada06c",
+    "instances": 261,
+    "meshes": 96,
+    "nonFinite": 0,
+    "size": [
+      77.29,
+      3.48,
+      38.28,
+    ],
+    "upright": false,
+    "vertices": 55413,
+  },
+}
+`;
+
+exports[`geometry snapshots > style bracelet/tennis 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 21,
+    "hash": "77e3437d",
+    "instances": 365,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      64.12,
+      2.7,
+      57.67,
+    ],
+    "upright": false,
+    "vertices": 111925,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 21,
+    "hash": "a75fea37",
+    "instances": 365,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      79.83,
+      2.7,
+      37.81,
+    ],
+    "upright": false,
+    "vertices": 111925,
+  },
+}
+`;
+
+exports[`geometry snapshots > style earrings/chandbali 1`] = `
+{
+  "fp": {
+    "focus": [
+      -25.09,
+      0,
+      17.84,
+    ],
+    "focusSize": 40.89,
+    "hash": "5bd6867c",
+    "instances": 680,
+    "meshes": 80,
+    "nonFinite": 0,
+    "size": [
+      90.38,
+      4.6,
+      38.66,
+    ],
+    "upright": false,
+    "vertices": 226482,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/chandelier 1`] = `
+{
+  "fp": {
+    "focus": [
+      -16.63,
+      0,
+      31.84,
+    ],
+    "focusSize": 79.59,
+    "hash": "353e0b4a",
+    "instances": 1176,
+    "meshes": 820,
+    "nonFinite": 0,
+    "size": [
+      56.51,
+      5.51,
+      63.67,
+    ],
+    "upright": false,
+    "vertices": 378058,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/climber 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.51,
+      0,
+      -11,
+    ],
+    "focusSize": 30,
+    "hash": "b5415fc9",
+    "instances": 100,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      34.12,
+      3.08,
+      21.52,
+    ],
+    "upright": false,
+    "vertices": 29712,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/deco 1`] = `
+{
+  "fp": {
+    "focus": [
+      -15.52,
+      0,
+      0,
+    ],
+    "focusSize": 34.25,
+    "hash": "bc70f4b4",
+    "instances": 1400,
+    "meshes": 30,
+    "nonFinite": 0,
+    "size": [
+      52.08,
+      4.1,
+      20.94,
+    ],
+    "upright": false,
+    "vertices": 425448,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/drop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -8.25,
+      0,
+      6.66,
+    ],
+    "focusSize": 10.4,
+    "hash": "873929aa",
+    "instances": 54,
+    "meshes": 48,
+    "nonFinite": 0,
+    "size": [
+      23,
+      3.8,
+      11.78,
+    ],
+    "upright": false,
+    "vertices": 16810,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/flowers 1`] = `
+{
+  "fp": {
+    "focus": [
+      -11.56,
+      0,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "5834aaa0",
+    "instances": 110,
+    "meshes": 98,
+    "nonFinite": 0,
+    "size": [
+      36.28,
+      3.63,
+      12.55,
+    ],
+    "upright": false,
+    "vertices": 20090,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/hoop 1`] = `
+{
+  "fp": {
+    "focus": [
+      -20.4,
+      -5.08,
+      0,
+    ],
+    "focusSize": 69.6,
+    "hash": "361978c6",
+    "instances": 260,
+    "meshes": 58,
+    "nonFinite": 0,
+    "size": [
+      64.83,
+      33.77,
+      11.58,
+    ],
+    "upright": true,
+    "vertices": 86802,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/huggie 1`] = `
+{
+  "fp": {
+    "focus": [
+      -15.8,
+      -1.04,
+      0,
+    ],
+    "focusSize": 39.56,
+    "hash": "1340e8c4",
+    "instances": 122,
+    "meshes": 18,
+    "nonFinite": 0,
+    "size": [
+      46.71,
+      15.64,
+      9.16,
+    ],
+    "upright": true,
+    "vertices": 45084,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/jhumka 1`] = `
+{
+  "fp": {
+    "focus": [
+      -14.3,
+      0,
+      8.55,
+    ],
+    "focusSize": 30.11,
+    "hash": "2a07aa9c",
+    "instances": 530,
+    "meshes": 36,
+    "nonFinite": 0,
+    "size": [
+      47.21,
+      15.15,
+      28.48,
+    ],
+    "upright": false,
+    "vertices": 170966,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/motif 1`] = `
+{
+  "fp": {
+    "focus": [
+      -17,
+      0,
+      15.71,
+    ],
+    "focusSize": 52.8,
+    "hash": "aa219a93",
+    "instances": 210,
+    "meshes": 58,
+    "nonFinite": 0,
+    "size": [
+      58,
+      3.39,
+      30.33,
+    ],
+    "upright": false,
+    "vertices": 63220,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      -16.63,
+      0,
+      31.84,
+    ],
+    "focusSize": 79.59,
+    "hash": "353e0b4a",
+    "instances": 1176,
+    "meshes": 820,
+    "nonFinite": 0,
+    "size": [
+      56.51,
+      5.51,
+      63.67,
+    ],
+    "upright": false,
+    "vertices": 378058,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/stud 1`] = `
+{
+  "fp": {
+    "focus": [
+      -8.25,
+      0,
+      0,
+    ],
+    "focusSize": 10.4,
+    "hash": "f6b034fb",
+    "instances": 38,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      23,
+      3.8,
+      6.5,
+    ],
+    "upright": false,
+    "vertices": 12006,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style earrings/tassel 1`] = `
+{
+  "fp": {
+    "focus": [
+      -9.54,
+      0,
+      17.5,
+    ],
+    "focusSize": 50,
+    "hash": "380f799b",
+    "instances": 130,
+    "meshes": 50,
+    "nonFinite": 0,
+    "size": [
+      28.18,
+      5.2,
+      39.18,
+    ],
+    "upright": false,
+    "vertices": 34368,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style hand/haathphool 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 40.72,
+    "hash": "59e74c20",
+    "instances": 365,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      60.17,
+      4.3,
+      176.96,
+    ],
+    "upright": false,
+    "vertices": 93111,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style headpiece/maang-tikka 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 27.15,
+    "hash": "7cbd86f9",
+    "instances": 157,
+    "meshes": 16,
+    "nonFinite": 0,
+    "size": [
+      28.04,
+      4.78,
+      98.85,
+    ],
+    "upright": false,
+    "vertices": 45823,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style headpiece/matha-patti 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 27.15,
+    "hash": "cfc14e5f",
+    "instances": 743,
+    "meshes": 40,
+    "nonFinite": 0,
+    "size": [
+      194.46,
+      5.06,
+      98.85,
+    ],
+    "upright": false,
+    "vertices": 157601,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style headpiece/tiara 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      -18,
+    ],
+    "focusSize": 170,
+    "hash": "f05a8f1c",
+    "instances": 1358,
+    "meshes": 299,
+    "nonFinite": 0,
+    "size": [
+      131.16,
+      5.15,
+      60.74,
+    ],
+    "upright": false,
+    "vertices": 408212,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style mens/cufflinks 1`] = `
+{
+  "fp": {
+    "focus": [
+      -14.3,
+      0,
+      0,
+    ],
+    "focusSize": 37.21,
+    "hash": "d9aaec25",
+    "instances": 484,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      47.51,
+      10.7,
+      18.91,
+    ],
+    "upright": false,
+    "vertices": 325048,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style mens/sherwani-buttons 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 59.4,
+    "hash": "2d4d878c",
+    "instances": 695,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      93.3,
+      4.75,
+      14.1,
+    ],
+    "upright": false,
+    "vertices": 309360,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style necklace/briolette-fringe 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.15,
+      0,
+      74.53,
+    ],
+    "focusSize": 80,
+    "hash": "2b1c4d37",
+    "instances": 5314,
+    "meshes": 525,
+    "nonFinite": 0,
+    "size": [
+      153.89,
+      3.32,
+      183.91,
+    ],
+    "upright": false,
+    "vertices": 1427120,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      54.09,
+    ],
+    "focusSize": 80,
+    "hash": "c8a7c7c9",
+    "instances": 5314,
+    "meshes": 525,
+    "nonFinite": 0,
+    "size": [
+      202.73,
+      3.32,
+      132.55,
+    ],
+    "upright": false,
+    "vertices": 1427120,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/by-the-yard 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.93,
+      0,
+      157.8,
+    ],
+    "focusSize": 30,
+    "hash": "0ec451fd",
+    "instances": 544,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      139.08,
+      2.54,
+      174.6,
+    ],
+    "upright": false,
+    "vertices": 196384,
+  },
+  "worn": {
+    "focus": [
+      0.84,
+      0,
+      121.32,
+    ],
+    "focusSize": 30,
+    "hash": "e20c8f74",
+    "instances": 544,
+    "meshes": 7,
+    "nonFinite": 0,
+    "size": [
+      185.27,
+      2.54,
+      128.58,
+    ],
+    "upright": false,
+    "vertices": 196384,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/choker 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.13,
+      0,
+      65.21,
+    ],
+    "focusSize": 40,
+    "hash": "d852ac87",
+    "instances": 1271,
+    "meshes": 13,
+    "nonFinite": 0,
+    "size": [
+      119.54,
+      2.19,
+      134.22,
+    ],
+    "upright": false,
+    "vertices": 340871,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      47.33,
+    ],
+    "focusSize": 40,
+    "hash": "8cf8755b",
+    "instances": 1271,
+    "meshes": 13,
+    "nonFinite": 0,
+    "size": [
+      155.4,
+      2.19,
+      96.86,
+    ],
+    "upright": false,
+    "vertices": 340871,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/collar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.15,
+      0,
+      74.53,
+    ],
+    "focusSize": 60,
+    "hash": "a7223a0e",
+    "instances": 748,
+    "meshes": 391,
+    "nonFinite": 0,
+    "size": [
+      121.58,
+      3.8,
+      159.04,
+    ],
+    "upright": false,
+    "vertices": 139840,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      54.09,
+    ],
+    "focusSize": 60,
+    "hash": "86f07082",
+    "instances": 748,
+    "meshes": 391,
+    "nonFinite": 0,
+    "size": [
+      159.58,
+      3.8,
+      116.23,
+    ],
+    "upright": false,
+    "vertices": 139840,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/drop-pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      118.08,
+    ],
+    "focusSize": 89.14,
+    "hash": "75be577f",
+    "instances": 833,
+    "meshes": 412,
+    "nonFinite": 0,
+    "size": [
+      133.59,
+      5.51,
+      228.35,
+    ],
+    "upright": false,
+    "vertices": 226790,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      95.09,
+    ],
+    "focusSize": 89.14,
+    "hash": "a64c60a1",
+    "instances": 833,
+    "meshes": 412,
+    "nonFinite": 0,
+    "size": [
+      179.96,
+      5.51,
+      180.19,
+    ],
+    "upright": false,
+    "vertices": 226790,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/gold-collar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.14,
+      0,
+      69.87,
+    ],
+    "focusSize": 50,
+    "hash": "f0aa68d1",
+    "instances": 2520,
+    "meshes": 256,
+    "nonFinite": 0,
+    "size": [
+      117.22,
+      3.4,
+      133.22,
+    ],
+    "upright": false,
+    "vertices": 744120,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      50.71,
+    ],
+    "focusSize": 50,
+    "hash": "371bc033",
+    "instances": 2520,
+    "meshes": 256,
+    "nonFinite": 0,
+    "size": [
+      155.94,
+      3.4,
+      98.45,
+    ],
+    "upright": false,
+    "vertices": 744120,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/kundan-choker 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.13,
+      0,
+      65.21,
+    ],
+    "focusSize": 53.81,
+    "hash": "6be080b7",
+    "instances": 758,
+    "meshes": 84,
+    "nonFinite": 0,
+    "size": [
+      126.79,
+      4.79,
+      143.24,
+    ],
+    "upright": false,
+    "vertices": 301805,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      47.33,
+    ],
+    "focusSize": 53.81,
+    "hash": "8de394c6",
+    "instances": 758,
+    "meshes": 84,
+    "nonFinite": 0,
+    "size": [
+      145.16,
+      4.79,
+      105.7,
+    ],
+    "upright": false,
+    "vertices": 301805,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/lariat 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.36,
+      0,
+      166.53,
+    ],
+    "focusSize": 60,
+    "hash": "07c2f131",
+    "instances": 307,
+    "meshes": 25,
+    "nonFinite": 0,
+    "size": [
+      130.22,
+      4,
+      246.25,
+    ],
+    "upright": false,
+    "vertices": 51079,
+  },
+  "worn": {
+    "focus": [
+      -0.35,
+      0,
+      147.76,
+    ],
+    "focusSize": 60,
+    "hash": "24ad414b",
+    "instances": 307,
+    "meshes": 25,
+    "nonFinite": 0,
+    "size": [
+      175.15,
+      4,
+      202.88,
+    ],
+    "upright": false,
+    "vertices": 51079,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/line 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 60,
+    "hash": "ae04e855",
+    "instances": 499,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      124.69,
+      5.93,
+      153.03,
+    ],
+    "upright": false,
+    "vertices": 186086,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 60,
+    "hash": "87671612",
+    "instances": 499,
+    "meshes": 10,
+    "nonFinite": 0,
+    "size": [
+      163.97,
+      5.93,
+      113.96,
+    ],
+    "upright": false,
+    "vertices": 186086,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/mangalsutra 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.4,
+      0,
+      108.78,
+    ],
+    "focusSize": 16.25,
+    "hash": "7b3fffef",
+    "instances": 442,
+    "meshes": 8,
+    "nonFinite": 0,
+    "size": [
+      147.93,
+      4.1,
+      197.6,
+    ],
+    "upright": false,
+    "vertices": 116569,
+  },
+  "worn": {
+    "focus": [
+      -0.39,
+      0,
+      87.93,
+    ],
+    "focusSize": 16.25,
+    "hash": "041ec3b5",
+    "instances": 442,
+    "meshes": 8,
+    "nonFinite": 0,
+    "size": [
+      198.88,
+      4.1,
+      149.41,
+    ],
+    "upright": false,
+    "vertices": 116569,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/motif-pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.36,
+      0,
+      106.88,
+    ],
+    "focusSize": 57.6,
+    "hash": "324447b5",
+    "instances": 342,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      130.22,
+      3.67,
+      195.35,
+    ],
+    "upright": false,
+    "vertices": 66859,
+  },
+  "worn": {
+    "focus": [
+      -0.35,
+      0,
+      88.11,
+    ],
+    "focusSize": 57.6,
+    "hash": "49388d39",
+    "instances": 342,
+    "meshes": 26,
+    "nonFinite": 0,
+    "size": [
+      175.15,
+      3.67,
+      151.98,
+    ],
+    "upright": false,
+    "vertices": 66859,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/motif-station 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.35,
+      0,
+      81.89,
+    ],
+    "focusSize": 57.6,
+    "hash": "3e3f57e2",
+    "instances": 923,
+    "meshes": 169,
+    "nonFinite": 0,
+    "size": [
+      158.63,
+      2.21,
+      174.36,
+    ],
+    "upright": false,
+    "vertices": 241788,
+  },
+  "worn": {
+    "focus": [
+      -0.46,
+      0,
+      57.95,
+    ],
+    "focusSize": 57.6,
+    "hash": "48f935ef",
+    "instances": 923,
+    "meshes": 169,
+    "nonFinite": 0,
+    "size": [
+      202.15,
+      2.21,
+      125.12,
+    ],
+    "upright": false,
+    "vertices": 241788,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/pearl-strand 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      83.84,
+    ],
+    "focusSize": 70,
+    "hash": "54e63cd2",
+    "instances": 63,
+    "meshes": 2,
+    "nonFinite": 0,
+    "size": [
+      138.91,
+      7,
+      167.4,
+    ],
+    "upright": false,
+    "vertices": 15338,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      60.86,
+    ],
+    "focusSize": 70,
+    "hash": "bae3dde0",
+    "instances": 63,
+    "meshes": 2,
+    "nonFinite": 0,
+    "size": [
+      185.19,
+      7,
+      119.49,
+    ],
+    "upright": false,
+    "vertices": 15338,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.36,
+      0,
+      97.93,
+    ],
+    "focusSize": 16.25,
+    "hash": "e85f689e",
+    "instances": 264,
+    "meshes": 21,
+    "nonFinite": 0,
+    "size": [
+      130.22,
+      3.8,
+      177.65,
+    ],
+    "upright": false,
+    "vertices": 43764,
+  },
+  "worn": {
+    "focus": [
+      -0.35,
+      0,
+      79.16,
+    ],
+    "focusSize": 16.25,
+    "hash": "7b223db4",
+    "instances": 264,
+    "meshes": 21,
+    "nonFinite": 0,
+    "size": [
+      175.15,
+      3.8,
+      134.28,
+    ],
+    "upright": false,
+    "vertices": 43764,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/rani-haar 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.78,
+      0,
+      218.5,
+    ],
+    "focusSize": 40.72,
+    "hash": "3b1eeff8",
+    "instances": 2012,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      255.24,
+      4.79,
+      353.14,
+    ],
+    "upright": false,
+    "vertices": 381680,
+  },
+  "worn": {
+    "focus": [
+      -0.75,
+      0,
+      171.24,
+    ],
+    "focusSize": 40.72,
+    "hash": "f0520b8f",
+    "instances": 2012,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      344.11,
+      4.79,
+      267.61,
+    ],
+    "upright": false,
+    "vertices": 381680,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/riviera 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.47,
+      0,
+      78.9,
+    ],
+    "focusSize": 26,
+    "hash": "62c4d149",
+    "instances": 543,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      116.8,
+      3.8,
+      150.72,
+    ],
+    "upright": false,
+    "vertices": 144519,
+  },
+  "worn": {
+    "focus": [
+      0.42,
+      0,
+      60.66,
+    ],
+    "focusSize": 26,
+    "hash": "0da9f646",
+    "instances": 543,
+    "meshes": 364,
+    "nonFinite": 0,
+    "size": [
+      157.4,
+      3.8,
+      110.42,
+    ],
+    "upright": false,
+    "vertices": 144519,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/station 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      83.84,
+    ],
+    "focusSize": 15,
+    "hash": "35cbfaf3",
+    "instances": 556,
+    "meshes": 134,
+    "nonFinite": 0,
+    "size": [
+      133.39,
+      3.48,
+      164.93,
+    ],
+    "upright": false,
+    "vertices": 106740,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      60.86,
+    ],
+    "focusSize": 15,
+    "hash": "e26f20b5",
+    "instances": 556,
+    "meshes": 134,
+    "nonFinite": 0,
+    "size": [
+      179.26,
+      3.48,
+      116.78,
+    ],
+    "upright": false,
+    "vertices": 106740,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/temple 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.19,
+      0,
+      105.66,
+    ],
+    "focusSize": 60,
+    "hash": "6a0da72a",
+    "instances": 1018,
+    "meshes": 55,
+    "nonFinite": 0,
+    "size": [
+      164.42,
+      4.51,
+      203.47,
+    ],
+    "upright": false,
+    "vertices": 223512,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      80.12,
+    ],
+    "focusSize": 60,
+    "hash": "36e55258",
+    "instances": 1018,
+    "meshes": 55,
+    "nonFinite": 0,
+    "size": [
+      215.93,
+      4.51,
+      149.96,
+    ],
+    "upright": false,
+    "vertices": 223512,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/three-stone-pendant 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.17,
+      0,
+      89.29,
+    ],
+    "focusSize": 30,
+    "hash": "22aeb7ba",
+    "instances": 482,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      132.89,
+      3.8,
+      170.63,
+    ],
+    "upright": false,
+    "vertices": 83366,
+  },
+  "worn": {
+    "focus": [
+      0.04,
+      0,
+      66.31,
+    ],
+    "focusSize": 30,
+    "hash": "57df6786",
+    "instances": 482,
+    "meshes": 60,
+    "nonFinite": 0,
+    "size": [
+      179.26,
+      3.8,
+      122.48,
+    ],
+    "upright": false,
+    "vertices": 83366,
+  },
+}
+`;
+
+exports[`geometry snapshots > style nose/nath 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      10.2,
+    ],
+    "focusSize": 51,
+    "hash": "0ce0cc1b",
+    "instances": 109,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      89.21,
+      3.5,
+      57.42,
+    ],
+    "upright": false,
+    "vertices": 23417,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style nose/nose-stud 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      0,
+      0,
+    ],
+    "focusSize": 8,
+    "hash": "019241a7",
+    "instances": 19,
+    "meshes": 19,
+    "nonFinite": 0,
+    "size": [
+      2.51,
+      1.48,
+      2.51,
+    ],
+    "upright": false,
+    "vertices": 6003,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/cluster 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "5f6c54b6",
+    "instances": 130,
+    "meshes": 35,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      17.64,
+    ],
+    "upright": true,
+    "vertices": 41130,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/deco 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.06,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "b9e15254",
+    "instances": 762,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      21.04,
+      22.26,
+      20.94,
+    ],
+    "upright": true,
+    "vertices": 234708,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/eternity 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.21,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "3fd3ac3e",
+    "instances": 169,
+    "meshes": 5,
+    "nonFinite": 0,
+    "size": [
+      21.92,
+      21.92,
+      4.2,
+    ],
+    "upright": true,
+    "vertices": 56401,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/half-flower 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "deb69527",
+    "instances": 116,
+    "meshes": 32,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      12.32,
+    ],
+    "upright": true,
+    "vertices": 36618,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/halo 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "d11f8db3",
+    "instances": 166,
+    "meshes": 36,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      12.7,
+    ],
+    "upright": true,
+    "vertices": 54989,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/motif-ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.46,
+      0,
+    ],
+    "focusSize": 38.4,
+    "hash": "38c6ef82",
+    "instances": 100,
+    "meshes": 27,
+    "nonFinite": 0,
+    "size": [
+      24,
+      23.63,
+      24,
+    ],
+    "upright": true,
+    "vertices": 36167,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/navratna 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.57,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "18a7c6e2",
+    "instances": 126,
+    "meshes": 58,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.98,
+      15.95,
+    ],
+    "upright": true,
+    "vertices": 43121,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/polki-cocktail 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      12.98,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "b1984c3a",
+    "instances": 390,
+    "meshes": 41,
+    "nonFinite": 0,
+    "size": [
+      32.89,
+      24.99,
+      34.82,
+    ],
+    "upright": true,
+    "vertices": 120229,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/posy 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "684c733b",
+    "instances": 199,
+    "meshes": 90,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      13.41,
+    ],
+    "upright": true,
+    "vertices": 54498,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/solitaire 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "255ad7f5",
+    "instances": 81,
+    "meshes": 31,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      6.93,
+    ],
+    "upright": true,
+    "vertices": 26549,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/swirl 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "34b37f33",
+    "instances": 532,
+    "meshes": 46,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      17.84,
+    ],
+    "upright": true,
+    "vertices": 165174,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/three-stone 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "eefd6da9",
+    "instances": 91,
+    "meshes": 41,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      6.93,
+    ],
+    "upright": true,
+    "vertices": 34417,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/two-stone 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.41,
+      0,
+    ],
+    "focusSize": 30,
+    "hash": "7bf2cbe7",
+    "instances": 103,
+    "meshes": 53,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      23.62,
+      6.93,
+    ],
+    "upright": true,
+    "vertices": 33267,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/wide-band 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.41,
+      0,
+    ],
+    "focusSize": 18,
+    "hash": "2a0974e5",
+    "instances": 342,
+    "meshes": 14,
+    "nonFinite": 0,
+    "size": [
+      22.36,
+      22.36,
+      7.95,
+    ],
+    "upright": true,
+    "vertices": 107628,
+  },
+  "worn": null,
+}
+`;
