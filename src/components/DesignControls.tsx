@@ -316,9 +316,34 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           <span className="small muted">How the design meets the band</span>
           <Chips name="Profile" options={["raised", "low", "set-in"] as const} value={d.band.profile}
             fmt={(v) => (v === "raised" ? "Up on top of the band" : v === "low" ? "Low on the band" : "Set into the band")} onPick={(profile) => onChange({ band: { profile } })} />
+          <span className="small muted">Band shape</span>
+          <Chips name="Band shape" options={["classic", "flat", "cigar"] as const} value={d.band.shape}
+            fmt={(v) => (v === "classic" ? "Classic (rounded)" : v === "flat" ? "Flat" : "Cigar band (wide)")}
+            onPick={(shape) => onChange({ band: { shape, ...(shape === "cigar" && d.band.widthMm < 6 ? { widthMm: 8 } : {}) } })} />
           <Chips name="Band finish" options={BAND_FINISHES} value={d.band.finish} onPick={(finish) => onChange({ band: { finish } })} />
+          <span className="small muted">Stones down the band</span>
+          <Chips name="Band stones" options={["none", "shoulders", "half", "full"] as const} value={d.band.pave}
+            fmt={(v) => (v === "none" ? "None" : v === "shoulders" ? "On the shoulders" : v === "half" ? "Half way round" : "All the way round")} onPick={(pave) => onChange({ band: { pave } })} />
+          {d.band.pave !== "none" && (
+            <>
+              <div className="row2">
+                <label className="field" htmlFor="bp-gem"><span>Gem</span>
+                  <GemSelect id="bp-gem" value={d.band.paveGem} options={GEMS} onPick={(paveGem) => onChange({ band: { paveGem, paveColor: GEM_LOOK[paveGem].color } })} />
+                </label>
+                <label className="field" htmlFor="bp-shape"><span>Shape</span>
+                  <select id="bp-shape" value={d.band.paveShape} onChange={(e) => onChange({ band: { paveShape: e.target.value as Design["band"]["paveShape"] } })}>
+                    {SHAPES.map((sh) => <option key={sh} value={sh}>{label(sh)}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="row2">
+                <Range id="bp-mm" label="Each, width" value={d.band.paveMm} min={0.8} max={4} step={0.1} format={(n) => `${n} mm`} onChange={(paveMm) => onChange({ band: { paveMm } })} />
+                <Range id="bp-rows" label="Rows" value={d.band.paveRows} min={1} max={4} step={1} onChange={(paveRows) => onChange({ band: { paveRows } })} />
+              </div>
+            </>
+          )}
           <div className="row2">
-            <Range id="bw" label="Width" value={d.band.widthMm} min={1.5} max={8} step={0.1} format={(n) => `${n} mm`} onChange={(widthMm) => onChange({ band: { widthMm } })} />
+            <Range id="bw" label="Width" value={d.band.widthMm} min={1.5} max={16} step={0.1} format={(n) => `${n} mm`} onChange={(widthMm) => onChange({ band: { widthMm } })} />
             <Range id="size" label="Size" value={d.ringSize} min={3} max={13} step={0.25} format={(n) => `US ${n} · Indian ${indianRingSize(n)}`} onChange={(ringSize) => onChange({ ringSize })} />
           </div>
         </section>

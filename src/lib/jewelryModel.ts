@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { BEAD_GEMS, SHAPE_RATIO, rightEarDesign, type CenterStone, type Design, type DropPart, type Gem, bangleDiameter, estimateDims, ringInnerDiameter, roundDiameter } from "./design";
 import { motifPlate, motifShapes } from "./motifModel";
-import { clawDegrees, metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
+import { bandSection, clawDegrees, metalTone, buildRing, cabochonGeo, centerFacetedGeo, facetedGeo, outlineFn, shankGeo, type OutlineFn } from "./ringModel";
 
 /**
  * Builds any piece from a Design.
@@ -898,7 +898,10 @@ function ringPiece(d: Design): Piece {
     // a plain band
     const group = new THREE.Group();
     const RIN = ringInnerDiameter(d.ringSize) / 2;
-    group.add(new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish), m.metal));
+    const sh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), m.metal);
+    sh.userData.shank = true;
+    group.add(sh);
+    bandPave(group, d, m);
     return { group, focus: v3(0, RIN, 0), focusSize: 24, upright: true };
   }
   const base = st === "three-stone" || st === "halo" ? d : { ...d, sides: { ...d.sides, kind: "none" as const } };
@@ -920,6 +923,7 @@ function ringPiece(d: Design): Piece {
     // a bridge under both stones into the shank
     group.add(tube(mm, [v3(-(a + 0.4), gy0 - 1.6, 0), v3(0, gy0 - 2.4, 0), v3(b + 0.4 + e.dx, gy0 - 1.6, e.dz)], 0.6));
     applyProfile(group, d, gy0);
+    bandPave(group, d, mm);
     const top = new THREE.Box3().setFromObject(group).max.y;
     return { group, focus: v3(0, top - d.center.domeMm - 1, 0), focusSize: 30, upright: true };
   }
@@ -954,6 +958,7 @@ function ringPiece(d: Design): Piece {
     at(backingPlate(m, outlineFn("round", 1, 1), (R + dia + 1) * 2, -0.9, 0.8));
   }
   applyProfile(group, d, gy);
+  bandPave(group, d, m);
   const top = new THREE.Box3().setFromObject(group).max.y;
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
 }
@@ -962,6 +967,48 @@ function ringPiece(d: Design): Piece {
  * How the design meets the band. raised: up on its setting (as built). low: brought down close to the band.
  * set-in: the band widens and deepens across the top and the design is lowered into it, girdle level with the metal.
  */
+/**
+ * Stones running down the band from the head: on the shoulders, half way round, or all the way (an eternity shank).
+ * They sit in the band's top surface, following its real thickness and width, in 1–4 rows.
+ */
+function bandPave(group: THREE.Group, d: Design, m: Mats) {
+  const b = d.band;
+  if (b.pave === "none") return;
+  const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
+  const RIN = ringInnerDiameter(d.ringSize) / 2;
+  const top = shank?.userData.top as { topW: number; topT: number; spread: number } | undefined;
+  // where the head ends, so the stones start just past it
+  const box = new THREE.Box3();
+  group.updateWorldMatrix(true, true);
+  group.children.forEach((o) => { if (o !== shank) box.expandByObject(o); });
+  // the head meets the band only where its posts come down (about 3 mm either side), however wide the top is;
+  // a design set into the band covers the band as far as the widened top reaches
+  const hx = box.isEmpty() ? 0 : top ? top.spread : 3.2;
+  const start = hx ? Math.asin(Math.min(0.9, (hx + 0.6) / (RIN + 2.3))) : 0;
+  const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
+  const rows = b.paveRows;
+  const W = b.paveMm;
+  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: [b.paveShape], orientation: "along", turns: [], twins: [], sizes: [] } };
+  const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
+  for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
+    const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
+    for (let r = 0; r < rows; r++) {
+      const N = 120;
+      const pts = Array.from({ length: N + 1 }, (_, i) => {
+        const th = a0 + ((a1 - a0) * i) / N;
+        const { r: R, w } = surf(th);
+        const z = rows === 1 ? 0 : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1)));
+        // set down into the metal: the table sits about level with the band's surface
+        return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
+      });
+      const curve = new THREE.CatmullRomCurve3(pts, false);
+      const g = patternRun(pd, m, curve, 0, 1, { maxW: W, gap: 0.2, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+      g.userData.part = "accents";
+      group.add(g);
+    }
+  }
+}
+
 function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const prof = d.band.profile;
   if (prof === "raised") return;
@@ -982,7 +1029,8 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     const target = RIN + Math.max(2.9, belly * 0.75 + 0.6);
     const topT = target - 0.3 - RIN;
     shank.geometry.dispose();
-    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 });
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape);
+    shank.userData.top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };
     drop = gy - target;
   } else {
     drop = Math.max(0, gy - (RIN + 2.3 + belly * 0.25) + Math.min(1.2, d.setting.height * 4));

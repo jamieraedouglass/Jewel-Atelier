@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { anthropic, MODEL, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/claude";
+import { callTool, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/claude";
 import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { spendAiCall } from "@/lib/usage";
@@ -53,16 +53,8 @@ export async function POST(req: Request) {
   ].filter(Boolean).join("\n");
 
   try {
-    const msg = await anthropic().messages.create({
-      model: MODEL,
-      max_tokens: 1200,
-      system: STONE_SYSTEM,
-      tools: [stoneAnalysisTool],
-      tool_choice: { type: "tool", name: stoneAnalysisTool.name },
-      messages: [{ role: "user", content: [...images, { type: "text", text }] }],
-    });
-    const call = msg.content.find((b) => b.type === "tool_use");
-    const parsed = Analysis.safeParse(call && "input" in call ? call.input : null);
+    const input = await callTool({ system: STONE_SYSTEM, tool: stoneAnalysisTool, content: [...images, { type: "text", text }], maxTokens: 1200 });
+    const parsed = Analysis.safeParse(input);
     if (!parsed.success) return NextResponse.json({ error: "The analysis came back incomplete. Try a clearer photo." }, { status: 502 });
     const a = parsed.data;
 

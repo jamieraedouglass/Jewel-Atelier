@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { duplicateDesign, listVersions, saveDesign, setPublic, setThumbnail } from "@/app/actions";
-import { applyPatch, asRightEar, describeDesign, normalizeDesign, rightEarDesign, type Design, type DesignPatch } from "@/lib/design";
+import { TYPES, TYPE_LABEL, applyPatch, asRightEar, chooseStyle, describeDesign, normalizeDesign, rightEarDesign, type Design, type DesignPatch } from "@/lib/design";
 import { createClient } from "@/lib/supabase/client";
 import { VIEW_LABEL, type Cutout, type Measure, type Pick, type RingCanvasHandle, type View } from "./RingCanvas";
 import TryOn from "./TryOn";
@@ -17,11 +17,11 @@ import PhotoToDesign from "./PhotoToDesign";
 const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false, loading: () => <div className="muted" style={{ padding: 24 }}>Loading 3D…</div> });
 
 type Tab = "design" | "photo" | "stone" | "chat";
-type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean; hasThumbnail?: boolean };
+type Props = { initial: Design; id: string | null; userId: string | null; isPublic?: boolean; hasThumbnail?: boolean; blank?: boolean };
 
 const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}.png`;
 
-export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false, hasThumbnail = true }: Props) {
+export default function Designer({ initial, id: initialId, userId, isPublic: initialPublic = false, hasThumbnail = true, blank = false }: Props) {
   const router = useRouter();
   const canvas = useRef<RingCanvasHandle | null>(null);
   const [design, setDesign] = useState(initial);
@@ -30,6 +30,12 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   const [tab, setTab] = useState<Tab>("design");
   const [view, setView] = useState<View>("hero");
   const [spin, setSpin] = useState(true);
+  // a new design starts on an empty stage until a piece is chosen (or anything is changed)
+  const [started, setStarted] = useState(!blank);
+  // render quality is a per-viewer choice, remembered on this device
+  const [quality, setQualityState] = useState<"high" | "standard">("high");
+  useEffect(() => { try { const q = localStorage.getItem("render-quality"); if (q === "standard" || q === "high") setQualityState(q); } catch { /* private mode */ } }, []);
+  const setQuality = (q: "high" | "standard") => { setQualityState(q); try { localStorage.setItem("render-quality", q); } catch { /* ignore */ } };
   const [status, setStatus] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [pick, setPick] = useState<Pick | null>(null);
@@ -68,7 +74,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     h.last = group ? now : 0;
     h.future = [];
     designRef.current = next;
-    setDesign(next); setDirty(true); bumpHist((n) => n + 1);
+    setDesign(next); setDirty(true); bumpHist((n) => n + 1); setStarted(true);
   }
   function undo() {
     const h = hist.current, prev = h.past.pop();
@@ -236,11 +242,21 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   return (
     <div className="designer">
       <div className="stage" ref={stageEl}>
-        <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />
+        {!started && (
+          <div className="blank-stage">
+            <h2>What are we making?</h2>
+            <p className="muted">Pick a piece to start, choose a showcase design in the panel, or recreate something from a photo.</p>
+            <div className="chips" style={{ justifyContent: "center" }}>
+              {TYPES.map((t) => <button key={t} type="button" className="btn" onClick={() => replace(chooseStyle(designRef.current, t))}>{TYPE_LABEL[t]}</button>)}
+            </div>
+            <button type="button" className="btn primary" onClick={() => { setTab("photo"); }}>Start from a photo</button>
+          </div>
+        )}
+        {started && <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} quality={quality} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
         {tryOn && <TryOn cutout={tryOn} title={design.name} onClose={() => setTryOn(null)} />}
         <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
         {pick && !spin && <QuickEdit pick={pick} design={editing} onChange={change} onMore={showSection} onClose={() => setPick(null)} />}
-        <div className="stage-ui">
+        <div className="stage-ui" style={started ? undefined : { display: "none" }}>
           <div>
             <p className="summary">{describeDesign(design)}</p>
             {measure && measure.widthMm > 0 && (
@@ -260,6 +276,8 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
               <button key={v} type="button" className="chip" aria-pressed={view === v} onClick={() => setView(v)}>{VIEW_LABEL[v]}</button>
             ))}
             <button type="button" className="chip" aria-pressed={spin} onClick={() => { setSpin(!spin); setPick(null); }}>{spin ? "Pause" : "Spin"}</button>
+            <button type="button" className="chip" aria-pressed={quality === "high"} title="Ray-traced diamonds and soft shadows; switch to Standard if stones look wrong or it feels slow"
+              onClick={() => setQuality(quality === "high" ? "standard" : "high")}>{quality === "high" ? "Quality: high" : "Quality: standard"}</button>
           </div>
         </div>
       </div>

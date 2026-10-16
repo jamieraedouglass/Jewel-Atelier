@@ -163,3 +163,6 @@ input[type="range"] { width: 100%; accent-color: var(--fg); }
 details.pos { border-top: 1px dashed var(--line); padding-top: 8px; }
 details.pos summary { cursor: pointer; color: var(--muted); }
 .pairbar { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.blank-stage { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
+.blank-stage h2 { font-family: var(--font-display), Georgia, serif; font-weight: 400; font-size: clamp(26px, 4vw, 40px); margin: 0; }
+@media (max-width: 860px) { .blank-stage { position: static; min-height: 50dvh; } }

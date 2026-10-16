@@ -158,14 +158,15 @@ function StoneLight({ piece }: { piece: Piece }) {
  */
 let studioCube: THREE.CubeTexture | null = null;
 const bvhCache = new Map<string, MeshBVHUniformStruct>();
-type RefractMat = THREE.ShaderMaterial & { bvh: MeshBVHUniformStruct; envMap: THREE.Texture; color: THREE.Color; resolution: THREE.Vector2; viewMatrixInverse: THREE.Matrix4; projectionMatrixInverse: THREE.Matrix4; bounces: number; ior: number; aberrationStrength: number; fresnel: number };
+type RefractMat = THREE.ShaderMaterial & { correctMips: boolean; bvh: MeshBVHUniformStruct; envMap: THREE.Texture; color: THREE.Color; resolution: THREE.Vector2; viewMatrixInverse: THREE.Matrix4; projectionMatrixInverse: THREE.Matrix4; bounces: number; ior: number; aberrationStrength: number; fresnel: number };
 function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
   const { gl, size } = useThree();
   const mats = useRef<RefractMat[]>([]);
   useEffect(() => {
     if (!enabled) return;
     if (!studioCube) {
-      const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      // 8-bit cube map: half-float cube mipmaps come out black on some Mac GPUs
+      const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.UnsignedByteType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
       const cam = new THREE.CubeCamera(0.1, 100, rt);
       cam.update(gl, new RoomEnvironment());
       studioCube = rt.texture as unknown as THREE.CubeTexture;
@@ -199,7 +200,14 @@ function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
       mat.ior = colorless ? 2.42 : 1.72;
       mat.aberrationStrength = colorless ? 0.012 : 0.004;
       mat.fresnel = 1;
-      mat.resolution = new THREE.Vector2(size.width, size.height);
+      // the shader works in device pixels: on a Retina screen that's twice the CSS size
+      mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());
+      mat.correctMips = false;
+      // never let a stray ray (NaN or a runaway value) turn a stone black or flare in the glow pass
+      mat.fragmentShader = mat.fragmentShader.replace(
+        "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
+        "vec3 outC = mix(diffuseColor.rgb, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);",
+      );
       made.push(mat);
       swaps.push({ mesh, before: mesh.material, hidden: twin ? [twin] : [] });
       mesh.material = mat;
@@ -314,9 +322,11 @@ type Props = {
   onPick?: (p: Pick) => void; onMiss?: () => void; onMeasure?: (m: Measure) => void;
   /** fast rendering for small previews */
   lite?: boolean;
+  /** "high": ray-traced diamonds and the finishing pass; "standard": the faster look */
+  quality?: "high" | "standard";
 };
 
-export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure, lite }: Props) {
+export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure, lite, quality = "high" }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
   const piece = useMemo(() => buildPiece(design), [design]);
@@ -335,8 +345,8 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
     return () => { handle.current = null; };
   }, [handle]);
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // gallery thumbnails and very small views keep the fast stone look
-  const lowPower = !!lite;
+  // gallery thumbnails and very small views keep the fast stone look; "standard" quality (chosen by the viewer) does too
+  const lowPower = !!lite || quality === "standard";
   return (
     <Canvas
       className={className}
