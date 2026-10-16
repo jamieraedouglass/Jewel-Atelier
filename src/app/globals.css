@@ -237,3 +237,15 @@ details.pos summary { cursor: pointer; color: var(--muted); }
 .price-box { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--raised); margin-bottom: 18px; }
 .price-box .price { font-family: var(--font-display), Georgia, serif; font-weight: 400; font-size: 28px; color: var(--fg); }
 .price-box .chips { margin-top: 8px; }
+
+/* the demo: the client's screen with the jeweller's side beside it, live */
+.demo-split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
+.demo-split.closed { grid-template-columns: minmax(0, 1fr) 52px; }
+.demo-side { display: grid; gap: 14px; align-content: start; padding: 16px; height: calc(100dvh - 61px); overflow-y: auto; border-left: 1px solid var(--accent); background: var(--panel); }
+.demo-split.closed .demo-side { padding: 8px 4px; }
+.demo-side-open { writing-mode: vertical-rl; padding: 12px 6px; }
+@media (max-width: 1100px) {
+  .demo-split, .demo-split.closed { grid-template-columns: minmax(0, 1fr); }
+  .demo-side { height: auto; border-left: 0; border-top: 1px solid var(--accent); }
+  .demo-side-open { writing-mode: horizontal-tb; }
+}

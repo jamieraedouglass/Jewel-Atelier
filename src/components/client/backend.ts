@@ -2,7 +2,7 @@ import { applyPatch, metalName, type Design } from "@/lib/design";
 import type { ChatMessage } from "@/lib/chat";
 import { isPriceQuestion, priceReply } from "@/lib/studio/clientChat";
 import { knownPriceReply, priceFor, priceText, type Pricing } from "@/lib/studio/pricing";
-import { clampToAllowed, optionLook, optionName, type Allow } from "@/lib/studio/links";
+import { clampToAllowed, describeChanges, optionLook, optionName, type Allow } from "@/lib/studio/links";
 
 export type ClientPieceData = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
 export type EventKind = "tried-on" | "compared" | "asked-jeweller";
@@ -36,11 +36,22 @@ export function linkBackend(token: string): ClientBackend {
  * The demo: everything runs in the browser, with the same rules as a real link. The chat answers from a small script
  * (the real one asks Claude) so the demo works with no account, database or API key.
  */
-export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void, pricing?: Pricing, rate: number | null = null): ClientBackend {
+export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void, pricing?: Pricing, rate: number | null = null,
+  onSave?: (designId: string, d: Design) => void): ClientBackend {
   const baseOf = (id: string) => pieces.find((p) => p.designId === id)!.base;
+  const saved = new Map<string, Design>();
   return {
     async save(designId, design) {
-      return clampToAllowed(baseOf(designId), design, allow);
+      const kept = clampToAllowed(baseOf(designId), design, allow);
+      // what the real dashboard records: each saved change, in words
+      const before = saved.get(designId) ?? pieces.find((p) => p.designId === designId)!.version;
+      if (JSON.stringify(before) !== JSON.stringify(kept)) {
+        const changes = describeChanges(baseOf(designId), kept);
+        onEvent?.(changes.length ? `Changed the ${pieces.find((p) => p.designId === designId)!.name}: ${changes.join("; ")}` : `Went back to your original ${pieces.find((p) => p.designId === designId)!.name}`);
+      }
+      saved.set(designId, kept);
+      onSave?.(designId, kept);
+      return kept;
     },
     async chat(designId, design, messages) {
       await new Promise((r) => setTimeout(r, 900));

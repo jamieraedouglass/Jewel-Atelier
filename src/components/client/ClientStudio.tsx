@@ -24,6 +24,8 @@ type Props = {
   mode: { kind: "link"; token: string } | { kind: "demo" };
   /** demo only: show what the jeweller would see */
   onDemoEvent?: (line: string) => void;
+  /** demo only: each piece as the client saves it */
+  onDemoSave?: (designId: string, d: Design) => void;
 };
 type Panel = "adjust" | "chat" | "jeweller";
 const LOOPS = new Set(["necklace", "bracelet", "anklet"]);
@@ -33,8 +35,8 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * What a client sees on a link from the jeweller: the pieces as tabs, each in 3D, adjustable only as the jeweller
  * allowed, with side-by-side comparing, trying the whole set on, the designer chat, and a line to the jeweller.
  */
-export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent }: Props) {
-  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate]);
+export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent, onDemoSave }: Props) {
+  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave]);
   const [active, setActive] = useState(0);
   const [versions, setVersions] = useState<Record<string, Design>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.version])));
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.chat])));

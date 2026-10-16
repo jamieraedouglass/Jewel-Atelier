@@ -2,18 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { createClientLink } from "@/app/studio/actions";
-import { BEAD_GEMS, GEMS, GEM_LOOK, KARATS, METALS, SHAPES, label, varietiesOf } from "@/lib/design";
-import { AllowSchema, type Allow, type StoneOption, optionLook, optionName } from "@/lib/studio/links";
+import { AllowSchema, type Allow } from "@/lib/studio/links";
 import { PricingSchema, type Pricing } from "@/lib/studio/pricing";
 import PriceEditor, { filledPricing } from "./PriceEditor";
-import { Chips, Range, Toggle } from "../controls/fields";
-import MultiChips from "../style/MultiChips";
+import { Chips } from "../controls/fields";
+import AllowEditor from "./AllowEditor";
 
 type DesignRow = { id: string; name: string; summary: string; owner: string };
 
-/** every stone a client could be offered: each gem, and each of its colour grades */
-const STONE_OPTIONS: StoneOption[] = GEMS.filter((g) => !BEAD_GEMS.has(g) && g !== "other").flatMap((gem) => [{ gem }, ...varietiesOf(gem).map((v) => ({ gem, grade: v.id }))]);
-const keyOf = (o: StoneOption) => `${o.gem}:${o.grade ?? ""}`;
 
 /** Carl picks the pieces, what the client may change, and how long the link lasts; the result is a private link. */
 export default function SendForm({ designs, initial }: { designs: DesignRow[]; initial: string[] }) {
@@ -28,7 +24,6 @@ export default function SendForm({ designs, initial }: { designs: DesignRow[]; i
   const [result, setResult] = useState<{ url?: string; error?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const shown = useMemo(() => designs.filter((d) => !query.trim() || `${d.name} ${d.summary}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60), [designs, query]);
-  const set = (p: Partial<Allow>) => setAllow((a) => ({ ...a, ...p }));
   const toggle = (id: string) => setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length < 8 ? [...cur, id] : cur));
 
   async function create() {
@@ -85,19 +80,7 @@ export default function SendForm({ designs, initial }: { designs: DesignRow[]; i
 
       <section style={{ display: "grid", gap: 10 }}>
         <h3>What they can change</h3>
-        <Toggle id="a-sizes" checked={allow.sizes} onChange={(sizes) => set({ sizes })}>Sizes (ring size, wrist, length)</Toggle>
-        <span className="small muted">Centre stones they can choose (their piece&apos;s own stone is always an option)</span>
-        <MultiChips name="Stone options" options={STONE_OPTIONS.map(keyOf)} value={allow.stones.map(keyOf)} max={12}
-          fmt={(k) => optionName(STONE_OPTIONS.find((o) => keyOf(o) === k)!)} swatch={(k) => { const o = STONE_OPTIONS.find((x) => keyOf(x) === k)!; return o.grade ? optionLook(o).color : GEM_LOOK[o.gem].color; }}
-          onChange={(keys) => set({ stones: keys.map((k) => STONE_OPTIONS.find((o) => keyOf(o) === k)!) })} />
-        <span className="small muted">Shapes they can choose</span>
-        <MultiChips name="Shape options" options={SHAPES} value={allow.shapes} max={12} fmt={label} onChange={(shapes) => set({ shapes })} />
-        <Range id="a-scale" label="Stone size" value={Math.round(allow.stoneScale * 100)} min={0} max={50} step={5} format={(n) => (n ? `up to ${n}% bigger or smaller` : "fixed")} onChange={(n) => set({ stoneScale: n / 100 })} />
-        <span className="small muted">Metals they can choose</span>
-        <MultiChips name="Metal options" options={METALS} value={allow.metals} fmt={label} onChange={(metals) => set({ metals })} />
-        <span className="small muted">Karats they can choose</span>
-        <MultiChips name="Karat options" options={KARATS.map(String)} value={allow.karats.map(String)} fmt={(k) => `${k}k`} onChange={(ks) => set({ karats: ks.map(Number) })} />
-        <Toggle id="a-chat" checked={allow.chat} onChange={(chat) => set({ chat })}>Let them ask the AI designer</Toggle>
+        <AllowEditor allow={allow} onChange={setAllow} />
         {allow.chat && <Chips name="Designer questions a day" options={[10, 20, 40] as const} value={aiLimit as 10 | 20 | 40} fmt={(n) => `${n} questions a day`} onPick={setAiLimit} />}
         <p className="small muted" style={{ margin: 0 }}>Whatever they change is saved as their own copy; your designs never change.</p>
       </section>
