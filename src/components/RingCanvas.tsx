@@ -11,6 +11,8 @@ import { disposeGroup } from "@/lib/ringModel";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { MeshRefractionMaterial } from "@react-three/drei/materials/MeshRefractionMaterial";
 import { MeshBVH, MeshBVHUniformStruct, SAH } from "three-mesh-bvh";
+import { Bloom, EffectComposer, N8AO, SMAA, ToneMapping } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 
 export type View = "hero" | "top" | "detail";
 export const VIEW_LABEL: Record<View, string> = { hero: "¾", top: "Top", detail: "Detail" };
@@ -353,6 +355,16 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <Grabber piece={piece} design={design} handle={handle} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
       <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
+      {!lowPower && (
+        // the finishing pass: soft contact shading where stones meet metal, a little glow on the brightest facet
+        // flashes (the sparkle you see in person), anti-aliasing, then the same neutral tone mapping as before
+        <EffectComposer multisampling={0} enableNormalPass={false}>
+          <N8AO halfRes aoRadius={2.2} intensity={1.6} distanceFalloff={0.6} color="#000000" quality="medium" />
+          <Bloom mipmapBlur luminanceThreshold={0.92} luminanceSmoothing={0.12} intensity={0.55} radius={0.55} />
+          <ToneMapping mode={ToneMappingMode.NEUTRAL} />
+          <SMAA />
+        </EffectComposer>
+      )}
       <CameraRig view={view} piece={piece} frameKey={`${design.type}:${design.style}:${design.drop.parts.map((x) => x.kind[0] + Math.round(x.stone.lengthMm / 4)).join("")}:${design.options.hoopShape}`} controls={controls} />
     </Canvas>
   );

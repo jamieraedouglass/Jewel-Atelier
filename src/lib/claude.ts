@@ -110,7 +110,7 @@ const designPatchSchema = {
         },
       },
     },
-    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" }, twins: { type: "array", items: { type: "boolean" }, description: "by position: true sets two stones side by side there (twin baguettes between rounds)" } } },
+    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" }, twins: { type: "array", items: { type: "boolean" }, description: "by position: true sets two stones side by side there (twin baguettes between rounds)" }, sizes: { type: "array", items: { type: "number" }, description: "by position: size multiple of each stone, e.g. [2, 1, 1.2, 1] for big round, small round, baguette, small round" } } },
     frames: {
       type: "array",
       description: "ring/earring style deco: layers round the centre stone, inside out. Replaces the whole list.",
@@ -127,9 +127,9 @@ const designPatchSchema = {
     metal: { type: "string", enum: [...METALS] },
     purity: { type: "object", properties: { karat: { type: "number", enum: [14, 18, 22, 24] } } },
     setting: { type: "object", properties: { style: { type: "string", enum: [...SETTINGS] }, height: { type: "number", description: "rings only: 0 low … 1 tall" } } },
-    sides: { type: "object", properties: { kind: { type: "string", enum: [...SIDE_KINDS] }, sizeCt: { type: "number" } } },
+    sides: { type: "object", properties: { kind: { type: "string", enum: [...SIDE_KINDS] }, sizeCt: { type: "number" }, hug: { type: "boolean", description: "sized to the centre and set tight against it (classic half-moon trilogy)" }, hugFrac: { type: "number", description: "0.4–1, how much of the centre's length the sides cover" } } },
     gallery: { type: "object", properties: { roseCut: { type: "boolean" } } },
-    band: { type: "object", properties: { widthMm: { type: "number" }, finish: { type: "string", enum: [...BAND_FINISHES] } } },
+    band: { type: "object", properties: { widthMm: { type: "number" }, finish: { type: "string", enum: [...BAND_FINISHES] }, profile: { type: "string", enum: ["raised", "low", "set-in"], description: "the design up on top of the band, low on it, or set into a band that widens to hold it (Deco plaques, cigar bands, flush settings)" } } },
     options: {
       type: "object",
       properties: {

@@ -373,9 +373,10 @@ function backingPlate(m: Mats, fn: OutlineFn, scale: number, y: number, depth: n
 
 /** the accent pattern's stones: width and length of each shape at the chosen carat weight */
 function patternDims(d: Design, maxW?: number) {
-  return d.accents.shapes.map((shape) => {
+  return d.accents.shapes.map((shape, i) => {
     const e = estimateDims(d.accents.gem, d.accents.cut, shape, d.accents.sizeCt);
-    const W = maxW ? Math.min(e.widthMm, maxW) : e.widthMm;
+    const w0 = e.widthMm * (d.accents.sizes[i] ?? 1);
+    const W = maxW ? Math.min(w0, maxW) : w0;
     return { shape, W, L: W * ASPECT[shape] };
   });
 }
@@ -482,7 +483,7 @@ function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number;
     const Z = along ? tp : new THREE.Vector3().crossVectors(up, tp).normalize();
     basis.makeBasis(new THREE.Vector3().crossVectors(up, Z).normalize(), up, Z);
     const turn = THREE.MathUtils.degToRad(d.accents.turns[i % d.accents.shapes.length] ?? 0);
-    (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia, quat: new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn)) });
+    (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia * (d.accents.sizes[i % d.accents.shapes.length] ?? 1), quat: new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn)) });
   });
   const g = new THREE.Group();
   byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
@@ -867,6 +868,32 @@ function ringPiece(d: Design): Piece {
     group.add(patternRun(d, m, circle, 0, 1, { closed: true, maxW: Math.max(d.band.widthMm, 2.6) * 0.9, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.05), gap: 0.25 }).group);
     return { group, focus: v3(0, Ro, 0), focusSize: 18, upright: true };
   }
+  if (st === "wide-band") {
+    // a broad band; rows of stones all the way round, on the edges (gold between) or across the whole width
+    const group = new THREE.Group();
+    const RIN = ringInnerDiameter(d.ringSize) / 2;
+    const bw = Math.max(d.band.widthMm, 3);
+    const innerMat = (m.metal as THREE.MeshPhysicalMaterial).clone(); innerMat.side = THREE.DoubleSide;
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(RIN + 1.9, RIN + 1.9, bw, 160, 1, true), innerMat);
+    band.rotation.x = Math.PI / 2;
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(RIN, RIN, bw, 160, 1, true), innerMat);
+    inner.rotation.x = Math.PI / 2;
+    group.add(band, inner);
+    for (const z of [-bw / 2, bw / 2]) { const lip = new THREE.Mesh(new THREE.TorusGeometry(RIN + 0.95, 0.95, 12, 160), m.metal); lip.position.z = z; lip.scale.z = 0.5; group.add(lip); }
+    const W = patternMaxW(d);
+    const rows = Math.max(1, Math.min(6, d.options.layers));
+    const edges = d.options.halo;
+    const Ro = RIN + 1.95;
+    const circle = new THREE.CatmullRomCurve3(Array.from({ length: 160 }, (_, i) => { const a = (i / 160) * Math.PI * 2; return v3(Math.sin(a) * Ro, Math.cos(a) * Ro, 0); }), true);
+    const zs = edges
+      ? Array.from({ length: rows }, (_, r) => { const half = Math.ceil(rows / 2); const k = r < half ? r : r - half; const s = r < half ? -1 : 1; return s * (bw / 2 - W / 2 - 0.35 - k * (W + 0.25)); })
+      : Array.from({ length: rows }, (_, r) => (r - (rows - 1) / 2) * Math.min(W + 0.25, (bw - W) / Math.max(1, rows - 1)));
+    for (const z of zs) {
+      group.add(patternRun(d, m, circle, 0, 1, { closed: true, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.02).add(v3(0, 0, z)), gap: 0.2, maxW: W }).group);
+      if (edges) { const rim = new THREE.Mesh(new THREE.TorusGeometry(Ro + 0.15, 0.18, 6, 200), m.metal); rim.position.z = z + Math.sign(z) * (W / 2 + 0.15); group.add(rim); }
+    }
+    return { group, focus: v3(0, Ro, 0), focusSize: Math.max(18, bw * 2.4), upright: true };
+  }
   if (d.center.none) {
     // a plain band
     const group = new THREE.Group();
@@ -892,6 +919,7 @@ function ringPiece(d: Design): Piece {
     group.add(partner);
     // a bridge under both stones into the shank
     group.add(tube(mm, [v3(-(a + 0.4), gy0 - 1.6, 0), v3(0, gy0 - 2.4, 0), v3(b + 0.4 + e.dx, gy0 - 1.6, e.dz)], 0.6));
+    applyProfile(group, d, gy0);
     const top = new THREE.Box3().setFromObject(group).max.y;
     return { group, focus: v3(0, top - d.center.domeMm - 1, 0), focusSize: 30, upright: true };
   }
@@ -925,8 +953,41 @@ function ringPiece(d: Design): Piece {
     });
     at(backingPlate(m, outlineFn("round", 1, 1), (R + dia + 1) * 2, -0.9, 0.8));
   }
+  applyProfile(group, d, gy);
   const top = new THREE.Box3().setFromObject(group).max.y;
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
+}
+
+/**
+ * How the design meets the band. raised: up on its setting (as built). low: brought down close to the band.
+ * set-in: the band widens and deepens across the top and the design is lowered into it, girdle level with the metal.
+ */
+function applyProfile(group: THREE.Group, d: Design, gy: number) {
+  const prof = d.band.profile;
+  if (prof === "raised") return;
+  const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
+  if (!shank) return;
+  const RIN = ringInnerDiameter(d.ringSize) / 2;
+  const rest = group.children.filter((o) => o !== shank);
+  const box = new THREE.Box3();
+  group.updateWorldMatrix(true, true);
+  rest.forEach((o) => box.expandByObject(o));
+  if (box.isEmpty()) return;
+  const hx = Math.max(Math.abs(box.min.x), Math.abs(box.max.x)), hz = Math.max(Math.abs(box.min.z), Math.abs(box.max.z));
+  const c = d.center;
+  const belly = c.cut === "cabochon" ? Math.min(c.widthMm * 0.14, 2) : c.cut === "faceted" ? c.widthMm * 0.43 : Math.max(0.4, c.domeMm);
+  let drop: number;
+  if (prof === "set-in") {
+    // the girdle ends up just above the band's top surface; the pavilion may open into the finger hole (an open gallery)
+    const target = RIN + Math.max(2.9, belly * 0.75 + 0.6);
+    const topT = target - 0.3 - RIN;
+    shank.geometry.dispose();
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 });
+    drop = gy - target;
+  } else {
+    drop = Math.max(0, gy - (RIN + 2.3 + belly * 0.25) + Math.min(1.2, d.setting.height * 4));
+  }
+  if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
 }
 
 /** one stud: the main stone (with optional halo) and any extra stones stacked below it, joined underneath */
@@ -1474,6 +1535,21 @@ function necklacePiece(d: Design, m: Mats): Piece {
       focus = hang(pend, fp, 2.4 + c.lengthMm / 2 + extra);
       break;
     }
+    case "three-stone-pendant": {
+      group.add(chainAlong(curve, o.chain, m));
+      const side = d.sides.kind === "none" ? 0.72 : Math.min(0.95, Math.max(0.4, Math.cbrt(d.sides.sizeCt / Math.max(0.05, (c.carat ?? 1)))));
+      const R = c.widthMm / 2, r = R * side;
+      const items: [number, number, number][] = [[-(R + r + 0.2), -0.7, side], [0, 0, 1], [R + r + 0.2, -0.7, side]];
+      for (const [x, dz, k] of items) {
+        const s = setStone(c, d.setting.style, m, k);
+        s.position.copy(fp).add(v3(x, 0.3, 2.2 + R + dz));
+        group.add(s);
+      }
+      // the chain runs through little loops behind the outer stones
+      for (const sx of [-1, 1]) group.add(jumpRing(m, 0.6, 0.15, fp.clone().add(v3(sx * (R + r + 0.2) * 1.3, -0.4, 2.2 + R - 0.7 - r))));
+      focus = fp.clone().add(v3(0, 0, 2.2 + R)); focusSize = 30;
+      break;
+    }
     case "drop-pendant": {
       group.add(chainAlong(curve, o.chain, m));
       const bail = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.5, 12, 32, Math.PI * 1.2), m.metal);
@@ -1484,6 +1560,16 @@ function necklacePiece(d: Design, m: Mats): Piece {
       group.add(stack.group);
       focus = fp.clone().add(v3(0, 0, 2.4 + (stack.bottom - stack.top) / 2));
       focusSize = Math.max(24, (stack.bottom - stack.top) * 1.4);
+      break;
+    }
+    case "line": {
+      // a full line of stones round the neck in your own pattern of shapes and sizes
+      const run = patternRun(d, m, curve, front - 0.47, front + 0.47, { gap: 0.35 });
+      group.add(run.group);
+      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.4, run.maxW * 0.06), 8, true), m.metal);
+      rail.position.y = -run.maxW * 0.4;
+      group.add(rail);
+      focusSize = 60;
       break;
     }
     case "by-the-yard": {

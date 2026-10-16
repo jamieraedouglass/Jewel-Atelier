@@ -88,7 +88,8 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     navratna: { label: "Navratna", blurb: "Ruby centre ringed by the eight other planetary gems.", uses: [...CORE, "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "ruby", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#b3062a", clarity: 0.45, label: "Ruby" } } },
     "polki-cocktail": { label: "Polki cocktail", blurb: "Big polki centre, double halo with a pearl fringe.", uses: [...CORE, "accents", "fringe", "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "diamond", cut: "polki", shape: "cushion", lengthMm: 14, widthMm: 12, domeMm: 0.8, color: "#f4f6fb", clarity: 0.9, label: "Polki diamond" }, fringe: { enabled: true } } },
     eternity: { label: "Eternity band", blurb: "Stones all the way round.", uses: ["accents", "band", "ringSize"], defaults: { accents: { sizeCt: 0.1 } } },
-    deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band", "ringSize"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" } } },
+    "wide-band": { label: "Wide band with diamond rows", blurb: "A broad band with rows of stones all the way round: on the edges with gold between, or across the whole band.", uses: ["accents", "band", "ringSize", "layers", "halo"], defaults: { band: { widthMm: 7 }, options: { layers: 2, halo: true }, accents: { sizeCt: 0.06 } } },
+    deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band", "ringSize"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" }, band: { profile: "low" } } },
     swirl: { label: "Swirl / bypass", blurb: "Pavé ribbons sweeping around the centre stone.", uses: [...CORE, "accents", "count", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 3 }, accents: { sizeCt: 0.012 } } },
     "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band", "ringSize"] },
   },
@@ -110,6 +111,8 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   necklace: {
     pendant: { label: "Pendant", blurb: "One stone on a chain.", uses: [...CORE, "halo", "accents", "length", "chain"] },
     "drop-pendant": { label: "Drop pendant (build your own)", blurb: "Stack stones, clusters, frames, bows and fringes into a pendant.", uses: ["drop", "length", "chain"] },
+    "three-stone-pendant": { label: "Three-stone pendant", blurb: "Three stones in a gentle arc on a fine chain, the centre one largest.", uses: [...CORE, "length", "chain", "sides"], defaults: { options: { chain: "fine", lengthIn: 18 }, center: { gem: "diamond", cut: "faceted", shape: "round", lengthMm: 6.5, widthMm: 6.5, domeMm: 1, color: "#f4f6fb", clarity: 0.95, label: "Round brilliant" } } },
+    line: { label: "Line necklace (pattern)", blurb: "Stones all the way round in your own pattern: big rounds, small rounds, baguettes, each its own size.", uses: ["accents", "accentShapes", "length"], defaults: { options: { lengthIn: 16 }, accents: { shapes: ["round", "round", "baguette", "round"], sizes: [2.2, 1, 1.2, 1], turns: [0, 0, 0, 0], sizeCt: 0.15 } } },
     riviera: { label: "Riviera", blurb: "A continuous line of graduated stones.", uses: [...CORE, "length", "count"], defaults: { options: { count: 33, lengthIn: 16 } } },
     station: { label: "Station / by the yard", blurb: "Stones spaced along a fine chain.", uses: [...CORE, "length", "chain", "count"], defaults: { options: { count: 7, chain: "fine" } } },
     lariat: { label: "Lariat / Y", blurb: "A loop with a long drop ending in the stone.", uses: [...CORE, "length", "chain", "accents"] },
@@ -485,6 +488,8 @@ export const DesignSchema = z
       turns: z.array(z.number().min(-180).max(180)).max(12).default([]),
       /** a pair of stones side by side at this spot in the pattern (e.g. twin baguettes between rounds) */
       twins: z.array(z.boolean()).max(12).default([]),
+      /** size of each stone in the pattern, as a multiple of the base size (e.g. a big round, a small round, a baguette) */
+      sizes: z.array(z.number().min(0.2).max(4)).max(12).default([]),
     }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),
@@ -495,9 +500,19 @@ export const DesignSchema = z
     purity: z.object({ karat: z.union([z.literal(14), z.literal(18), z.literal(22), z.literal(24)]).default(18) }).default({}),
     setting: z.object({ style: z.enum(SETTINGS).default("double-claw"), height: z.number().min(0).max(1).default(0.1) }).default({}),
     /* ring */
-    sides: z.object({ kind: z.enum(SIDE_KINDS).default("half-moon"), sizeCt: z.number().min(0.05).max(3).default(0.5) }).default({}),
+    sides: z.object({
+      kind: z.enum(SIDE_KINDS).default("half-moon"), sizeCt: z.number().min(0.05).max(3).default(0.5),
+      /** sized to the centre stone and set tight against it, so they wrap it (rather than a separate carat size) */
+      hug: z.boolean().default(true),
+      /** how much of the centre stone's side they cover when hugging */
+      hugFrac: z.number().min(0.4).max(1).default(0.78),
+    }).default({}),
     gallery: z.object({ roseCut: z.boolean().default(true) }).default({}),
-    band: z.object({ widthMm: z.number().min(1.5).max(8).default(2.3), finish: z.enum(BAND_FINISHES).default("polished") }).default({}),
+    band: z.object({
+      widthMm: z.number().min(1.5).max(8).default(2.3), finish: z.enum(BAND_FINISHES).default("polished"),
+      /** the design sits up on top of the band, low on it, or set into a band that widens to hold it */
+      profile: z.enum(["raised", "low", "set-in"]).default("raised"),
+    }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     /** more stones in each stud (toi-et-moi, clusters), stacked below the main stone */
     extraStones: z.array(ExtraStoneSchema).max(6).default([]),
@@ -722,5 +737,10 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Rose-cut diamonds by the yard", type: "necklace", style: "by-the-yard", patch: { metal: "yellow-gold" } },
   { name: "Gold X-link collar", type: "necklace", style: "gold-collar", patch: { metal: "yellow-gold", options: { linkStyle: "x" } } },
   { name: "Ruby chevron collar", type: "necklace", style: "gold-collar", patch: { metal: "yellow-gold", options: { linkStyle: "chevron" }, accents: { gem: "ruby", color: GEM_LOOK.ruby.color, sizeCt: 0.015 } } },
+  { name: "Pink oval with hugging half-moons", type: "ring", style: "three-stone", patch: { metal: "platinum", center: { gem: "diamond", cut: "faceted", shape: "oval", lengthMm: 13, widthMm: 9.5, domeMm: 1.6, color: "#f2a6bf", clarity: 0.9, label: "Pink oval diamond", carat: null, rotation: 0 }, sides: { kind: "half-moon", hug: true, hugFrac: 0.8 } } },
+  { name: "Round and baguette line necklace", type: "necklace", style: "line", patch: { metal: "platinum" } },
+  { name: "Round and baguette line bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["round", "round", "baguette", "round"], sizes: [2, 1, 1.2, 1], turns: [0, 0, 0, 0], sizeCt: 0.2 } } },
+  { name: "Gold band with diamond edges", type: "ring", style: "wide-band", patch: { metal: "white-gold", band: { widthMm: 7.5 }, options: { layers: 2, halo: true } } },
+  { name: "Three-diamond pendant", type: "necklace", style: "three-stone-pendant", patch: { metal: "white-gold" } },
   { name: "Gold flower posy studs", type: "earrings", style: "flowers", patch: { metal: "yellow-gold", purity: { karat: 22 } } },
 ];

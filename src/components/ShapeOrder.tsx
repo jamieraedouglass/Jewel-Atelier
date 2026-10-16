@@ -8,8 +8,10 @@ type Props = {
   turns: number[];
   /** optional: a pair of stones side by side at a spot (twin baguettes) */
   twins?: boolean[];
+  /** optional: each stone's size, as a multiple of the base size */
+  sizes?: number[];
   max: number;
-  onChange: (shapes: Shape[], turns: number[], twins?: boolean[]) => void;
+  onChange: (shapes: Shape[], turns: number[], twins?: boolean[], sizes?: number[]) => void;
   /** show "+ shape" as chips (true) or a compact select */
   chips?: boolean;
 };
@@ -30,14 +32,21 @@ function Arrow({ deg }: { deg: number }) {
  * The repeating order of stone shapes, each with its own direction:
  * tap the arrow to turn that stone (0°, 45°, 90°…), tap × to remove it.
  */
-export default function ShapeOrder({ shapes, turns, twins, max, onChange, chips = false }: Props) {
+const SIZE_STEPS = [1, 1.5, 2, 2.5, 3, 0.5, 0.75];
+const nextSize = (v: number) => SIZE_STEPS[(SIZE_STEPS.indexOf(SIZE_STEPS.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a))) + 1) % SIZE_STEPS.length];
+
+export default function ShapeOrder({ shapes, turns, twins, sizes, max, onChange, chips = false }: Props) {
   const turnAt = (i: number) => turns[i] ?? 0;
   const twinAt = (i: number) => !!twins?.[i];
   const allTwins = () => shapes.map((_, j) => twinAt(j));
-  const setTurn = (i: number, t: number) => onChange(shapes, shapes.map((_, j) => (j === i ? t : turnAt(j))), twins && allTwins());
-  const setTwin = (i: number) => onChange(shapes, shapes.map((_, j) => turnAt(j)), allTwins().map((v, j) => (j === i ? !v : v)));
-  const remove = (i: number) => onChange(shapes.filter((_, j) => j !== i), shapes.map((_, j) => turnAt(j)).filter((_, j) => j !== i), twins && allTwins().filter((_, j) => j !== i));
-  const add = (s: Shape) => onChange([...shapes, s], [...shapes.map((_, j) => turnAt(j)), 0], twins && [...allTwins(), false]);
+  const sizeAt = (i: number) => sizes?.[i] ?? 1;
+  const allSizes = () => shapes.map((_, j) => sizeAt(j));
+  const turnsAll = () => shapes.map((_, j) => turnAt(j));
+  const setTurn = (i: number, t: number) => onChange(shapes, shapes.map((_, j) => (j === i ? t : turnAt(j))), twins && allTwins(), sizes && allSizes());
+  const setTwin = (i: number) => onChange(shapes, turnsAll(), allTwins().map((v, j) => (j === i ? !v : v)), sizes && allSizes());
+  const setSize = (i: number) => onChange(shapes, turnsAll(), twins && allTwins(), allSizes().map((v, j) => (j === i ? nextSize(v) : v)));
+  const remove = (i: number) => onChange(shapes.filter((_, j) => j !== i), turnsAll().filter((_, j) => j !== i), twins && allTwins().filter((_, j) => j !== i), sizes && allSizes().filter((_, j) => j !== i));
+  const add = (s: Shape) => onChange([...shapes, s], [...turnsAll(), 0], twins && [...allTwins(), false], sizes && [...allSizes(), 1]);
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <div className="chips" role="group" aria-label="Shape order">
@@ -46,6 +55,9 @@ export default function ShapeOrder({ shapes, turns, twins, max, onChange, chips 
             {label(s)}
             <button type="button" className="chip" style={{ padding: "2px 8px" }} title="Turn this stone" aria-label={`Turn ${label(s)} (now ${turnAt(i)}°)`}
               onClick={() => setTurn(i, next(turnAt(i)))}><Arrow deg={turnAt(i)} /> {turnAt(i)}°</button>
+            {sizes && (
+              <button type="button" className="chip" style={{ padding: "2px 8px", textTransform: "none" }} title="This stone's size (tap to change)" onClick={() => setSize(i)}>{sizeAt(i) === 1 ? "1×" : `${sizeAt(i)}×`}</button>
+            )}
             {twins && (
               <button type="button" className="chip" style={{ padding: "2px 8px" }} aria-pressed={twinAt(i)} title="Two side by side" onClick={() => setTwin(i)}>×2</button>
             )}
@@ -64,7 +76,7 @@ export default function ShapeOrder({ shapes, turns, twins, max, onChange, chips 
           {SHAPES.map((s) => <button key={s} type="button" className="chip" disabled={shapes.length >= max} onClick={() => add(s)}>+ {label(s)}</button>)}
         </div>
       )}
-      <span className="small muted">Tap an arrow to turn just that stone, so some point one way and others another{twins ? "; ×2 sets two side by side there" : ""}.</span>
+      <span className="small muted">Tap an arrow to turn just that stone, so some point one way and others another{sizes ? "; the 1× button sets that stone's size" : ""}{twins ? "; ×2 sets two side by side there" : ""}.</span>
     </div>
   );
 }

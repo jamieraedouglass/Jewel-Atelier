@@ -202,17 +202,18 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {!BEAD_GEMS.has(d.accents.gem) && (
             <>
               <span className="small muted">Pattern, repeated along every line of these stones. Add the same shape as often as you like (up to 12 stones per repeat).</span>
-              <ShapeOrder chips shapes={d.accents.shapes} turns={d.accents.turns} twins={d.accents.twins} max={12} onChange={(shapes, turns, twins) => onChange({ accents: { shapes, turns, twins: twins ?? [] } })} />
+              <ShapeOrder chips shapes={d.accents.shapes} turns={d.accents.turns} twins={d.accents.twins} sizes={d.accents.sizes} max={12} onChange={(shapes, turns, twins, sizes) => onChange({ accents: { shapes, turns, twins: twins ?? [], sizes: sizes ?? [] } } as DesignPatch)} />
               <div className="chips" role="group" aria-label="Quick patterns">
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"], turns: [] } })}>Oval–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"], turns: [] } })}>Emerald–round–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"], turns: [] } })}>Pear–round</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [] } })}>3 rounds + marquise</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"], turns: [], sizes: [] } } as DesignPatch)}>Oval–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"], turns: [], sizes: [] } } as DesignPatch)}>Emerald–round–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "round"], turns: [], sizes: [] } } as DesignPatch)}>Pear–round</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [], sizes: [] } } as DesignPatch)}>3 rounds + marquise</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [0, 0, 0, 90] } })}>3 rounds + marquise turned across</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "pear"], turns: [0, 180] } })}>Pears, alternating up and down</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"], turns: [] } })}>All hearts</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], twins: [] } })}>Old-mine round + baguette across</button>
-                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true] } })}>Round + twin baguettes</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "pear"], turns: [0, 180], sizes: [] } } as DesignPatch)}>Pears, alternating up and down</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "baguette", "round"], turns: [0, 0, 0, 0], sizes: [2, 1, 1.2, 1], twins: [] } } as DesignPatch)}>Big round, small round, baguette</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"], turns: [], sizes: [] } } as DesignPatch)}>All hearts</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], twins: [], sizes: [] } } as DesignPatch)}>Old-mine round + baguette across</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true], sizes: [] } } as DesignPatch)}>Round + twin baguettes</button>
               </div>
               <span className="small muted">Stone direction</span>
               <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}
@@ -262,7 +263,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {has("setting") && d.type === "ring" && (
             <Range id="height" label="Height" value={d.setting.height} min={0} max={1} step={0.05} format={(n) => (n < 0.2 ? "Low, seated in shank" : n < 0.6 ? "Medium" : "Tall cathedral")} onChange={(height) => onChange({ setting: { height } })} />
           )}
-          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{d.style === "tennis" ? "A halo round every stone" : "Halo of accent stones"}</Toggle>}
+          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{d.style === "tennis" ? "A halo round every stone" : d.style === "wide-band" ? "Rows on the edges, gold between" : "Halo of accent stones"}</Toggle>}
           {has("accentTop") && <Toggle id="acc-top" checked={o.accentTop} onChange={(accentTop) => setOpt({ accentTop })}>Accent stone at the top</Toggle>}
           {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>{d.style === "flowers" ? "A diamond in each flower" : d.style === "open-bangle" ? "A channel of stones along the bangle" : "Set with stones"}</Toggle>}
           {has("pave") && o.pave && (d.style === "hoop" || d.style === "huggie") && (
@@ -287,7 +288,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {has("chain") && <Chips name="Chain" options={CHAIN_STYLES} value={o.chain} onPick={(chain) => setOpt({ chain })} />}
           {has("count") && <Range id="count" label={d.style === "swirl" ? "Ribbons" : d.style === "flowers" ? "Flowers" : d.style === "tassel" ? "Strands" : d.style === "payal" ? "Bells" : "Stones"} value={o.count} min={1} max={d.style === "swirl" ? 5 : d.style === "flowers" ? 12 : 80} step={1} onChange={(count) => setOpt({ count })} />}
           {has("links") && <Chips name="Links" options={["x", "chevron"] as const} value={o.linkStyle} fmt={(v) => (v === "x" ? "X links with pavé" : "Chevrons with stone rows")} onPick={(linkStyle) => setOpt({ linkStyle })} />}
-          {has("layers") && <Range id="layers" label={d.style === "tennis" ? "Rows" : d.style === "by-the-yard" ? "Times round the neck" : "Rows / strands"} value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
+          {has("layers") && <Range id="layers" label={d.style === "tennis" || d.style === "wide-band" ? "Rows" : d.style === "by-the-yard" ? "Times round the neck" : "Rows / strands"} value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
           {has("wrist") && (solidBracelet
             ? <><span className="small muted">Bangle size (Indian)</span><Chips name="Bangle size" options={BANGLE_SIZES} value={o.bangleSize} fmt={(s) => s} onPick={(bangleSize) => setOpt({ bangleSize })} /></>
             : <Range id="wrist" label="Wrist" value={o.wristCm} min={13} max={24} step={0.5} format={(n) => `${n} cm`} onChange={(wristCm) => setOpt({ wristCm })} />)}
@@ -298,7 +299,13 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
         <section id="sec-sides" style={{ display: "grid", gap: 12 }}>
           <h3>Side stones</h3>
           <Chips name="Side stones" options={SIDE_KINDS} value={d.sides.kind} onPick={(kind) => onChange({ sides: { kind } })} />
-          {d.sides.kind !== "none" && <Range id="side-ct" label="Each" value={d.sides.sizeCt} min={0.1} max={1.5} step={0.05} format={(n) => `${n.toFixed(2)} ct`} onChange={(sizeCt) => onChange({ sides: { sizeCt } })} />}
+          {d.sides.kind !== "none" && d.type === "ring" && (
+            <Toggle id="side-hug" checked={d.sides.hug} onChange={(hug) => onChange({ sides: { hug } })}>Hug the centre stone (sized to it, set tight against it)</Toggle>
+          )}
+          {d.sides.kind !== "none" && d.sides.hug && d.type === "ring" && (
+            <Range id="side-hug-frac" label="How far they wrap" value={d.sides.hugFrac} min={0.4} max={1} step={0.02} format={(n) => `${Math.round(n * 100)}% of the centre's length`} onChange={(hugFrac) => onChange({ sides: { hugFrac } })} />
+          )}
+          {d.sides.kind !== "none" && (!d.sides.hug || d.type !== "ring") && <Range id="side-ct" label="Each" value={d.sides.sizeCt} min={0.1} max={1.5} step={0.05} format={(n) => `${n.toFixed(2)} ct`} onChange={(sizeCt) => onChange({ sides: { sizeCt } })} />}
           <Toggle id="rose" checked={d.gallery.roseCut} onChange={(roseCut) => onChange({ gallery: { roseCut } })}>Rose-cut diamonds on the gallery</Toggle>
         </section>
       )}
@@ -306,6 +313,9 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
       {has("band") && (
         <section style={{ display: "grid", gap: 12 }}>
           <h3>Band</h3>
+          <span className="small muted">How the design meets the band</span>
+          <Chips name="Profile" options={["raised", "low", "set-in"] as const} value={d.band.profile}
+            fmt={(v) => (v === "raised" ? "Up on top of the band" : v === "low" ? "Low on the band" : "Set into the band")} onPick={(profile) => onChange({ band: { profile } })} />
           <Chips name="Band finish" options={BAND_FINISHES} value={d.band.finish} onPick={(finish) => onChange({ band: { finish } })} />
           <div className="row2">
             <Range id="bw" label="Width" value={d.band.widthMm} min={1.5} max={8} step={0.1} format={(n) => `${n} mm`} onChange={(widthMm) => onChange({ band: { widthMm } })} />

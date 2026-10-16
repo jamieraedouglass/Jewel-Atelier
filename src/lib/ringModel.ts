@@ -305,12 +305,19 @@ export function textureBump() {
   return t;
 }
 
-export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"]) {
+/**
+ * The band. By default it thickens a little under the head. For designs set into the band, `top` widens and deepens it
+ * across the top so the head's stones sit in the metal: topW = width at the top, topT = depth at the top, spread = how far
+ * round (mm either side of the top) the widening reaches.
+ */
+export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number }) {
   const segs = 220, prof = 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  const ang = top ? Math.asin(Math.min(0.97, top.spread / (rin + 2))) : 0;
+  const k = top ? Math.max(1.2, Math.log(0.5) / Math.log(Math.cos(ang))) : 3;
   for (let i = 0; i <= segs; i++) {
     const th = (i / segs) * Math.PI * 2;
-    const top = Math.pow(Math.max(0, Math.cos(th)), 3);
-    const t = 1.75 + 0.55 * top, w = width + 1.6 * top;
+    const tp = Math.pow(Math.max(0, Math.cos(th)), k);
+    const t = 1.75 + (top ? top.topT - 1.75 : 0.55) * tp, w = width + (top ? Math.max(1.6, top.topW - width) : 1.6) * tp;
     const dx = Math.sin(th), dy = Math.cos(th);
     for (let j = 0; j <= prof; j++) {
       const p = (j / prof) * Math.PI * 2, c = Math.cos(p), sn = Math.sin(p);
@@ -361,7 +368,9 @@ export function buildRing(d: Design): THREE.Group {
 
   /* band */
   const RIN = ringInnerDiameter(d.ringSize) / 2;
-  root.add(new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish), bandMetal));
+  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish), bandMetal);
+  shankMesh.userData.shank = true;
+  root.add(shankMesh);
   const SHANK_TOP = RIN + 2.3;
 
   /* centre stone (stone + claws live in `head`, which turns with the stone's angle) */
@@ -448,14 +457,19 @@ export function buildRing(d: Design): THREE.Group {
 
   /* side stones */
   if (d.sides.kind !== "none") {
-    const { L: sl, W: sw } = sideStoneDims(d.sides.kind, d.sides.sizeCt);
+    // hugging: the straight edge runs most of the centre stone's length, like a classic half-moon trilogy
+    const asp = { "half-moon": 0.46, trapezoid: 0.5, baguette: 2.6, round: 1, oval: 0.74, pear: 1.5, none: 1 }[d.sides.kind];
+    const hugL = L * d.sides.hugFrac;
+    const { L: sl, W: sw } = d.sides.hug
+      ? d.sides.kind === "baguette" ? { L: W * 0.75, W: W * 0.3 } : d.sides.kind === "round" ? { L: hugL * 0.8, W: hugL * 0.8 } : d.sides.kind === "pear" ? { L: hugL * 0.9, W: hugL * 0.6 } : { L: hugL, W: hugL * asp }
+      : sideStoneDims(d.sides.kind, d.sides.sizeCt);
     const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
     const shape = new THREE.Shape(sc(1.09));
     shape.holes.push(new THREE.Path(sc(0.965).reverse()));
-    const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
+    const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
-    const gap = W / 2 + (d.setting.style === "bezel" ? 0.62 : 0.18);
+    const gap = W / 2 + (d.setting.style === "bezel" ? 0.62 : d.sides.hug ? 0.05 : 0.18);
     for (const side of [1, -1]) {
       const grp = new THREE.Group();
       grp.userData.part = "sides";
