@@ -1,0 +1,289 @@
+import { applyGlow } from "../glow";
+import * as THREE from "three";
+import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
+import { cabochonGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
+import { metalTone, textureBump } from "./metal";
+import { bandSection, shankGeo } from "./band";
+
+/**
+ * Builds the whole ring as a plain three.js Group from a Design.
+ * Units are millimetres. The band lies in the XY plane, the finger runs along Z,
+ * the top of the ring is +Y. Stone "length" runs along Z (north–south on the hand).
+ */
+
+export function buildRing(d: Design): THREE.Group {
+  const root = new THREE.Group();
+  const tone = metalTone(d);
+  const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 });
+  const bandMetal = metal.clone();
+  if (d.band.finish === "textured") {
+    const bump = textureBump();
+    if (bump) { bandMetal.bumpMap = bump; bandMetal.bumpScale = 0.6; bandMetal.roughness = tone.roughness + 0.12; }
+  }
+  // Diamonds: a thin dielectric "glass" skin over mirrored facets. Real-time transmission can't do total
+  // internal reflection, so mirrored facets stand in for the hall-of-mirrors look of a step cut.
+  const diamond = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0, transparent: true, opacity: 0.22, specularIntensity: 1, envMapIntensity: 3, flatShading: true, depthWrite: false });
+  const mirror = new THREE.MeshPhysicalMaterial({ color: 0xf2f5ff, metalness: 1, roughness: 0, envMapIntensity: 4.5, emissive: 0xf2f5ff, emissiveIntensity: 0.12, flatShading: true, iridescence: 0.25, iridescenceIOR: 1.8, iridescenceThicknessRange: [250, 650] });
+  const roseMat = new THREE.MeshPhysicalMaterial({ color: 0xf4f6ff, metalness: 1, roughness: 0, envMapIntensity: 4, flatShading: true });
+
+  const tube = (pts: THREE.Vector3[], r: number, closed = false) =>
+    new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, closed), closed ? 200 : 32, r, 12, closed), metal);
+  const beads = (pts: THREE.Vector3[], r: number) => {
+    const im = new THREE.InstancedMesh(new THREE.SphereGeometry(r, 10, 8), metal, pts.length), M = new THREE.Matrix4();
+    pts.forEach((p, i) => { M.makeTranslation(p.x, p.y, p.z); im.setMatrixAt(i, M); });
+    return im;
+  };
+
+  /* band */
+  const RIN = ringInnerDiameter(d.ringSize) / 2;
+  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), bandMetal);
+  shankMesh.userData.shank = true;
+  root.add(shankMesh);
+  const SHANK_TOP = RIN + 2.3;
+
+  /* centre stone (stone + claws live in `head`, which turns with the stone's angle) */
+  const head = new THREE.Group();
+  root.add(head);
+  root.userData.head = head;
+  const c = d.center;
+  const L = c.lengthMm, W = c.widthMm, fn = outlineFn(c.shape, L, W);
+  const isCab = c.cut === "cabochon" || c.cut === "bead"; // smooth stones sit like a cabochon on a ring
+  const belly = isCab ? Math.min(W * 0.14, 2) : W * 0.43;
+  const GY = SHANK_TOP + (isCab ? belly * 0.56 : belly * 0.45) + d.setting.height * 4;
+  const color = new THREE.Color(c.color);
+  const colorless = c.gem === "diamond" || c.gem === "aquamarine";
+  // three.js treats hex colours as sRGB and lights in linear space, so a cabochon needs a little
+  // self-glow (emissive) to read with the velvety body colour you see in person.
+  const stoneMat = applyGlow(new THREE.MeshPhysicalMaterial({
+    color, metalness: 0,
+    roughness: isCab ? 0.22 : 0.01,
+    transmission: isCab ? c.clarity * 0.45 : 0.2 + c.clarity * 0.75,
+    thickness: W * 0.8,
+    ior: c.gem === "diamond" ? 2.42 : c.gem === "emerald" || c.gem === "aquamarine" ? 1.58 : 1.77,
+    attenuationColor: color, attenuationDistance: 2 + c.clarity * 8,
+    emissive: color, emissiveIntensity: isCab ? 0.22 : 0.08,
+    clearcoat: isCab ? 0.8 : 0, clearcoatRoughness: 0.04,
+    sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
+    envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
+  }), c.glow, isCab);
+  const stone = new THREE.Group();
+  stone.userData.part = "center";
+  if (isCab) stone.add(new THREE.Mesh(cabochonGeo(fn, c.domeMm, belly), stoneMat));
+  else {
+    const g = centerFacetedGeo(c.shape, fn, W, Math.max(0.6, c.domeMm));
+    const inner = mirror.clone(); inner.color = colorless ? new THREE.Color(0xf2f5ff) : color.clone().lerp(new THREE.Color(0xffffff), 0.15);
+    stone.add(new THREE.Mesh(g, inner), new THREE.Mesh(g, stoneMat));
+  }
+  stone.position.y = GY;
+  head.add(stone);
+
+  /* head */
+  const loop = (s: number, y: number, n = 96) => Array.from({ length: n }, (_, i) => { const [x, z] = fn(i / n); return new THREE.Vector3(x * s, y, z * s); });
+  const lowRailY = GY - Math.min(belly, 2) - 0.1;
+  if (d.band.profile !== "flush") head.add(tube(loop(0.7, lowRailY), 0.42, true));
+  if (d.band.profile === "flush") {
+    // centre stone level with the band: a fine collar at the girdle, no claws standing up; the band holds the rest
+    const shape = new THREE.Shape(loop(1.035, 0).map((p) => new THREE.Vector2(p.x, p.z)));
+    shape.holes.push(new THREE.Path(loop(0.985, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 64 });
+    g.rotateX(Math.PI / 2); g.translate(0, GY + 0.12, 0); g.computeVertexNormals();
+    head.add(new THREE.Mesh(g, metal));
+  } else if (d.setting.style === "bezel") {
+    const shape = new THREE.Shape(loop(1.09, 0).map((p) => new THREE.Vector2(p.x, p.z)));
+    shape.holes.push(new THREE.Path(loop(0.98, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 1.9, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.15, bevelSegments: 4, curveSegments: 64 });
+    g.rotateX(Math.PI / 2); g.translate(0, GY + 0.55, 0); g.computeVertexNormals();
+    head.add(new THREE.Mesh(g, metal));
+  } else {
+    head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
+    // side stones that hug the centre take over the claws on those sides (they share them), so nothing holds them apart
+    const hugging = d.sides.kind !== "none" && d.sides.hug && d.sides.follow !== "band";
+    const positions = clawDegrees(c.shape, L, W, d.setting.style).filter((deg) => {
+      if (!hugging) return true;
+      const a = ((deg % 360) + 360) % 360;
+      return Math.min(Math.abs(a - 0), Math.abs(a - 360), Math.abs(a - 180)) > 38;
+    });
+    const tipY = isCab ? Math.min(0.55, c.domeMm * 0.15) : Math.max(0.4, c.domeMm * 0.5);
+    const r = d.setting.style === "double-claw" ? 0.34 : 0.44;
+    positions.forEach((deg) => {
+      const [x, z] = fn(deg / 360);
+      const P = (s: number, y: number) => new THREE.Vector3(x * s, y, z * s);
+      const pad = 1 + (r + 0.05) / Math.max(1, Math.hypot(x, z));
+      head.add(tube([P(0.62, lowRailY - 0.7), P(0.7, lowRailY), P(0.97, GY - 0.55), P(pad + 0.01, GY + 0.05), P(pad - 0.01, GY + tipY)], r));
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), metal);
+      tip.scale.set(1, 0.8, 1); tip.position.copy(P(pad - 0.01, GY + tipY)); head.add(tip);
+    });
+  }
+  head.rotation.y = THREE.MathUtils.degToRad(d.center.rotation ?? 0);
+
+  /* posts into the shank (not needed when the stone is set level in the band) */
+  if (d.band.profile !== "flush") for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const [x, z] = fn(((sx > 0 ? (sz > 0 ? 45 : 315) : sz > 0 ? 135 : 225)) / 360);
+    root.add(tube([new THREE.Vector3(x * 0.49, lowRailY, z * 0.49), new THREE.Vector3(sx * 2.4, SHANK_TOP - 0.9, sz * 1.3), new THREE.Vector3(sx * 2.6, SHANK_TOP - 1.7, sz * 1.1)], 0.5));
+  }
+
+  /* a hidden halo: a row of small rose-cuts round the gallery, under the stone, facing out */
+  if (d.gallery.roseCut && d.gallery.under === "hidden-halo") {
+    const r = Math.max(0.4, Math.min(0.75, Math.min(L, W) * 0.08));
+    const y = GY - Math.min(belly, 2) * 0.55;
+    const ring = loop(0.86, y, 240);
+    let per = 0;
+    for (let i = 0; i < ring.length; i++) per += ring[i].distanceTo(ring[(i + 1) % ring.length]);
+    const n = Math.max(8, Math.floor(per / (r * 2 + 0.12)));
+    const rg = roseCutGeo(r, r * 0.55);
+    const hh = new THREE.Group();
+    hh.userData.part = "accents";
+    hh.userData.keep = true; // the gallery stones have their own on/off
+    for (let i = 0; i < n; i++) {
+      const [x, z] = fn(i / n), out = new THREE.Vector3(x, 0, z).normalize();
+      const s = new THREE.Mesh(rg, roseMat);
+      s.position.set(x * 0.86 + out.x * 0.25, y, z * 0.86 + out.z * 0.25);
+      s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), out.clone().add(new THREE.Vector3(0, 0.35, 0)).normalize());
+      hh.add(s);
+    }
+    hh.add(tube(loop(0.84, y - r * 0.9), 0.16, true));
+    head.add(hh);
+  }
+
+  /* rose-cut gallery: two stones peeking out at the ends */
+  if (d.gallery.roseCut && d.gallery.under !== "hidden-halo") {
+    const rg = roseCutGeo(0.68, 0.38);
+    for (const sz of [-1, 1]) {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(rg, roseMat));
+      const bez = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.13, 12, 48), metal); bez.rotation.x = Math.PI / 2; g.add(bez);
+      g.add(beads(Array.from({ length: 26 }, (_, i) => new THREE.Vector3(Math.cos((i / 26) * Math.PI * 2) * 0.94, 0.04, Math.sin((i / 26) * Math.PI * 2) * 0.94)), 0.075));
+      if (d.setting.style === "bezel") { g.position.set(0, GY - 0.4, sz * (L / 2 + 0.75)); g.rotation.x = (sz * Math.PI) / 2; }
+      else { g.position.set(0, GY - 1.0, sz * (L / 2) * 0.86); g.rotation.x = sz * (Math.PI / 2 - 0.45); }
+      root.add(g);
+    }
+  }
+
+  /* side stones */
+  if (d.sides.kind !== "none") {
+    // hugging: the straight edge runs most of the centre stone's length, like a classic half-moon trilogy
+    const asp = { "half-moon": 0.46, trapezoid: 0.5, baguette: 2.6, round: 1, oval: 0.74, pear: 1.5, none: 1 }[d.sides.kind];
+    const hugL = L * d.sides.hugFrac;
+    const { L: sl, W: sw } = d.sides.hug
+      ? d.sides.kind === "baguette" ? { L: W * 0.75, W: W * 0.3 } : d.sides.kind === "round" ? { L: hugL * 0.8, W: hugL * 0.8 } : d.sides.kind === "pear" ? { L: hugL * 0.9, W: hugL * 0.6 } : { L: hugL, W: hugL * asp }
+      : sideStoneDims(d.sides.kind, d.sides.sizeCt);
+    const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
+    const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
+    const hug = d.sides.hug;
+    // hugging stones get a fine rim, so the stones themselves meet the centre stone
+    const shape = new THREE.Shape(sc(hug ? 1.035 : 1.09));
+    shape.holes.push(new THREE.Path(sc(hug ? 0.985 : 0.965).reverse()));
+    const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
+    bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
+    // the centre stone's edge in the direction of the side stones (its outline at the widest point across the finger)
+    const edgeX = Math.max(...Array.from({ length: 180 }, (_, i) => fn(i / 180)[0]));
+    const gap = (hug ? edgeX : W / 2) + (d.setting.style === "bezel" ? 0.62 : hug ? 0.04 : 0.18);
+    if (hug) {
+      // fitted: curve the side stones' inner edge to follow the centre stone, the way a cutter matches a pair to a stone,
+      // so they sit flush all along the edge instead of touching at one point
+      const edgeAt = (z: number) => {
+        let best = 0;
+        for (let i = 0; i < 360; i++) { const [x, zz] = fn(i / 360); if (x > 0 && Math.abs(zz - z) < L / 90 + 0.05) best = Math.max(best, x); }
+        return best || edgeX * 0.6;
+      };
+      const table = Array.from({ length: 41 }, (_, i) => { const z = -sl / 2 + (i / 40) * sl; return { z, e: edgeAt(z) }; });
+      const eAt = (z: number) => { const t = Math.min(40, Math.max(0, ((z + sl / 2) / sl) * 40)); const i = Math.floor(t), f = t - i; const a = table[i], b = table[Math.min(40, i + 1)]; return a.e + (b.e - a.e) * f; };
+      const spanX = Math.max(...ol.map(([x]) => x)) || 1;
+      for (const geo of [g, bz]) {
+        const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i), z = pos.getZ(i);
+          const k = Math.max(0, 1 - x / spanX);
+          pos.setX(i, x + (eAt(z) - edgeX) * k);
+        }
+        pos.needsUpdate = true;
+        geo.computeVertexNormals();
+      }
+    }
+    if (d.sides.follow === "band") {
+      /* curving with the band: the band thickens and widens under the side stones, and each stone (with its rim) is bent
+         along the band's own curve and set into its surface, so it sits flush instead of standing up beside the centre */
+      const spanX = Math.max(...ol.map(([x]) => x)) || 1;
+      const isCabC = c.cut === "cabochon";
+      const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
+      // the band depth must match what the chosen profile will ask of it, so the curved stones stay on its surface
+      const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
+      // stones set into a band are cut a little shallower and sit in a closed metal seat: the band is made deep and wide
+      // enough at the shoulders that no stone shows below or beside the metal
+      const pavF = 0.85, pavD = pav * pavF; // nearly full depth: a shallow pavilion lets light leak out the back and the stone looks hazy
+      const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
+      shankMesh.geometry.dispose();
+      shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
+      shankMesh.userData.top = top;
+      const surf = (a: number) => RIN + bandSection(d.band.widthMm, a, top, d.band.shape, RIN).t;
+      const Rmid = surf(0);
+      const bend = (x: number, y: number, z: number) => {
+        const a = (gap + x) / Rmid;
+        const r = surf(a) - 0.12 + y;
+        return new THREE.Vector3(r * Math.sin(a), r * Math.cos(a), z);
+      };
+      const bent = (geo: THREE.BufferGeometry) => {
+        const out = geo.clone();
+        const pos = out.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) { const v = bend(pos.getX(i), pos.getY(i), pos.getZ(i)); pos.setXYZ(i, v.x, v.y, v.z); }
+        pos.needsUpdate = true; out.computeVertexNormals();
+        return out;
+      };
+      // shallower pavilion (everything below the girdle scaled up toward it)
+      const shallow = g.clone();
+      { const pos = shallow.getAttribute("position") as THREE.BufferAttribute; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y < 0) pos.setY(i, y * pavF); } pos.needsUpdate = true; shallow.computeVertexNormals(); }
+      // a closed seat: the rim carried down past the culet, so the band's metal wraps each stone
+      const seatShape = new THREE.Shape(sc(1.04));
+      seatShape.holes.push(new THREE.Path(sc(0.985).reverse()));
+      const seat = new THREE.ExtrudeGeometry(seatShape, { depth: pavD + 0.5, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 24 });
+      seat.rotateX(Math.PI / 2); seat.translate(0, 0.12, 0);
+      const floorShape = new THREE.Shape(sc(1.0));
+      const floor = new THREE.ExtrudeGeometry(floorShape, { depth: 0.4, bevelEnabled: false, curveSegments: 24 });
+      floor.rotateX(Math.PI / 2); floor.translate(0, -pavD - 0.05, 0);
+      const gb = bent(shallow), bzb = bent(seat), flb = bent(floor);
+      for (const side of [1, -1]) {
+        const grp = new THREE.Group();
+        grp.userData.part = "sides";
+        grp.userData.onBand = true;
+        // the seat walls get a soft satin, like a polished wall seen side-on, rather than mirroring the dark room
+        const seatMetal = (metal as THREE.MeshPhysicalMaterial).clone(); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
+        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, seatMetal), new THREE.Mesh(flb, seatMetal));
+        // small claws at the corners, on the band's curve
+        for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 10), metal);
+          tip.position.copy(bend(x, 0.22, zEnd * (sl / 2) * (x ? 1 : 0.94)));
+          grp.add(tip);
+        }
+        if (side < 0) grp.rotation.y = Math.PI;
+        root.add(grp);
+      }
+    } else for (const side of [1, -1]) {
+      const grp = new THREE.Group();
+      grp.userData.part = "sides";
+      grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond), new THREE.Mesh(bz, metal));
+      for (const z of [-1, 1].map((k) => k * Math.min(1.6, sl * 0.22))) {
+        grp.add(tube([new THREE.Vector3(cx + 0.3, -pav * 0.7, z), new THREE.Vector3(-0.3, -pav * 0.72, z * 0.9), new THREE.Vector3(-(gap - W * 0.35) + 0.3, lowRailY - GY, z * 0.8)], 0.42));
+      }
+      if (hug) {
+        // set tight against the centre, turning with it, girdles level; small shared claws at the two ends of the straight edge
+        grp.position.set(side * gap, GY - 0.02, 0);
+        grp.rotation.z = side * -0.03;
+        if (side < 0) grp.rotation.y = Math.PI;
+        for (const zEnd of [-1, 1]) {
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), metal);
+          tip.scale.set(1, 0.8, 1);
+          tip.position.set(side * (gap - 0.02), GY + 0.25, zEnd * (sl / 2) * 0.96);
+          head.add(tip, tube([new THREE.Vector3(side * (gap - 0.02), GY + 0.2, zEnd * (sl / 2) * 0.96), new THREE.Vector3(side * gap * 0.9, lowRailY, zEnd * (sl / 2) * 0.8)], 0.3));
+        }
+        head.add(grp);
+      } else {
+        grp.position.set(side * (gap + 0.13), GY - 0.05, 0);
+        grp.rotation.z = -0.08;
+        if (side < 0) grp.rotation.y = Math.PI;
+        root.add(grp);
+      }
+    }
+  }
+  root.userData.girdleY = GY;
+  return root;
+}

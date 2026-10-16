@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Cutout } from "./RingCanvas";
+import type { Cutout } from "./canvas/types";
 
 /** Things of known size people usually have to hand. */
 const REFS = [
@@ -29,6 +29,7 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
   // the worn picture is rebuilt for each curve (the loop flattens; stones keep their own shape)
   const [front, setFront] = useState<Cutout | null>(front0);
   const recutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (recutTimer.current) clearTimeout(recutTimer.current); }, []);
   const changeCurve = (v: number) => {
     setCurve(v);
     if (!recut) return;
@@ -38,6 +39,7 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
   const cutout = showFront && front ? front : ear === "right" && right ? right : whole;
   const squash = 1;
   const fileIn = useRef<HTMLInputElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const camIn = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [photo, setPhoto] = useState<{ url: string; w: number; h: number } | null>(null);
@@ -66,9 +68,11 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
 
   function load(f: File | undefined) {
     if (!f) return;
+    setLoadError(null);
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => { setPhoto({ url, w: img.naturalWidth, h: img.naturalHeight }); setPts([]); setPos({ x: img.naturalWidth / 2, y: img.naturalHeight / 2 }); };
+    img.onerror = () => { URL.revokeObjectURL(url); setLoadError("That photo couldn't be opened here. Try a JPEG or PNG."); };
     img.src = url;
   }
   const toPhoto = (e: React.PointerEvent): Pt => {
@@ -89,7 +93,7 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
     const c = document.createElement("canvas");
     c.width = photo.w; c.height = photo.h;
     const ctx = c.getContext("2d")!;
-    const [bg, fg] = await Promise.all([photo.url, cutout.url].map((u) => new Promise<HTMLImageElement>((res) => { const i = new Image(); i.onload = () => res(i); i.src = u; })));
+    const [bg, fg] = await Promise.all([photo.url, cutout.url].map((u) => new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; })));
     ctx.drawImage(bg, 0, 0);
     ctx.translate(pos.x, pos.y); ctx.rotate((angle * Math.PI) / 180); if (flip) ctx.scale(-1, 1);
     ctx.drawImage(fg, -pieceW / 2, -pieceH / 2, pieceW, pieceH);
@@ -97,7 +101,9 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
       if (!b) return;
       const file = new File([b], `${title.replace(/[^\w\- ]+/g, "") || "try-on"}-try-on.jpg`, { type: "image/jpeg" });
       if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], text: `${title}, true to size` }); return; } catch { /* fall through */ } }
-      const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = file.name; a.click();
+      const href = URL.createObjectURL(b);
+      const a = document.createElement("a"); a.href = href; a.download = file.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
     }, "image/jpeg", 0.92);
   }
 
@@ -118,7 +124,8 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
             <button type="button" className="btn primary" onClick={() => camIn.current?.click()}>Take a photo</button>
             <button type="button" className="btn" onClick={() => fileIn.current?.click()}>Choose a photo</button>
           </div>
-          <input ref={camIn} type="file" accept="image/*" capture="environment" hidden onChange={(e) => load(e.target.files?.[0])} />
+          <input ref={camIn} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { load(e.target.files?.[0]); e.target.value = ""; }} />
+          {loadError && <p className="error small" role="alert">{loadError}</p>}
           <input ref={fileIn} type="file" accept="image/*" hidden onChange={(e) => load(e.target.files?.[0])} />
           <p className="small muted" style={{ margin: 0 }}>Your photo stays on this device; it isn&apos;t uploaded.</p>
         </div>

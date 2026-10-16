@@ -1,17 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CenterStone } from "@/lib/design";
 import { compressImage, uid, videoFrames } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 
-type Analysis = { observations: string; cautions: string[]; confidence: number; sizeBasis: string };
+type Analysis = { observations: string; cautions: string[]; confidence: number; sizeBasis: string; pairing?: string | null };
 type Props = { userId: string | null; onApply: (stone: Partial<CenterStone>) => void };
 
 export default function StoneUploader({ userId, onApply }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [frames, setFrames] = useState<Blob[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const previewsRef = useRef(previews);
+  previewsRef.current = previews;
+  useEffect(() => () => previewsRef.current.forEach(URL.revokeObjectURL), []);
   const [carat, setCarat] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -112,6 +115,7 @@ export default function StoneUploader({ userId, onApply }: Props) {
             <span className="muted"> (size from {result.analysis.sizeBasis}) · confidence {Math.round(result.analysis.confidence * 100)}%</span>
           </p>
           <p className="small" style={{ margin: 0 }}>{result.analysis.observations}</p>
+          {result.analysis.pairing && <p className="small" style={{ margin: 0 }}><b style={{ fontWeight: 500 }}>For you:</b> {result.analysis.pairing}</p>}
           {result.analysis.cautions.length > 0 && (
             <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
               {result.analysis.cautions.map((c) => <li key={c}>{c}</li>)}

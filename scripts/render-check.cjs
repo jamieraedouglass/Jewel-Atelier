@@ -26,11 +26,19 @@ const OUT = path.join(process.cwd(), "render-check");
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${BASE}/design?type=ring`);
   await page.waitForTimeout(8000);
-  const names = await page.$$eval("#showcase option", (os) => os.map((o) => o.textContent).filter((t) => t && !t.startsWith("Choose")));
+  // the showcase is split into categories (Kothari's, Rings, …): walk each one, each piece once
+  const categories = await page.$$eval('[aria-label="Showcase category"] button', (bs) => bs.map((b) => b.textContent));
+  const pieces = [];
+  for (const cat of categories) {
+    await page.click(`[aria-label="Showcase category"] button:has-text("${cat}")`);
+    const names = await page.$$eval("#showcase option", (os) => os.map((o) => o.textContent).filter((t) => t && !t.startsWith("Choose")));
+    for (const name of names) if (!pieces.some((p) => p.name === name)) pieces.push({ cat, name });
+  }
   await page.click('button:has-text("Pause")');
   const results = [];
-  for (const [i, name] of names.entries()) {
+  for (const [i, { cat, name }] of pieces.entries()) {
     const before = errors.length;
+    await page.click(`[aria-label="Showcase category"] button:has-text("${cat}")`);
     await page.selectOption("#showcase", { label: name });
     await page.waitForTimeout(6500);
     const file = `${String(i).padStart(2, "0")}.png`;

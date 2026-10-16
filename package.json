@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "check:render": "node scripts/render-check.cjs"
+    "check:render": "node scripts/render-check.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && next lint && vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.16.11",
@@ -17,7 +20,8 @@
     "@types/three": "^0.169.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

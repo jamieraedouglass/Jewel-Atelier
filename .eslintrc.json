@@ -1,1 +1,7 @@
-{ "extends": "next/core-web-vitals" }
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    // the <img>s show blob: previews, canvas snapshots and small stored thumbnails; next/image adds nothing for those
+    "@next/next/no-img-element": "off"
+  }
+}

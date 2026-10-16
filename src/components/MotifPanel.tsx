@@ -43,7 +43,10 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
       const res = await fetch("/api/motif", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: brief || undefined, imagePath, pieceType: `${design.type} (${design.style})` }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't draw that.");
-      onChange({ motif: { ...json.motif, widthMm: mo.widthMm, thicknessMm: mo.thicknessMm }, ...(json.enamel ? { enamel: { enabled: true } } : {}) });
+      // keep the size the motif has now (it may have changed while Claude was drawing): send only the drawing
+      const { widthMm: _w, thicknessMm: _t, ...drawing } = json.motif;
+      void _w; void _t;
+      onChange({ motif: drawing, ...(json.enamel ? { enamel: { enabled: true } } : {}) });
       setNotes(json.notes || null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't draw that.");
@@ -118,10 +121,10 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
       {error && <p className="error">{error}</p>}
 
       <div className="row2">
-        <label className="field" htmlFor="motif-w"><span>Width · {mo.widthMm} mm</span>
+        <label className="field" htmlFor="motif-w"><span>Width · {+mo.widthMm.toFixed(1)} mm</span>
           <input id="motif-w" type="range" min={4} max={120} step={0.5} value={mo.widthMm} onChange={(e) => setMotif({ widthMm: Number(e.target.value) })} />
         </label>
-        <label className="field" htmlFor="motif-t"><span>Thickness · {mo.thicknessMm} mm</span>
+        <label className="field" htmlFor="motif-t"><span>Thickness · {+mo.thicknessMm.toFixed(2)} mm</span>
           <input id="motif-t" type="range" min={0.4} max={6} step={0.1} value={mo.thicknessMm} onChange={(e) => setMotif({ thicknessMm: Number(e.target.value) })} />
         </label>
       </div>
