@@ -4,8 +4,9 @@ import { requireUser } from "@/lib/supabase/server";
 import { loadStyleProfile, loadTaste } from "@/lib/style/load";
 import { normalizePrefs } from "@/lib/style/profile";
 import { freshRead } from "@/lib/style/context";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "Style profile · Atelier" };
+export const metadata = { title: `Style profile · ${BRAND.name}` };
 
 export default async function StylePage() {
   const { supabase, user } = await requireUser();

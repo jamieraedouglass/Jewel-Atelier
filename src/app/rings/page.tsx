@@ -7,8 +7,9 @@ import HoverSpin from "@/components/HoverSpin";
 import BackupButtons from "@/components/BackupButtons";
 import ThumbStudio from "@/components/gallery/ThumbStudio";
 import { STATUSES, STATUS_LABEL, normalizeStatus, type Status } from "@/lib/inventory";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "My designs · Atelier" };
+export const metadata = { title: `My designs · ${BRAND.name}` };
 
 export default async function MyRings({ searchParams }: { searchParams: { status?: string } }) {
   const { supabase, user } = await requireUser();

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODEL, proposeDesignTool } from "@/lib/claude";
-import { applyPatchLenient, normalizeDesign, type DesignPatch } from "@/lib/design";
+import { applyPatchLenient, designForAi, normalizeDesign, type DesignPatch } from "@/lib/design";
 import { normalizeChat } from "@/lib/chat";
 import { aiFailure } from "@/lib/apiError";
 import { BRAND } from "@/lib/brand";
@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: { token: string }
   const current = clampToAllowed(piece.base, normalizeDesign(body.data.design), bundle.allow);
   const apiMessages: Anthropic.MessageParam[] = messages.map((m, i) =>
     i === messages.length - 1 && m.role === "user"
-      ? { role: "user", content: `${m.content}\n\n<current_design>${JSON.stringify(current)}</current_design>` }
+      ? { role: "user", content: `${m.content}\n\n<current_design>${JSON.stringify(designForAi(current))}</current_design>` }
       : { role: m.role, content: m.content });
   try {
     const msg = await anthropic().messages.create({

@@ -1,0 +1,37 @@
+import { describeDesign } from "./describe";
+import type { Design } from "./schema";
+import { uses } from "./styles";
+
+/**
+ * A design as the AI should see it: only the parts this piece actually has, plus a summary in words. Every design keeps
+ * settings for parts its style doesn't use (a drop's pearl, a switched-off fringe); left in, the AI talks about stones
+ * that aren't there. The name is the jeweller's label and can still mention a stone the piece no longer has.
+ */
+export function designForAi(d: Design) {
+  const has = (...u: Parameters<typeof uses>[1][]) => u.some((x) => uses(d, x));
+  const out: Record<string, unknown> = {
+    inWords: describeDesign(d),
+    label: d.name,
+    type: d.type, style: d.style, metal: d.metal, purity: d.purity, options: d.options,
+  };
+  if (has("center") && !d.center.none) out.center = d.center;
+  if (has("setting")) out.setting = d.setting;
+  if (has("accents", "halo", "pave", "accentTop", "accentShapes") && d.accents.enabled) out.accents = d.accents;
+  if (has("fringe") && d.fringe.enabled) out.fringe = d.fringe;
+  if (has("enamel") && d.enamel.enabled) out.enamel = d.enamel;
+  if (has("sides")) out.sides = d.sides;
+  if (d.type === "ring") {
+    out.band = d.band;
+    out.ringSize = d.ringSize;
+    if (d.gallery.roseCut) out.gallery = d.gallery;
+  }
+  if (has("extraStones")) out.extraStones = d.extraStones;
+  if (has("drop")) out.drop = d.drop;
+  if (has("frames")) out.frames = d.frames;
+  if (has("motif")) out.motif = { ...d.motif, path: `[${d.motif.path.length} characters of SVG path]` };
+  if (d.type === "earrings") { out.rightEar = d.rightEar; out.mirrorPair = d.mirrorPair; }
+  for (const k of ["length", "wrist", "chain", "count", "layers", "hoop", "links", "hang"] as const) {
+    if (k in d && has(k)) out[k] = (d as unknown as Record<string, unknown>)[k];
+  }
+  return out;
+}

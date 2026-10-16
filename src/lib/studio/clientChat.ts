@@ -17,6 +17,8 @@ STRICT RULES
    Never invent or guess: stone or metal weights, certificates, where a real stone comes from or whether it is treated (grade names like
    "Burmese" or "Colombian" describe a colour, not a stone's origin), making or delivery times, availability or stock, warranties, policies,
    store details, or anything about ${studio} itself. If you don't know, say so plainly and suggest "Ask the jeweller".
+   Describe the piece only from <current_design> (its "inWords" summary and the parts listed). Its "label" is the jeweller's
+   name for it and may mention a stone or metal the client has since changed.
 3. Stay with these pieces and jewellery. Don't suggest changes the jeweller hasn't allowed; if they want one, suggest "Ask the jeweller".
 4. Never promise anything on the studio's behalf: that a change can be made, a date, a price.
 ${note.trim() ? `\nTHE JEWELLER'S NOTE TO THE CLIENT\n${note.trim()}\n` : ""}`;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, CHAT_SYSTEM, createMotifTool, MODEL, proposeDesignTool, storageImages, toMotif } from "@/lib/claude";
-import { MOTIF_STYLE, normalizeDesign } from "@/lib/design";
+import { MOTIF_STYLE, designForAi, normalizeDesign } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -57,9 +57,8 @@ export async function POST(req: Request) {
       if (i === 0) return { role: "user", content: [...context, { type: "text", text: m.content }] };
       return { role: m.role, content: m.content };
     }
-    // long motif paths are noise for the conversation; keep the rest of the design
-    const brief = { ...design, motif: design.style.startsWith("motif") ? { ...design.motif, path: `[${design.motif.path.length} characters of SVG path]` } : undefined };
-    const latest = `${m.content}\n\n<current_design>${JSON.stringify(brief)}</current_design>`;
+    // only the parts this piece has (settings for unused parts would read as stones that aren't there)
+    const latest = `${m.content}\n\n<current_design>${JSON.stringify(designForAi(design))}</current_design>`;
     return { role: "user", content: i === 0 ? [...context, { type: "text", text: latest }] : latest };
   });
 
