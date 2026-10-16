@@ -203,18 +203,18 @@ export const MotifSchema = z.object({
 export type Motif = z.infer<typeof MotifSchema>;
 
 export const CenterStoneSchema = z.object({
-  gem: z.enum(GEMS).default("sapphire"),
-  cut: z.enum(CUTS).default("cabochon"),
-  shape: z.enum(SHAPES).default("oval"),
+  gem: z.enum(GEMS).default("diamond"),
+  cut: z.enum(CUTS).default("faceted"),
+  shape: z.enum(SHAPES).default("round"),
   carat: z.number().min(0.01).max(200).nullable().default(null),
-  lengthMm: z.number().min(1).max(40).default(15),
-  widthMm: z.number().min(1).max(40).default(12),
+  lengthMm: z.number().min(1).max(40).default(6.5),
+  widthMm: z.number().min(1).max(40).default(6.5),
   /** height above the girdle: dome height for a cabochon, crown height for a faceted stone */
-  domeMm: z.number().min(0.2).max(15).default(5.4),
-  color: hex.default("#0c2394"),
+  domeMm: z.number().min(0.2).max(15).default(1),
+  color: hex.default("#f4f6fb"),
   /** 0 = opaque, 1 = water-clear */
-  clarity: z.number().min(0).max(1).default(0.3),
-  label: z.string().max(120).default("Royal blue sapphire cabochon"),
+  clarity: z.number().min(0).max(1).default(0.95),
+  label: z.string().max(120).default("Round diamond"),
   photoPath: z.string().nullable().default(null),
   /** no main stone at all: a plain band, plain hoops, a bare chain */
   none: z.boolean().default(false),
@@ -509,9 +509,18 @@ export const DesignSchema = z
     }).default({}),
     gallery: z.object({ roseCut: z.boolean().default(true) }).default({}),
     band: z.object({
-      widthMm: z.number().min(1.5).max(8).default(2.3), finish: z.enum(BAND_FINISHES).default("polished"),
+      widthMm: z.number().min(1.5).max(16).default(2.3), finish: z.enum(BAND_FINISHES).default("polished"),
       /** the design sits up on top of the band, low on it, or set into a band that widens to hold it */
       profile: z.enum(["raised", "low", "set-in"]).default("raised"),
+      /** classic (rounded, a little heavier under the head), flat (flat top, square edges), or cigar (wide, domed, even) */
+      shape: z.enum(["classic", "flat", "cigar"]).default("classic"),
+      /** stones running down the band from the head: none, the shoulders, half way, or all the way round */
+      pave: z.enum(["none", "shoulders", "half", "full"]).default("none"),
+      paveRows: z.number().int().min(1).max(4).default(1),
+      paveGem: z.enum(GEMS).default("diamond"),
+      paveColor: hex.default("#f4f6fb"),
+      paveShape: z.enum(SHAPES).default("round"),
+      paveMm: z.number().min(0.8).max(4).default(1.5),
     }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     /** more stones in each stud (toi-et-moi, clusters), stacked below the main stone */
@@ -712,7 +721,7 @@ const gem = (g: Gem, cut: CenterStone["cut"], shape: CenterStone["shape"], ct: n
 });
 
 export const SHOWCASE: { name: string; type: PieceType; style: string; patch: DesignPatch }[] = [
-  { name: "Burmese sapphire, half-moons", type: "ring", style: "three-stone", patch: { metal: "white-gold" } },
+  { name: "Burmese sapphire, half-moons", type: "ring", style: "three-stone", patch: { metal: "white-gold", center: { gem: "sapphire", cut: "cabochon", shape: "oval", carat: 15.24, lengthMm: 15, widthMm: 12, domeMm: 5.4, color: "#0c2394", clarity: 0.3, label: "Royal blue sapphire cabochon", rotation: 0, none: false }, sides: { kind: "half-moon", hug: true } } },
   { name: "Polki bridal jhumkas", type: "earrings", style: "jhumka", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: diamond("round", 1, "Polki diamond", "polki"), accents: { gem: "ruby", color: GEM_LOOK.ruby.color, sizeCt: 0.08 }, enamel: { enabled: true, color: "#16704c" } } },
   { name: "Emerald chandbalis", type: "earrings", style: "chandbali", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: gem("emerald", "cabochon", "pear", 3, "Emerald drop"), accents: { gem: "diamond", cut: "polki", color: "#f4f6fb", sizeCt: 0.06 } } },
   { name: "Kundan choker", type: "necklace", style: "kundan-choker", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: diamond("cushion", 1.5, "Polki diamond", "polki"), enamel: { enabled: true, color: "#9b1630" } } },

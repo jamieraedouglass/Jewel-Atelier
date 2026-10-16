@@ -129,7 +129,7 @@ const designPatchSchema = {
     setting: { type: "object", properties: { style: { type: "string", enum: [...SETTINGS] }, height: { type: "number", description: "rings only: 0 low … 1 tall" } } },
     sides: { type: "object", properties: { kind: { type: "string", enum: [...SIDE_KINDS] }, sizeCt: { type: "number" }, hug: { type: "boolean", description: "sized to the centre and set tight against it (classic half-moon trilogy)" }, hugFrac: { type: "number", description: "0.4–1, how much of the centre's length the sides cover" } } },
     gallery: { type: "object", properties: { roseCut: { type: "boolean" } } },
-    band: { type: "object", properties: { widthMm: { type: "number" }, finish: { type: "string", enum: [...BAND_FINISHES] }, profile: { type: "string", enum: ["raised", "low", "set-in"], description: "the design up on top of the band, low on it, or set into a band that widens to hold it (Deco plaques, cigar bands, flush settings)" } } },
+    band: { type: "object", properties: { widthMm: { type: "number" }, finish: { type: "string", enum: [...BAND_FINISHES] }, profile: { type: "string", enum: ["raised", "low", "set-in"], description: "the design up on top of the band, low on it, or set into a band that widens to hold it (Deco plaques, cigar bands, flush settings)" }, shape: { type: "string", enum: ["classic", "flat", "cigar"] }, pave: { type: "string", enum: ["none", "shoulders", "half", "full"], description: "stones running down the band" }, paveRows: { type: "integer" }, paveGem: gemProp, paveShape: { type: "string", enum: [...SHAPES] }, paveMm: { type: "number" } } },
     options: {
       type: "object",
       properties: {
@@ -254,3 +254,25 @@ How to choose:
 - Rings, necklaces, bracelets and Indian pieces: the matching type and style, centre stone, accents and options.
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.
 Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
+
+/**
+ * Ask for one tool call and return its input. Some models refuse a forced tool_choice, so this asks politely
+ * (tool_choice auto) and, if the reply is only text, asks once more to call the tool.
+ */
+export async function callTool(opts: { system: string; tool: Anthropic.Tool; content: Anthropic.MessageParam["content"]; maxTokens?: number }): Promise<unknown | null> {
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: opts.content }];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const msg = await anthropic().messages.create({
+      model: MODEL,
+      max_tokens: opts.maxTokens ?? 2000,
+      system: `${opts.system}\n\nReply by calling the ${opts.tool.name} tool exactly once.`,
+      tools: [opts.tool],
+      tool_choice: { type: "auto" },
+      messages,
+    });
+    const call = msg.content.find((b) => b.type === "tool_use");
+    if (call && "input" in call) return call.input;
+    messages.push({ role: "assistant", content: msg.content }, { role: "user", content: `Please call the ${opts.tool.name} tool now with your answer.` });
+  }
+  return null;
+}

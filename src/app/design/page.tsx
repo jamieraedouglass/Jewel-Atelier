@@ -8,5 +8,6 @@ export default async function NewDesignPage({ searchParams }: { searchParams: { 
   const { user } = await requireUser();
   const type = (TYPES as readonly string[]).includes(searchParams.type ?? "") ? (searchParams.type as PieceType) : null;
   const initial = type ? chooseStyle(defaultDesign(), type, searchParams.style) : defaultDesign();
-  return <Designer initial={initial} id={null} userId={user?.id ?? null} />;
+  // with no piece chosen yet, the designer opens on an empty stage and asks what to make
+  return <Designer initial={initial} id={null} userId={user?.id ?? null} blank={!type} />;
 }

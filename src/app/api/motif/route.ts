@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { anthropic, createMotifTool, MODEL, MOTIF_SYSTEM, storageImages, toMotif } from "@/lib/claude";
+import { createMotifTool, MOTIF_SYSTEM, storageImages, toMotif , callTool } from "@/lib/claude";
 import { requireUser } from "@/lib/supabase/server";
 import { spendAiCall } from "@/lib/usage";
 
@@ -31,16 +31,8 @@ export async function POST(req: Request) {
   ].filter(Boolean).join("\n");
 
   try {
-    const msg = await anthropic().messages.create({
-      model: MODEL,
-      max_tokens: 4000,
-      system: MOTIF_SYSTEM,
-      tools: [createMotifTool],
-      tool_choice: { type: "tool", name: createMotifTool.name },
-      messages: [{ role: "user", content: [...images, { type: "text", text }] }],
-    });
-    const call = msg.content.find((b) => b.type === "tool_use");
-    const result = call && "input" in call ? toMotif(call.input) : null;
+    const input = await callTool({ system: MOTIF_SYSTEM, tool: createMotifTool, content: [...images, { type: "text", text }], maxTokens: 4000 });
+    const result = input ? toMotif(input) : null;
     if (!result) return NextResponse.json({ error: "The drawing came back unusable. Try a simpler description or a clearer sketch." }, { status: 502 });
     return NextResponse.json(result);
   } catch (e) {

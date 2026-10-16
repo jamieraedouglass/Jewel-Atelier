@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { anthropic, MODEL, RECREATE_SYSTEM, recreateDesignTool, storageImages } from "@/lib/claude";
+import { callTool, RECREATE_SYSTEM, recreateDesignTool, storageImages } from "@/lib/claude";
 import { STYLES, TYPES } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { spendAiCall } from "@/lib/usage";
@@ -29,16 +29,8 @@ export async function POST(req: Request) {
   if (!images.length) return NextResponse.json({ error: "Couldn't read the uploaded photos." }, { status: 400 });
 
   try {
-    const msg = await anthropic().messages.create({
-      model: MODEL,
-      max_tokens: 4000,
-      system: RECREATE_SYSTEM,
-      tools: [recreateDesignTool],
-      tool_choice: { type: "tool", name: recreateDesignTool.name },
-      messages: [{ role: "user", content: [...images, { type: "text", text: [images.length > 1 ? `${images.length} photos of the same piece.` : "A photo of the piece.", notes ? `Notes: ${notes}` : null].filter(Boolean).join("\n") }] }],
-    });
-    const call = msg.content.find((b) => b.type === "tool_use");
-    const r = Result.safeParse(call && "input" in call ? call.input : null);
+    const input = await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 4000, content: [...images, { type: "text", text: [images.length > 1 ? `${images.length} photos of the same piece.` : "A photo of the piece.", notes ? `Notes: ${notes}` : null].filter(Boolean).join("\n") }] });
+    const r = Result.safeParse(input);
     if (!r.success) return NextResponse.json({ error: "Couldn't read the piece clearly. Try a closer, brighter photo." }, { status: 502 });
     const d = r.data;
     const style = STYLES[d.type][d.style] ? d.style : Object.keys(STYLES[d.type])[0];

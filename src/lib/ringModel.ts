@@ -310,18 +310,31 @@ export function textureBump() {
  * across the top so the head's stones sit in the metal: topW = width at the top, topT = depth at the top, spread = how far
  * round (mm either side of the top) the widening reaches.
  */
-export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number }) {
-  const segs = 220, prof = 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
+/** band thickness and width at angle th (0 = top), shared by the band and the stones set into it */
+export function bandSection(width: number, th: number, top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic", rin = 8.5) {
   const ang = top ? Math.asin(Math.min(0.97, top.spread / (rin + 2))) : 0;
   const k = top ? Math.max(1.2, Math.log(0.5) / Math.log(Math.cos(ang))) : 3;
+  const tp = Math.pow(Math.max(0, Math.cos(th)), k);
+  // flat and cigar bands stay even all the way round (a cigar band narrows a little at the back)
+  const swell = shape === "classic" || top ? 1 : 0;
+  const base = shape === "cigar" ? 1.9 : 1.75;
+  const t = base + (top ? top.topT - base : 0.55 * swell) * tp;
+  const back = shape === "cigar" ? 0.8 + 0.2 * (0.5 + 0.5 * Math.cos(th)) : 1;
+  const w = width * back + (top ? Math.max(1.6, top.topW - width) : 1.6 * swell) * tp;
+  return { t, w };
+}
+
+export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic") {
+  const segs = 220, prof = shape === "flat" ? 40 : 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  // cross-section roundness: flat bands are almost square in section, cigar bands domed on top
+  const eu = shape === "flat" ? 0.12 : shape === "cigar" ? 0.4 : 0.55, ev = shape === "flat" ? 0.12 : shape === "cigar" ? 0.3 : 0.55;
   for (let i = 0; i <= segs; i++) {
     const th = (i / segs) * Math.PI * 2;
-    const tp = Math.pow(Math.max(0, Math.cos(th)), k);
-    const t = 1.75 + (top ? top.topT - 1.75 : 0.55) * tp, w = width + (top ? Math.max(1.6, top.topW - width) : 1.6) * tp;
+    const { t, w } = bandSection(width, th, top, shape, rin);
     const dx = Math.sin(th), dy = Math.cos(th);
     for (let j = 0; j <= prof; j++) {
       const p = (j / prof) * Math.PI * 2, c = Math.cos(p), sn = Math.sin(p);
-      const u = Math.sign(c) * Math.pow(Math.abs(c), 0.55), v = Math.sign(sn) * Math.pow(Math.abs(sn), 0.55);
+      const u = Math.sign(c) * Math.pow(Math.abs(c), eu), v = Math.sign(sn) * Math.pow(Math.abs(sn), ev);
       let r = rin + t / 2 + (u * t) / 2;
       if (finish === "knife-edge" && u > 0) r = rin + t / 2 + ((u * t) / 2) * (1.25 - 0.75 * Math.pow(Math.abs(v), 1.3));
       pos.push(dx * r, dy * r, (v * w) / 2);
@@ -368,7 +381,7 @@ export function buildRing(d: Design): THREE.Group {
 
   /* band */
   const RIN = ringInnerDiameter(d.ringSize) / 2;
-  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish), bandMetal);
+  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), bandMetal);
   shankMesh.userData.shank = true;
   root.add(shankMesh);
   const SHANK_TOP = RIN + 2.3;
@@ -421,7 +434,13 @@ export function buildRing(d: Design): THREE.Group {
     head.add(new THREE.Mesh(g, metal));
   } else {
     head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
-    const positions = clawDegrees(c.shape, L, W, d.setting.style);
+    // side stones that hug the centre take over the claws on those sides (they share them), so nothing holds them apart
+    const hugging = d.sides.kind !== "none" && d.sides.hug;
+    const positions = clawDegrees(c.shape, L, W, d.setting.style).filter((deg) => {
+      if (!hugging) return true;
+      const a = ((deg % 360) + 360) % 360;
+      return Math.min(Math.abs(a - 0), Math.abs(a - 360), Math.abs(a - 180)) > 38;
+    });
     const tipY = isCab ? Math.min(0.55, c.domeMm * 0.15) : Math.max(0.4, c.domeMm * 0.5);
     const r = d.setting.style === "double-claw" ? 0.34 : 0.44;
     positions.forEach((deg) => {
@@ -465,11 +484,37 @@ export function buildRing(d: Design): THREE.Group {
       : sideStoneDims(d.sides.kind, d.sides.sizeCt);
     const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
-    const shape = new THREE.Shape(sc(1.09));
-    shape.holes.push(new THREE.Path(sc(0.965).reverse()));
+    const hug = d.sides.hug;
+    // hugging stones get a fine rim, so the stones themselves meet the centre stone
+    const shape = new THREE.Shape(sc(hug ? 1.035 : 1.09));
+    shape.holes.push(new THREE.Path(sc(hug ? 0.985 : 0.965).reverse()));
     const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
-    const gap = W / 2 + (d.setting.style === "bezel" ? 0.62 : d.sides.hug ? 0.05 : 0.18);
+    // the centre stone's edge in the direction of the side stones (its outline at the widest point across the finger)
+    const edgeX = Math.max(...Array.from({ length: 180 }, (_, i) => fn(i / 180)[0]));
+    const gap = (hug ? edgeX : W / 2) + (d.setting.style === "bezel" ? 0.62 : hug ? 0.04 : 0.18);
+    if (hug) {
+      // fitted: curve the side stones' inner edge to follow the centre stone, the way a cutter matches a pair to a stone,
+      // so they sit flush all along the edge instead of touching at one point
+      const edgeAt = (z: number) => {
+        let best = 0;
+        for (let i = 0; i < 360; i++) { const [x, zz] = fn(i / 360); if (x > 0 && Math.abs(zz - z) < L / 90 + 0.05) best = Math.max(best, x); }
+        return best || edgeX * 0.6;
+      };
+      const table = Array.from({ length: 41 }, (_, i) => { const z = -sl / 2 + (i / 40) * sl; return { z, e: edgeAt(z) }; });
+      const eAt = (z: number) => { const t = Math.min(40, Math.max(0, ((z + sl / 2) / sl) * 40)); const i = Math.floor(t), f = t - i; const a = table[i], b = table[Math.min(40, i + 1)]; return a.e + (b.e - a.e) * f; };
+      const spanX = Math.max(...ol.map(([x]) => x)) || 1;
+      for (const geo of [g, bz]) {
+        const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i), z = pos.getZ(i);
+          const k = Math.max(0, 1 - x / spanX);
+          pos.setX(i, x + (eAt(z) - edgeX) * k);
+        }
+        pos.needsUpdate = true;
+        geo.computeVertexNormals();
+      }
+    }
     for (const side of [1, -1]) {
       const grp = new THREE.Group();
       grp.userData.part = "sides";
@@ -477,10 +522,24 @@ export function buildRing(d: Design): THREE.Group {
       for (const z of [-1, 1].map((k) => k * Math.min(1.6, sl * 0.22))) {
         grp.add(tube([new THREE.Vector3(cx + 0.3, -pav * 0.7, z), new THREE.Vector3(-0.3, -pav * 0.72, z * 0.9), new THREE.Vector3(-(gap - W * 0.35) + 0.3, lowRailY - GY, z * 0.8)], 0.42));
       }
-      grp.position.set(side * (gap + 0.13), GY - 0.05, 0);
-      grp.rotation.z = -0.08;
-      if (side < 0) grp.rotation.y = Math.PI;
-      root.add(grp);
+      if (hug) {
+        // set tight against the centre, turning with it, girdles level; small shared claws at the two ends of the straight edge
+        grp.position.set(side * gap, GY - 0.02, 0);
+        grp.rotation.z = side * -0.03;
+        if (side < 0) grp.rotation.y = Math.PI;
+        for (const zEnd of [-1, 1]) {
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), metal);
+          tip.scale.set(1, 0.8, 1);
+          tip.position.set(side * (gap - 0.02), GY + 0.25, zEnd * (sl / 2) * 0.96);
+          head.add(tip, tube([new THREE.Vector3(side * (gap - 0.02), GY + 0.2, zEnd * (sl / 2) * 0.96), new THREE.Vector3(side * gap * 0.9, lowRailY, zEnd * (sl / 2) * 0.8)], 0.3));
+        }
+        head.add(grp);
+      } else {
+        grp.position.set(side * (gap + 0.13), GY - 0.05, 0);
+        grp.rotation.z = -0.08;
+        if (side < 0) grp.rotation.y = Math.PI;
+        root.add(grp);
+      }
     }
   }
   root.userData.girdleY = GY;
