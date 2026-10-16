@@ -8,6 +8,7 @@ const REFS = [
   { id: "quarter", name: "US quarter", mm: 24.26, hint: "Tap one edge of the quarter, then the opposite edge (straight across the middle)." },
   { id: "penny", name: "US penny", mm: 19.05, hint: "Tap one edge of the penny, then the opposite edge." },
   { id: "rs10", name: "₹10 coin", mm: 27, hint: "Tap one edge of the ₹10 coin, then the opposite edge." },
+  { id: "thb5", name: "Thai 5 baht", mm: 24, hint: "Tap one edge of the 5 baht coin, then the opposite edge." },
   { id: "card", name: "Bank or ID card (long side)", mm: 85.6, hint: "Tap the two ends of the card's long side." },
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;

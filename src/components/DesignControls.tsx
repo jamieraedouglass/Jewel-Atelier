@@ -318,8 +318,8 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
         <section style={{ display: "grid", gap: 12 }}>
           <h3>Band</h3>
           <span className="small muted">How the design meets the band</span>
-          <Chips name="Profile" options={["raised", "low", "set-in"] as const} value={d.band.profile}
-            fmt={(v) => (v === "raised" ? "Up on top of the band" : v === "low" ? "Low on the band" : "Set into the band")} onPick={(profile) => onChange({ band: { profile } })} />
+          <Chips name="Profile" options={["raised", "low", "set-in", "flush"] as const} value={d.band.profile}
+            fmt={(v) => (v === "raised" ? "Up on top of the band" : v === "low" ? "Low on the band" : v === "set-in" ? "Set into the band" : "Level with the band (flush)")} onPick={(profile) => onChange({ band: { profile } })} />
           <span className="small muted">Band shape</span>
           <Chips name="Band shape" options={["classic", "flat", "cigar"] as const} value={d.band.shape}
             fmt={(v) => (v === "classic" ? "Classic (rounded)" : v === "flat" ? "Flat" : "Cigar band (wide)")}

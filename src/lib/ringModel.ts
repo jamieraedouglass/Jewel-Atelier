@@ -312,16 +312,27 @@ export function textureBump() {
  */
 /** band thickness and width at angle th (0 = top), shared by the band and the stones set into it */
 export function bandSection(width: number, th: number, top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic", rin = 8.5) {
-  const ang = top ? Math.asin(Math.min(0.97, top.spread / (rin + 2))) : 0;
-  const k = top ? Math.max(1.2, Math.log(0.5) / Math.log(Math.cos(ang))) : 3;
-  const tp = Math.pow(Math.max(0, Math.cos(th)), k);
+  let tp: number, tpW: number;
+  const ease = (a: number, t0: number, t1: number) => { const x = Math.min(1, Math.max(0, (a - t0) / (t1 - t0))); return 1 - x * x * (3 - 2 * x); };
+  if (top) {
+    // full depth under the stones, then a short taper back to the plain band's thickness just past them;
+    // the width eases off more gradually, like a cathedral shoulder, so it doesn't flare out in wings
+    const aEnd = top.spread / (rin + 2.2);
+    const a = Math.abs(Math.atan2(Math.sin(th), Math.cos(th)));
+    const t0 = aEnd * 0.92;
+    // short shoulders: the band is back to its own size soon after the last stone
+    // the stones' outer ends are narrow, so the band narrows over them and is back to its own size right at the last stone
+    tp = ease(a, aEnd * 0.8, aEnd * 1.08);
+    tpW = ease(a, aEnd * 0.55, aEnd * 1.02);
+  } else tp = tpW = Math.pow(Math.max(0, Math.cos(th)), 3);
   // flat and cigar bands stay even all the way round (a cigar band narrows a little at the back)
   const swell = shape === "classic" || top ? 1 : 0;
   const base = shape === "cigar" ? 1.9 : 1.75;
   const t = base + (top ? top.topT - base : 0.55 * swell) * tp;
   const back = shape === "cigar" ? 0.8 + 0.2 * (0.5 + 0.5 * Math.cos(th)) : 1;
-  const w = width * back + (top ? Math.max(1.6, top.topW - width) : 1.6 * swell) * tp;
-  return { t, w };
+  const w = width * back + (top ? Math.max(1.6, top.topW - width) : 1.6 * swell) * tpW;
+  // where stones are set into the band its section squares up: a flat top and straight walls hold them
+  return { t, w, flat: top ? tp : 0 };
 }
 
 export function shankGeo(rin: number, width: number, finish: Design["band"]["finish"], top?: { topW: number; topT: number; spread: number }, shape: Design["band"]["shape"] = "classic") {
@@ -330,11 +341,12 @@ export function shankGeo(rin: number, width: number, finish: Design["band"]["fin
   const eu = shape === "flat" ? 0.12 : shape === "cigar" ? 0.4 : 0.55, ev = shape === "flat" ? 0.12 : shape === "cigar" ? 0.3 : 0.55;
   for (let i = 0; i <= segs; i++) {
     const th = (i / segs) * Math.PI * 2;
-    const { t, w } = bandSection(width, th, top, shape, rin);
+    const { t, w, flat } = bandSection(width, th, top, shape, rin);
+    const eU = eu + (0.16 - eu) * flat, eV = ev + (0.2 - ev) * flat;
     const dx = Math.sin(th), dy = Math.cos(th);
     for (let j = 0; j <= prof; j++) {
       const p = (j / prof) * Math.PI * 2, c = Math.cos(p), sn = Math.sin(p);
-      const u = Math.sign(c) * Math.pow(Math.abs(c), eu), v = Math.sign(sn) * Math.pow(Math.abs(sn), ev);
+      const u = Math.sign(c) * Math.pow(Math.abs(c), eU), v = Math.sign(sn) * Math.pow(Math.abs(sn), eV);
       let r = rin + t / 2 + (u * t) / 2;
       if (finish === "knife-edge" && u > 0) r = rin + t / 2 + ((u * t) / 2) * (1.25 - 0.75 * Math.pow(Math.abs(v), 1.3));
       pos.push(dx * r, dy * r, (v * w) / 2);
@@ -425,8 +437,15 @@ export function buildRing(d: Design): THREE.Group {
   /* head */
   const loop = (s: number, y: number, n = 96) => Array.from({ length: n }, (_, i) => { const [x, z] = fn(i / n); return new THREE.Vector3(x * s, y, z * s); });
   const lowRailY = GY - Math.min(belly, 2) - 0.1;
-  head.add(tube(loop(0.7, lowRailY), 0.42, true));
-  if (d.setting.style === "bezel") {
+  if (d.band.profile !== "flush") head.add(tube(loop(0.7, lowRailY), 0.42, true));
+  if (d.band.profile === "flush") {
+    // centre stone level with the band: a fine collar at the girdle, no claws standing up; the band holds the rest
+    const shape = new THREE.Shape(loop(1.035, 0).map((p) => new THREE.Vector2(p.x, p.z)));
+    shape.holes.push(new THREE.Path(loop(0.985, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 64 });
+    g.rotateX(Math.PI / 2); g.translate(0, GY + 0.12, 0); g.computeVertexNormals();
+    head.add(new THREE.Mesh(g, metal));
+  } else if (d.setting.style === "bezel") {
     const shape = new THREE.Shape(loop(1.09, 0).map((p) => new THREE.Vector2(p.x, p.z)));
     shape.holes.push(new THREE.Path(loop(0.98, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
     const g = new THREE.ExtrudeGeometry(shape, { depth: 1.9, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.15, bevelSegments: 4, curveSegments: 64 });
@@ -454,8 +473,8 @@ export function buildRing(d: Design): THREE.Group {
   }
   head.rotation.y = THREE.MathUtils.degToRad(d.center.rotation ?? 0);
 
-  /* posts into the shank */
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  /* posts into the shank (not needed when the stone is set level in the band) */
+  if (d.band.profile !== "flush") for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const [x, z] = fn(((sx > 0 ? (sz > 0 ? 45 : 315) : sz > 0 ? 135 : 225)) / 360);
     root.add(tube([new THREE.Vector3(x * 0.49, lowRailY, z * 0.49), new THREE.Vector3(sx * 2.4, SHANK_TOP - 0.9, sz * 1.3), new THREE.Vector3(sx * 2.6, SHANK_TOP - 1.7, sz * 1.1)], 0.5));
   }
@@ -521,7 +540,8 @@ export function buildRing(d: Design): THREE.Group {
       const spanX = Math.max(...ol.map(([x]) => x)) || 1;
       const isCabC = c.cut === "cabochon";
       const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
-      const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : 0;
+      // the band depth must match what the chosen profile will ask of it, so the curved stones stay on its surface
+      const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
       // stones set into a band are cut a little shallower and sit in a closed metal seat: the band is made deep and wide
       // enough at the shoulders that no stone shows below or beside the metal
       const pavF = 0.6, pavD = pav * pavF;

@@ -105,15 +105,20 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       const hidden: THREE.Object3D[] = [];
       scene.children.forEach((o) => { if (o !== piece.group && o.visible && !(o as THREE.Light).isLight) { o.visible = false; hidden.push(o); } });
       hide.forEach((h) => { h.visible = false; hidden.push(h); });
-      const bg = scene.background, clear = gl.getClearAlpha();
-      scene.background = null; gl.setClearAlpha(0);
+      // the finishing pass turns off auto-clear, so clear to fully transparent ourselves before this one frame
+      const bg = scene.background, clear = gl.getClearAlpha(), prevColor = gl.getClearColor(new THREE.Color()), auto = gl.autoClear, target = gl.getRenderTarget();
+      scene.background = null;
+      gl.setRenderTarget(null);
+      gl.setClearColor(0x000000, 0);
+      gl.autoClear = true;
+      gl.clear(true, true, true);
       gl.render(scene, cam);
       const mmPerPx = fw / cw;
       const wPx = Math.ceil(spanX / mmPerPx), hPx = Math.ceil(spanY / mmPerPx);
       const out = document.createElement("canvas");
       out.width = wPx; out.height = hPx;
       out.getContext("2d")!.drawImage(el, (cw - wPx) / 2, (ch - hPx) / 2, wPx, hPx, 0, 0, wPx, hPx);
-      scene.background = bg; gl.setClearAlpha(clear);
+      scene.background = bg; gl.setClearColor(prevColor, clear); gl.autoClear = auto; gl.setRenderTarget(target);
       hidden.forEach((o) => (o.visible = true));
       return { url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY };
     };
@@ -352,7 +357,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       className={className}
       dpr={[1, 2]}
       camera={{ fov: FOV, position: [20, 30, 52], near: 0.2, far: 5000 }}
-      gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
+      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
       onCreated={({ gl }) => { canvasEl.current = gl.domElement; }}
     >
       <color attach="background" args={["#17130f"]} />
