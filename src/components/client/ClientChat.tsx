@@ -6,7 +6,7 @@ import { describeChanges } from "@/lib/studio/links";
 import type { Design } from "@/lib/design";
 import type { ClientBackend } from "./backend";
 
-const STARTERS = ["Would this suit everyday wear?", "What stone would make it feel more bridal?", "Is this size right for my hand?"];
+const STARTERS = ["Would this suit everyday wear?", "What stone would make it feel more bridal?", "Is this size right for my hand?", "What would this cost?"];
 
 /** The designer chat on a client link: suggestions arrive as finished pieces the client can apply in one tap. */
 export default function ClientChat({ designId, base, design, history, backend, onApply, onHistory }: {

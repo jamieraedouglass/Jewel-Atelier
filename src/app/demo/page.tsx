@@ -7,7 +7,7 @@ export const metadata = { title: `Demo · ${BRAND.name}` };
 export default function DemoPage() {
   const cards = [
     { href: "/demo/client", title: "What your client sees", body: "A private link with the pieces you chose for them: in 3D, side by side, tried on together at true size. They adjust only what you allow (size, your choice of stones, metal) and can ask the designer or write to you." },
-    { href: "/demo/studio", title: "What you see", body: "Every link, who opened it and when, what each client changed, tried on and asked, and the messages waiting for you. You can also see into every account in the studio." },
+    { href: "/demo/studio", title: "What you see", body: "Every link, who opened it and when, what each client changed and tried on, everything they asked the design assistant, and the messages and price requests waiting for you. Open a client to see their version of each piece and its workshop sheet. You can also see into every account in the studio." },
     { href: "/demo/spec", title: "The workshop sheet", body: "For each piece, as designed or as the client adjusted it: every stone with sizes and estimated carats, the metal and its estimated weight, sizes and notes. Only you see it, and it prints on one page." },
   ];
   return (

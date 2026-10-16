@@ -22,6 +22,7 @@ export default function DemoClient({ studioName }: { studioName: string }) {
           <>
             <ul className="small" style={{ margin: 0, paddingLeft: 16 }}>{log.map((l, i) => <li key={i}>{l}</li>)}</ul>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link className="chip" href="/demo/link/demo-meher">Meher&apos;s link, as you see it</Link>
               <Link className="chip" href="/demo/studio">The studio dashboard</Link>
               <Link className="chip" href="/demo/spec">Workshop sheet</Link>
               <Link className="chip" href="/demo">Back to the demo</Link>

@@ -1,21 +1,29 @@
 import Link from "next/link";
 import SpecSheet from "@/components/studio/SpecSheet";
 import { BRAND } from "@/lib/brand";
-import { applyPatch } from "@/lib/design";
 import { describeChanges } from "@/lib/studio/links";
 import { buildSpec } from "@/lib/studio/spec";
-import { DEMO_PIECES } from "@/lib/studio/demo";
+import { DEMO_PIECES, demoLinkDetail } from "@/lib/studio/demo";
 
 export const metadata = { title: `Workshop sheet demo · ${BRAND.name}` };
 
-/** the sample client's version of the ruby ring, as the workshop would receive it */
-export default function DemoSpecPage() {
-  const base = DEMO_PIECES[0].base;
-  const version = applyPatch(base, { purity: { karat: 22 }, ringSize: 6, center: { lengthMm: base.center.lengthMm * 1.1, widthMm: base.center.widthMm * 1.1, carat: null } });
+/** a demo piece's workshop sheet: as designed, or a sample client's version (Meher's ruby ring by default) */
+export default function DemoSpecPage({ searchParams }: { searchParams: { piece?: string; client?: string } }) {
+  const pieceId = searchParams.piece ?? DEMO_PIECES[0].designId;
+  const clientId = searchParams.piece ? searchParams.client : "demo-meher";
+  const piece = DEMO_PIECES.find((p) => p.designId === pieceId) ?? DEMO_PIECES[0];
+  const detail = clientId ? demoLinkDetail(clientId) : null;
+  const theirs = detail?.pieces.find((p) => p.designId === piece.designId);
+  const version = theirs?.version ?? piece.base;
+  const changes = describeChanges(piece.base, version);
+  const who = theirs && changes.length ? detail!.link.client_name : null;
   return (
     <main className="page">
-      <p className="small muted no-print">Demo · Meher&apos;s version of the half-flowered ruby ring · <Link href="/demo">back to the demo</Link> · print this page for the workshop</p>
-      <SpecSheet spec={buildSpec({ ...version, name: `${base.name} · for Meher` })} extra={[{ label: "Changed by the client", lines: describeChanges(base, version) }]} />
+      <p className="small muted no-print">
+        Demo · {who ? `${who}'s version of the ${piece.name.toLowerCase()}` : `${piece.name}, as designed`} ·{" "}
+        {detail ? <Link href={`/demo/link/${detail.link.id}`}>back to {detail.link.client_name}&apos;s link</Link> : <Link href="/demo">back to the demo</Link>} · print this page for the workshop
+      </p>
+      <SpecSheet spec={buildSpec({ ...version, name: who ? `${piece.name} · for ${who}` : piece.name })} extra={who ? [{ label: "Changed by the client", lines: changes }] : []} />
     </main>
   );
 }

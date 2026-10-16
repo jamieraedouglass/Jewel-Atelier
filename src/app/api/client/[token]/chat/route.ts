@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, CHAT_SYSTEM, MODEL, proposeDesignTool } from "@/lib/claude";
+import { anthropic, MODEL, proposeDesignTool } from "@/lib/claude";
 import { applyPatchLenient, normalizeDesign, type DesignPatch } from "@/lib/design";
 import { normalizeChat } from "@/lib/chat";
 import { aiFailure } from "@/lib/apiError";
+import { BRAND } from "@/lib/brand";
+import { clientChatSystem, isPriceQuestion, mentionsMoney, priceReply } from "@/lib/studio/clientChat";
 import { allowText, clampToAllowed } from "@/lib/studio/links";
 import { loadClientBundle, recordEvent, saveClientChat, spendLinkAiCall } from "@/lib/studio/server";
 
@@ -21,7 +23,8 @@ const Body = z.object({
 
 /**
  * The design consultant on a client link: it may only suggest what the jeweller allowed, each suggestion arrives as
- * a finished, already-checked design, and the link's own daily allowance limits use.
+ * a finished, already-checked design, and the link's own daily allowance limits use. It never prices anything: a price
+ * question goes to the jeweller without asking the AI (and without using up the allowance).
  */
 export async function POST(req: Request, { params }: { params: { token: string } }) {
   const body = Body.safeParse(await req.json().catch(() => null));
@@ -34,6 +37,14 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (!piece) return NextResponse.json({ error: "That piece isn't in this link." }, { status: 404 });
   const { messages } = body.data;
   if (messages[0].role !== "user") return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  const question = messages[messages.length - 1].content;
+  const history = normalizeChat(body.data.history);
+  if (messages[messages.length - 1].role === "user" && isPriceQuestion(question)) {
+    const reply = priceReply(BRAND.studioName);
+    await recordEvent(bundle.link.id, piece.designId, "asked-price", { question: question.slice(0, 300) });
+    await saveClientChat(bundle, piece.designId, [...history, { role: "assistant", content: reply }]);
+    return NextResponse.json({ reply, proposals: [] });
+  }
   if (!(await spendLinkAiCall(bundle.link))) return NextResponse.json({ error: "The designer has answered all it can for today. Use Ask the jeweller, or try again tomorrow." }, { status: 429 });
 
   const current = clampToAllowed(piece.base, normalizeDesign(body.data.design), bundle.allow);
@@ -44,18 +55,19 @@ export async function POST(req: Request, { params }: { params: { token: string }
   try {
     const msg = await anthropic().messages.create({
       model: MODEL, max_tokens: 2000,
-      system: `${CHAT_SYSTEM}\n\n${allowText(bundle.allow, piece.base)}`,
+      system: `${clientChatSystem(BRAND.studioName, bundle.link.client_name, bundle.link.note)}\n${allowText(bundle.allow, piece.base)}`,
       tools: [proposeDesignTool], messages: apiMessages,
     });
-    const reply = msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+    const text = msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+    // the last word on prices: if one slipped through, the client gets the standard answer instead
+    const reply = mentionsMoney(text) ? priceReply(BRAND.studioName) : text;
     // each suggestion becomes the finished design it would give, kept within what's allowed; no-ops are dropped
     const proposals = msg.content
       .filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === proposeDesignTool.name)
       .map((b) => b.input as { title: string; why: string; patch: DesignPatch })
       .map((p) => ({ title: p.title, why: p.why, design: clampToAllowed(piece.base, applyPatchLenient(current, p.patch ?? {}), bundle.allow) }))
-      .filter((p) => JSON.stringify(p.design) !== JSON.stringify(current));
-    await recordEvent(bundle.link.id, piece.designId, "asked-designer", { question: messages[messages.length - 1].content.slice(0, 300) });
-    const history = normalizeChat(body.data.history);
+      .filter((p) => JSON.stringify(p.design) !== JSON.stringify(current) && !mentionsMoney(`${p.title} ${p.why}`));
+    await recordEvent(bundle.link.id, piece.designId, "asked-designer", { question: question.slice(0, 300) });
     await saveClientChat(bundle, piece.designId, [...history, { role: "assistant", content: reply || "…" }]);
     return NextResponse.json({ reply: reply || (proposals.length ? "Here's what I'd suggest:" : ""), proposals });
   } catch (e) {

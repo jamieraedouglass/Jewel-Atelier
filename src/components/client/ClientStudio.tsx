@@ -30,7 +30,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * allowed, with side-by-side comparing, trying the whole set on, the designer chat, and a line to the jeweller.
  */
 export default function ClientStudio({ studioName, clientName, note, allow, pieces, mode, onDemoEvent }: Props) {
-  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, onDemoEvent)), [mode, pieces, allow, onDemoEvent]);
+  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent)), [mode, pieces, allow, studioName, onDemoEvent]);
   const [active, setActive] = useState(0);
   const [versions, setVersions] = useState<Record<string, Design>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.version])));
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.chat])));

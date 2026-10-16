@@ -15,7 +15,7 @@ export default function DemoStudioPage() {
         <span className="small muted">Demo · sample clients and activity</span>
         <h1 style={{ fontSize: 40 }}>Studio</h1>
       </div>
-      <StudioDashboard summary={studioSummary(links, events, DEMO_NAMES)} accounts={accounts} linkHref={() => "/demo/client"} />
+      <StudioDashboard summary={studioSummary(links, events, DEMO_NAMES)} accounts={accounts} linkHref={(id) => `/demo/link/${id}`} />
       <p className="small muted no-print"><Link href="/demo">← Back to the demo</Link></p>
     </main>
   );

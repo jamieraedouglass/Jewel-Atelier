@@ -137,3 +137,10 @@ export const CreateLinkSchema = z.object({
 export type CreateLink = z.input<typeof CreateLinkSchema>;
 
 export const isGem = (g: string): g is Gem => (GEMS as readonly string[]).includes(g);
+
+/** what a link lets the client change, in one line for the jeweller */
+export const allowedText = (allow: Allow, aiDailyLimit: number) => [
+  allow.sizes && "sizes", allow.stones.length && `stones: ${allow.stones.map(optionName).join(", ")}`, allow.shapes.length && `shapes: ${allow.shapes.join(", ")}`,
+  allow.stoneScale && `stone size ±${Math.round(allow.stoneScale * 100)}%`, allow.metals.length && `metals: ${allow.metals.join(", ")}`, allow.karats.length && `karat: ${allow.karats.map((k) => `${k}k`).join(", ")}`,
+  allow.chat && `design assistant (${aiDailyLimit} questions a day)`,
+].filter(Boolean).join(" · ") || "nothing (view only)";

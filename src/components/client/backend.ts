@@ -1,5 +1,6 @@
 import { applyPatch, metalName, type Design } from "@/lib/design";
 import type { ChatMessage } from "@/lib/chat";
+import { isPriceQuestion, priceReply } from "@/lib/studio/clientChat";
 import { clampToAllowed, optionLook, optionName, type Allow } from "@/lib/studio/links";
 
 export type ClientPieceData = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
@@ -34,14 +35,19 @@ export function linkBackend(token: string): ClientBackend {
  * The demo: everything runs in the browser, with the same rules as a real link. The chat answers from a small script
  * (the real one asks Claude) so the demo works with no account, database or API key.
  */
-export function demoBackend(pieces: ClientPieceData[], allow: Allow, onEvent?: (line: string) => void): ClientBackend {
+export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void): ClientBackend {
   const baseOf = (id: string) => pieces.find((p) => p.designId === id)!.base;
   return {
     async save(designId, design) {
       return clampToAllowed(baseOf(designId), design, allow);
     },
-    async chat(designId, design) {
+    async chat(designId, design, messages) {
       await new Promise((r) => setTimeout(r, 900));
+      const question = messages[messages.length - 1]?.content ?? "";
+      if (isPriceQuestion(question)) {
+        onEvent?.(`Asked for a price: "${question}" (sent to you; the assistant never quotes prices)`);
+        return { reply: priceReply(studioName), proposals: [] };
+      }
       const base = baseOf(designId);
       const ideas: { title: string; why: string; design: Design }[] = [];
       const other = allow.stones.find((o) => o.gem !== design.center.gem);
@@ -57,7 +63,7 @@ export function demoBackend(pieces: ClientPieceData[], allow: Allow, onEvent?: (
       }
       const metal = allow.metals.find((m) => m !== design.metal);
       if (metal) ideas.push({ title: `See it in ${metalName({ metal, purity: design.purity }).toLowerCase()}`, why: "Warmer or cooler metal changes how the stone reads against the skin.", design: clampToAllowed(base, applyPatch(design, { metal }), allow) });
-      onEvent?.("Asked the designer");
+      onEvent?.(`Asked the design assistant: "${question}"`);
       return {
         reply: ideas.length
           ? "Here are a couple of ideas within what the jeweller has allowed for this piece. (In the demo these come from a script; on a real link the AI designer answers your exact question.)"
