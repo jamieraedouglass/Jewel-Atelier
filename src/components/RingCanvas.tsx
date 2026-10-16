@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Design } from "@/lib/design";
 import { buildPiece, type Piece } from "@/lib/jewelryModel";
 import { disposeGroup } from "@/lib/ringModel";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 export type View = "hero" | "top" | "detail";
 export const VIEW_LABEL: Record<View, string> = { hero: "¾", top: "Top", detail: "Detail" };
@@ -113,6 +114,37 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       return { url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY };
     };
   }, [gl, scene, handle]);
+  return null;
+}
+
+/**
+ * Diamonds read as grey when their mirror facets reflect a dark studio. A real stone is lit by a bright room and
+ * bounces light around inside, so the stone facets (and only those; metal keeps the dark light box) reflect a bright room.
+ */
+let roomEnv: THREE.Texture | null = null;
+function StoneLight({ piece }: { piece: Piece }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    if (!roomEnv) {
+      const pm = new THREE.PMREMGenerator(gl);
+      roomEnv = pm.fromScene(new RoomEnvironment(), 0.005).texture;
+      pm.dispose();
+    }
+    piece.group.traverse((o) => {
+      const mats = (o as THREE.Mesh).material;
+      if (!mats) return;
+      for (const mat of Array.isArray(mats) ? mats : [mats]) {
+        const ph = mat as THREE.MeshPhysicalMaterial;
+        // only the mirror facets of stones (flat-shaded, metallic); coloured stone bodies and metal keep the studio light
+        if (!ph.flatShading || ph.metalness < 0.9 || ph.userData.roomLit) continue;
+        ph.envMap = roomEnv;
+        ph.envMapIntensity = 1.35;
+        ph.emissiveIntensity = Math.min(ph.emissiveIntensity ?? 0, 0.05);
+        ph.userData.roomLit = true;
+        ph.needsUpdate = true;
+      }
+    });
+  }, [gl, piece]);
   return null;
 }
 
@@ -239,6 +271,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <StudioLights />
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
       <Model piece={piece} />
+      <StoneLight piece={piece} />
       <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
       <Grabber piece={piece} design={design} handle={handle} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
