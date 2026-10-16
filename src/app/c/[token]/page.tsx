@@ -5,6 +5,7 @@ import ClientStudio from "@/components/client/ClientStudio";
 import { BRAND } from "@/lib/brand";
 import { isPreviewBot, linkPreviewText, thumbnailUrl } from "@/lib/studio/preview";
 import { linkPreview, loadClientBundle, markOpened } from "@/lib/studio/server";
+import { rupeeRate } from "@/lib/studio/fx";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,9 @@ export default async function ClientLinkPage({ params }: { params: { token: stri
   }
   // the robot WhatsApp sends to build a preview isn't the client opening the link
   if (!isPreviewBot(headers().get("user-agent"))) await markOpened(bundle.link);
+  const rate = Object.keys(bundle.pricing.pieces).length ? await rupeeRate(bundle.pricing.currency) : null;
   return (
     <ClientStudio studioName={BRAND.studioName} clientName={bundle.link.client_name} note={bundle.link.note} allow={bundle.allow}
-      pieces={bundle.pieces} mode={{ kind: "link", token: params.token }} />
+      pieces={bundle.pieces} pricing={bundle.pricing} rate={rate} mode={{ kind: "link", token: params.token }} />
   );
 }

@@ -4,6 +4,7 @@ import { createAdminClient } from "../supabase/admin";
 import { normalizeDesign, type Design } from "../design";
 import { normalizeChat, type ChatMessage } from "../chat";
 import { clampToAllowed, describeChanges, linkState, normalizeAllow, type Allow } from "./links";
+import { normalizePricing, priceFor, type Pricing } from "./pricing";
 
 /**
  * Server-side access to client links. Clients don't sign in, so every read and write here goes through the service
@@ -15,11 +16,11 @@ export const newToken = () => randomBytes(32).toString("base64url");
 export const isToken = (t: string) => /^[A-Za-z0-9_-]{43}$/.test(t);
 
 export type LinkRow = {
-  id: string; token: string; owner: string; client_name: string; note: string; design_ids: string[]; allow: unknown;
+  id: string; token: string; owner: string; client_name: string; note: string; design_ids: string[]; allow: unknown; pricing?: unknown;
   ai_daily_limit: number; expires_at: string | null; revoked: boolean; created_at: string; last_opened_at: string | null;
 };
 export type ClientPiece = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
-export type ClientBundle = { link: LinkRow; allow: Allow; state: ReturnType<typeof linkState>; pieces: ClientPiece[] };
+export type ClientBundle = { link: LinkRow; allow: Allow; pricing: Pricing; state: ReturnType<typeof linkState>; pieces: ClientPiece[] };
 
 const db = () => createAdminClient();
 
@@ -36,7 +37,8 @@ export async function loadClientBundle(token: string): Promise<ClientBundle | nu
   if (!link) return null;
   const allow = normalizeAllow(link.allow);
   const state = linkState(link);
-  if (state !== "active") return { link, allow, state, pieces: [] };
+  const pricing = normalizePricing(link.pricing);
+  if (state !== "active") return { link, allow, pricing, state, pieces: [] };
   const [{ data: designs }, { data: versions }] = await Promise.all([
     db().from("designs").select("id, name, data").in("id", link.design_ids),
     db().from("client_versions").select("design_id, data, chat").eq("link_id", link.id),
@@ -48,7 +50,7 @@ export async function loadClientBundle(token: string): Promise<ClientBundle | nu
     const v = versions?.find((x) => x.design_id === id);
     return [{ designId: id, name: d.name, base, version: v ? clampToAllowed(base, normalizeDesign(v.data), allow) : base, chat: normalizeChat(v?.chat) }];
   });
-  return { link, allow, state, pieces };
+  return { link, allow, pricing, state, pieces };
 }
 
 /** just enough of a link for its share preview: the client, the pieces' names and the first piece's picture */
@@ -106,6 +108,13 @@ export async function listAccounts(): Promise<Account[]> {
   return out;
 }
 
+/** designs by id, as designs (for checking prices against what each piece is) */
+export async function designsByIds(ids: string[]): Promise<Record<string, Design>> {
+  if (!ids.length) return {};
+  const { data } = await db().from("designs").select("id, data").in("id", ids);
+  return Object.fromEntries((data ?? []).map((d) => [d.id as string, normalizeDesign(d.data)]));
+}
+
 export async function allDesigns() {
   const { data } = await db().from("designs").select("id, owner, name, data, status, updated_at, thumbnail_path").order("updated_at", { ascending: false }).limit(500);
   return data ?? [];
@@ -133,18 +142,18 @@ export async function recentEvents(limit = 200, linkId?: string) {
   return data ?? [];
 }
 
-export async function createLink(owner: string, input: { clientName: string; note: string; designIds: string[]; allow: Allow; expiresInDays: number; aiDailyLimit: number }) {
+export async function createLink(owner: string, input: { clientName: string; note: string; designIds: string[]; allow: Allow; pricing: Pricing; expiresInDays: number; aiDailyLimit: number }) {
   const token = newToken();
   const expires_at = input.expiresInDays ? new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString() : null;
   const { data, error } = await db().from("client_links").insert({
-    token, owner, client_name: input.clientName, note: input.note, design_ids: input.designIds, allow: input.allow,
+    token, owner, client_name: input.clientName, note: input.note, design_ids: input.designIds, allow: input.allow, pricing: input.pricing,
     ai_daily_limit: input.aiDailyLimit, expires_at,
   }).select("id, token").single();
   if (error) throw new Error(error.message);
   return data as { id: string; token: string };
 }
 
-export async function updateLink(id: string, patch: Partial<Pick<LinkRow, "revoked" | "expires_at">>) {
+export async function updateLink(id: string, patch: Partial<Pick<LinkRow, "revoked" | "expires_at">> & { pricing?: Pricing }) {
   const { error } = await db().from("client_links").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -159,20 +168,22 @@ export async function linkDetail(id: string) {
     recentEvents(300, id),
   ]);
   const allow = normalizeAllow(link.allow);
+  const pricing = normalizePricing(link.pricing);
   const pieces = link.design_ids.flatMap((did) => {
     const d = designs?.find((x) => x.id === did);
     if (!d) return [];
     const base = normalizeDesign(d.data);
     const v = versions?.find((x) => x.design_id === did);
     const version = v ? clampToAllowed(base, normalizeDesign(v.data), allow) : base;
-    return [{ designId: did, name: d.name, base, version, changes: describeChanges(base, version), chat: normalizeChat(v?.chat), updatedAt: (v?.updated_at as string | undefined) ?? null }];
+    const priced = priceFor(base, version, pricing.pieces[did]);
+    return [{ designId: did, name: d.name, base, version, changes: describeChanges(base, version), chat: normalizeChat(v?.chat), updatedAt: (v?.updated_at as string | undefined) ?? null, priced }];
   });
-  return { link, allow, state: linkState(link), pieces, events };
+  return { link, allow, pricing, state: linkState(link), pieces, events };
 }
 
 /** a client's version of one piece (for the spec sheet) */
 export async function clientVersion(linkId: string, designId: string) {
   const detail = await linkDetail(linkId);
   const p = detail?.pieces.find((x) => x.designId === designId);
-  return p && detail ? { ...p, clientName: detail.link.client_name } : null;
+  return p && detail ? { ...p, clientName: detail.link.client_name, currency: detail.pricing.currency } : null;
 }

@@ -3,6 +3,7 @@ import type { ChatMessage } from "../chat";
 import { BRAND } from "../brand";
 import { describeChanges, normalizeAllow } from "./links";
 import { priceReply } from "./clientChat";
+import { priceFor, type Pricing } from "./pricing";
 import type { DashEvent, DashLink } from "./dashboard";
 
 /**
@@ -33,6 +34,16 @@ export const DEMO_ALLOW = normalizeAllow({
   karats: [18, 22],
   chat: true,
 });
+
+/** sample prices (rupees): the ruby ring as designed, in 22k, and with a Colombian emerald; the others as designed */
+export const DEMO_PRICING: Pricing = {
+  currency: "INR",
+  pieces: {
+    "00000000-0000-4000-8000-000000000001": [{ inr: 485000 }, { inr: 515000, karat: 22 }, { inr: 440000, stone: { gem: "emerald", grade: "colombian" } }],
+    "00000000-0000-4000-8000-000000000002": [{ inr: 395000 }],
+    "00000000-0000-4000-8000-000000000003": [{ inr: 265000 }],
+  },
+};
 
 export const DEMO_CLIENT = {
   name: "Meher",
@@ -106,7 +117,11 @@ export function demoLinkDetail(id: string, now = Date.now()) {
   const pieces = link.design_ids.map((did) => {
     const p = DEMO_PIECES.find((x) => x.designId === did)!;
     const version = id === "demo-meher" && did === DEMO_PIECES[0].designId ? MEHER_RUBY : p.base;
-    return { designId: did, name: p.name, base: p.base, version, changes: describeChanges(p.base, version), chat: id === "demo-meher" ? MEHER_CHATS[did] ?? [] : [] };
+    const versions = id === "demo-meher" ? DEMO_PRICING.pieces[did] : undefined;
+    return {
+      designId: did, name: p.name, base: p.base, version, changes: describeChanges(p.base, version), chat: id === "demo-meher" ? MEHER_CHATS[did] ?? [] : [],
+      priced: priceFor(p.base, version, versions), hasPrices: !!versions?.length,
+    };
   });
   return { link, pieces, events: events.filter((e) => e.link_id === id).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)) };
 }

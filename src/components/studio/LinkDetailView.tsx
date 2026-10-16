@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { describeDesign, type Design } from "@/lib/design";
 import type { ChatMessage } from "@/lib/chat";
+import { formatMoney, versionName, type PriceVersion } from "@/lib/studio/pricing";
 import { eventText, type DashEvent } from "@/lib/studio/dashboard";
 
-export type LinkPieceView = { designId: string; name: string; version: Design; changes: string[]; chat: ChatMessage[] };
+export type LinkPieceView = {
+  designId: string; name: string; base: Design; version: Design; changes: string[]; chat: ChatMessage[];
+  /** the priced version the client's piece matches (null: none), and whether this piece has prices at all */
+  priced?: PriceVersion | null; hasPrices?: boolean;
+};
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "never");
 
@@ -11,8 +16,8 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN"
  * One client link as the jeweller sees it: each piece with what the client changed, the workshop sheet for it, and
  * their whole conversation with the design assistant; then everything they did, in order. Shared by the studio and the demo.
  */
-export default function LinkDetailView({ clientName, status, allowed, backHref, controls, pieces, events, specHref }: {
-  clientName: string; status: string; allowed: string; backHref: string; controls?: React.ReactNode;
+export default function LinkDetailView({ clientName, status, allowed, backHref, controls, pricing, pieces, events, specHref }: {
+  clientName: string; status: string; allowed: string; backHref: string; controls?: React.ReactNode; pricing?: React.ReactNode;
   pieces: LinkPieceView[]; events: DashEvent[];
   /** the workshop sheet for a piece, as designed or as the client has it */
   specHref: (designId: string, clients: boolean) => string;
@@ -27,6 +32,7 @@ export default function LinkDetailView({ clientName, status, allowed, backHref, 
         <span className="small muted">They can change: {allowed}</span>
       </div>
       {controls}
+      {pricing}
 
       {pieces.map((p) => (
         <section key={p.designId} className="card" style={{ padding: 16, gap: 10 }}>
@@ -39,6 +45,11 @@ export default function LinkDetailView({ clientName, status, allowed, backHref, 
           </div>
           <p className="small muted" style={{ margin: 0 }}>{describeDesign(p.version)}</p>
           {p.changes.length ? <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>{p.changes.map((c) => <li key={c}>{c}</li>)}</ul> : <p className="small muted" style={{ margin: 0 }}>No changes: as you designed it.</p>}
+          {p.priced ? (
+            <p className="small" style={{ margin: 0 }}>{clientName} sees your price: <strong>{formatMoney(p.priced.inr, "INR")}</strong> ({versionName(p.base, p.priced)})</p>
+          ) : p.hasPrices ? (
+            <p className="small muted" style={{ margin: 0 }}>Their version isn&apos;t one you priced, so they see &ldquo;price on request&rdquo;.</p>
+          ) : null}
           {p.chat.length > 0 && (
             <details open>
               <summary className="small">What {clientName} asked the design assistant ({p.chat.filter((m) => m.role === "user").length} {p.chat.filter((m) => m.role === "user").length === 1 ? "question" : "questions"})</summary>

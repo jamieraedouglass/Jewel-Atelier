@@ -1,6 +1,7 @@
 import { applyPatch, metalName, type Design } from "@/lib/design";
 import type { ChatMessage } from "@/lib/chat";
 import { isPriceQuestion, priceReply } from "@/lib/studio/clientChat";
+import { knownPriceReply, priceFor, priceText, type Pricing } from "@/lib/studio/pricing";
 import { clampToAllowed, optionLook, optionName, type Allow } from "@/lib/studio/links";
 
 export type ClientPieceData = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
@@ -35,7 +36,7 @@ export function linkBackend(token: string): ClientBackend {
  * The demo: everything runs in the browser, with the same rules as a real link. The chat answers from a small script
  * (the real one asks Claude) so the demo works with no account, database or API key.
  */
-export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void): ClientBackend {
+export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void, pricing?: Pricing, rate: number | null = null): ClientBackend {
   const baseOf = (id: string) => pieces.find((p) => p.designId === id)!.base;
   return {
     async save(designId, design) {
@@ -45,7 +46,14 @@ export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName:
       await new Promise((r) => setTimeout(r, 900));
       const question = messages[messages.length - 1]?.content ?? "";
       if (isPriceQuestion(question)) {
-        onEvent?.(`Asked for a price: "${question}" (sent to you; the assistant never quotes prices)`);
+        // the jeweller's own price, if the piece is one of his priced versions; never the AI's
+        const piece = pieces.find((p) => p.designId === designId)!;
+        const match = pricing ? priceFor(piece.base, design, pricing.pieces[designId]) : null;
+        if (match && pricing) {
+          onEvent?.(`Asked the price: "${question}" (shown your price, ${priceText(match.inr, pricing.currency, rate).main})`);
+          return { reply: knownPriceReply(studioName, piece.name, match.inr, pricing.currency, rate), proposals: [] };
+        }
+        onEvent?.(`Asked for a price: "${question}" (sent to you; the assistant never makes up prices)`);
         return { reply: priceReply(studioName), proposals: [] };
       }
       const base = baseOf(designId);

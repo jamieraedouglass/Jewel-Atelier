@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { DEMO_ALLOW, DEMO_CLIENT, DEMO_PIECES } from "@/lib/studio/demo";
+import { DEMO_ALLOW, DEMO_CLIENT, DEMO_PIECES, DEMO_PRICING } from "@/lib/studio/demo";
 import ClientStudio from "./ClientStudio";
 
 /** the client demo, with a panel showing what the jeweller sees as the client works (live) */
@@ -12,7 +12,7 @@ export default function DemoClient({ studioName }: { studioName: string }) {
   const onDemoEvent = useCallback((line: string) => setLog((cur) => [`${DEMO_CLIENT.name}: ${line}`, ...cur].slice(0, 12)), []);
   return (
     <>
-      <ClientStudio studioName={studioName} clientName={DEMO_CLIENT.name} note={DEMO_CLIENT.note} allow={DEMO_ALLOW} pieces={DEMO_PIECES} mode={{ kind: "demo" }} onDemoEvent={onDemoEvent} />
+      <ClientStudio studioName={studioName} clientName={DEMO_CLIENT.name} note={DEMO_CLIENT.note} allow={DEMO_ALLOW} pieces={DEMO_PIECES} pricing={DEMO_PRICING} mode={{ kind: "demo" }} onDemoEvent={onDemoEvent} />
       <aside className="demo-log" aria-label="What the jeweller sees">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
           <strong className="small">Demo · what the jeweller sees</strong>

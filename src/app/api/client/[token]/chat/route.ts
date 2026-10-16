@@ -7,6 +7,8 @@ import { normalizeChat, plainReply } from "@/lib/chat";
 import { aiFailure } from "@/lib/apiError";
 import { BRAND } from "@/lib/brand";
 import { clientChatSystem, isPriceQuestion, mentionsMoney, priceReply } from "@/lib/studio/clientChat";
+import { rupeeRate } from "@/lib/studio/fx";
+import { knownPriceReply, priceFor } from "@/lib/studio/pricing";
 import { allowText, clampToAllowed } from "@/lib/studio/links";
 import { loadClientBundle, recordEvent, saveClientChat, spendLinkAiCall } from "@/lib/studio/server";
 
@@ -39,15 +41,18 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (messages[0].role !== "user") return NextResponse.json({ error: "Bad request." }, { status: 400 });
   const question = messages[messages.length - 1].content;
   const history = normalizeChat(body.data.history);
+  const current = clampToAllowed(piece.base, normalizeDesign(body.data.design), bundle.allow);
   if (messages[messages.length - 1].role === "user" && isPriceQuestion(question)) {
-    const reply = priceReply(BRAND.studioName);
-    await recordEvent(bundle.link.id, piece.designId, "asked-price", { question: question.slice(0, 300) });
+    // the jeweller's own price when the piece is one he priced (never the AI's); otherwise it goes to him
+    const match = priceFor(piece.base, current, bundle.pricing.pieces[piece.designId]);
+    const { currency } = bundle.pricing;
+    const reply = match ? knownPriceReply(BRAND.studioName, piece.name, match.inr, currency, await rupeeRate(currency)) : priceReply(BRAND.studioName);
+    await recordEvent(bundle.link.id, piece.designId, "asked-price", { question: question.slice(0, 300), ...(match ? { shownInr: match.inr } : {}) });
     await saveClientChat(bundle, piece.designId, [...history, { role: "assistant", content: reply }]);
     return NextResponse.json({ reply, proposals: [] });
   }
   if (!(await spendLinkAiCall(bundle.link))) return NextResponse.json({ error: "The designer has answered all it can for today. Use Ask the jeweller, or try again tomorrow." }, { status: 429 });
 
-  const current = clampToAllowed(piece.base, normalizeDesign(body.data.design), bundle.allow);
   const apiMessages: Anthropic.MessageParam[] = messages.map((m, i) =>
     i === messages.length - 1 && m.role === "user"
       ? { role: "user", content: `${m.content}\n\n<current_design>${JSON.stringify(designForAi(current))}</current_design>` }

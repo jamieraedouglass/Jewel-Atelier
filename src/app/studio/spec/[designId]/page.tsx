@@ -6,6 +6,7 @@ import { BRAND } from "@/lib/brand";
 import { normalizeDesign } from "@/lib/design";
 import { requireStudioAdmin } from "@/lib/studio/guard";
 import { buildSpec } from "@/lib/studio/spec";
+import { formatMoney, versionName } from "@/lib/studio/pricing";
 import { clientVersion, designById } from "@/lib/studio/server";
 
 export const runtime = "nodejs";
@@ -26,7 +27,10 @@ export default async function SpecPage({ params, searchParams }: { params: { des
         <Link href={searchParams.link ? `/studio/links/${searchParams.link}` : `/studio/design/${params.designId}`} className="small muted">← Back</Link>
         <PrintButton />
       </div>
-      <SpecSheet spec={spec} extra={v && v.changes.length ? [{ label: "Changed by the client", lines: v.changes }] : undefined} />
+      <SpecSheet spec={spec} extra={v ? [
+        ...(v.changes.length ? [{ label: "Changed by the client", lines: v.changes }] : []),
+        ...(v.priced ? [{ label: "Price quoted to the client", lines: [`${formatMoney(v.priced.inr, "INR")} (${versionName(v.base, v.priced)})`] }] : []),
+      ] : undefined} />
     </main>
   );
 }

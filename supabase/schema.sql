@@ -182,3 +182,7 @@ begin
 end $$;
 revoke all on function public.use_link_ai_call(uuid, int) from public, anon, authenticated;
 grant execute on function public.use_link_ai_call(uuid, int) to service_role;
+
+-- Prices on client links: what the jeweller quotes for each piece (in rupees) and the currency the client sees them in.
+-- See src/lib/studio/pricing.ts. Reached only through the server, like the rest of client_links.
+alter table public.client_links add column if not exists pricing jsonb not null default '{}'::jsonb;

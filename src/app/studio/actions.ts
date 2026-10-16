@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/supabase/server";
 import { isStudioAdmin } from "@/lib/studio/admin";
-import { CreateLinkSchema, type CreateLink } from "@/lib/studio/links";
-import { allDesigns, createLink, linkById, updateLink } from "@/lib/studio/server";
+import { CreateLinkSchema, normalizeAllow, type CreateLink } from "@/lib/studio/links";
+import { cleanPricing, normalizePricing, type Pricing } from "@/lib/studio/pricing";
+import { allDesigns, createLink, designsByIds, linkById, updateLink } from "@/lib/studio/server";
 
 async function admin() {
   const { user } = await requireUser();
@@ -12,7 +13,7 @@ async function admin() {
 }
 
 /** send designs to a client: a new private link (the client needs no account) */
-export async function createClientLink(input: CreateLink): Promise<{ url?: string; id?: string; error?: string }> {
+export async function createClientLink(input: CreateLink, prices?: Pricing): Promise<{ url?: string; id?: string; error?: string }> {
   const user = await admin();
   if (!user) return { error: "Only the studio's master accounts can send designs to clients." };
   const parsed = CreateLinkSchema.safeParse(input);
@@ -20,7 +21,9 @@ export async function createClientLink(input: CreateLink): Promise<{ url?: strin
   const known = new Set((await allDesigns()).map((d) => d.id));
   if (parsed.data.designIds.some((id) => !known.has(id))) return { error: "One of those pieces no longer exists." };
   try {
-    const { id, token } = await createLink(user.id, parsed.data);
+    // prices only for versions the client can actually reach on this link
+    const pricing = cleanPricing(normalizePricing(prices), await designsByIds(parsed.data.designIds), parsed.data.allow);
+    const { id, token } = await createLink(user.id, { ...parsed.data, pricing });
     revalidatePath("/studio");
     const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
     return { id, url: `${site}/c/${token}` };
@@ -47,4 +50,15 @@ export async function extendLink(id: string, days: number): Promise<{ error?: st
   await updateLink(id, { expires_at: d ? new Date(Date.now() + d * 86_400_000).toISOString() : null, revoked: false });
   revalidatePath("/studio"); revalidatePath(`/studio/links/${id}`);
   return {};
+}
+
+/** change a link's prices (or the currency the client sees them in); the client sees the new prices next time they look */
+export async function setLinkPricing(id: string, prices: Pricing): Promise<{ error?: string; pricing?: Pricing }> {
+  if (!(await admin())) return { error: "Not allowed." };
+  const link = await linkById(id);
+  if (!link) return { error: "That link doesn't exist." };
+  const pricing = cleanPricing(normalizePricing(prices), await designsByIds(link.design_ids), normalizeAllow(link.allow));
+  await updateLink(id, { pricing });
+  revalidatePath(`/studio/links/${id}`);
+  return { pricing };
 }

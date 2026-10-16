@@ -4,10 +4,12 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { describeDesign, type Design } from "@/lib/design";
 import { describeChanges, type Allow } from "@/lib/studio/links";
+import type { Pricing } from "@/lib/studio/pricing";
 import type { ChatMessage } from "@/lib/chat";
 import { VIEW_LABEL, type Cutout, type RingCanvasHandle, type View } from "../canvas/types";
 import TryOn, { type TryOnExtra } from "../TryOn";
 import AdjustPanel from "./AdjustPanel";
+import PriceBox from "./PriceBox";
 import ClientChat from "./ClientChat";
 import AskJeweller from "./AskJeweller";
 import { demoBackend, linkBackend, type ClientPieceData } from "./backend";
@@ -16,6 +18,8 @@ const RingCanvas = dynamic(() => import("../RingCanvas"), { ssr: false, loading:
 
 type Props = {
   studioName: string; clientName: string; note: string; allow: Allow; pieces: ClientPieceData[];
+  /** the jeweller's prices, if he gave any, and today's rate from rupees to the currency the client sees */
+  pricing?: Pricing; rate?: number | null;
   /** a real link (by its token), or the demo, which runs entirely in the browser */
   mode: { kind: "link"; token: string } | { kind: "demo" };
   /** demo only: show what the jeweller would see */
@@ -29,8 +33,8 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * What a client sees on a link from the jeweller: the pieces as tabs, each in 3D, adjustable only as the jeweller
  * allowed, with side-by-side comparing, trying the whole set on, the designer chat, and a line to the jeweller.
  */
-export default function ClientStudio({ studioName, clientName, note, allow, pieces, mode, onDemoEvent }: Props) {
-  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent)), [mode, pieces, allow, studioName, onDemoEvent]);
+export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent }: Props) {
+  const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate]);
   const [active, setActive] = useState(0);
   const [versions, setVersions] = useState<Record<string, Design>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.version])));
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.chat])));
@@ -149,6 +153,9 @@ export default function ClientStudio({ studioName, clientName, note, allow, piec
           </div>
           <div className="panel-body">
             <h2 style={{ fontSize: 24 }}>{piece.name}</h2>
+            {panel === "adjust" && pricing && (
+              <PriceBox base={piece.base} design={design} versions={pricing.pieces[piece.designId]} currency={pricing.currency} rate={rate} studioName={studioName} onPick={change} />
+            )}
             {panel === "adjust" && <AdjustPanel base={piece.base} design={design} allow={allow} onChange={change} />}
             {panel === "chat" && allow.chat && (
               <ClientChat designId={piece.designId} base={piece.base} design={design} history={chats[piece.designId] ?? []} backend={backend}

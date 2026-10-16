@@ -7,6 +7,8 @@ export type DashEvent = { id: number | string; link_id: string; design_id: strin
 
 /** what a client sends the jeweller's way: a message, or a price question the assistant passed on */
 const FOR_YOU = new Set(["asked-jeweller", "asked-price"]);
+/** waiting on the jeweller: a message, or a price question nobody could answer (one shown his price already has it) */
+const forYou = (e: Pick<DashEvent, "kind" | "detail">) => FOR_YOU.has(e.kind) && !(e.kind === "asked-price" && typeof e.detail.shownInr === "number");
 
 export function eventText(e: Pick<DashEvent, "kind" | "detail">, pieceName: string | null): string {
   const on = pieceName ? ` ${pieceName}` : "";
@@ -19,7 +21,9 @@ export function eventText(e: Pick<DashEvent, "kind" | "detail">, pieceName: stri
     case "tried-on": return pieceName ? `tried on${on}` : "tried the pieces on together";
     case "compared": return "compared pieces side by side";
     case "asked-designer": return `asked the design assistant about${on}: "${String(e.detail.question ?? "")}"`;
-    case "asked-price": return `asked for a price${pieceName ? ` on${on}` : ""}: "${String(e.detail.question ?? "")}"`;
+    case "asked-price": return typeof e.detail.shownInr === "number"
+      ? `asked the price${pieceName ? ` of${on}` : ""}: "${String(e.detail.question ?? "")}" (they were shown your price, ₹${e.detail.shownInr.toLocaleString("en-IN")})`
+      : `asked for a price${pieceName ? ` on${on}` : ""}: "${String(e.detail.question ?? "")}"`;
     case "asked-jeweller": return `wrote to you${pieceName ? ` about${on}` : ""}: "${String(e.detail.message ?? "")}"`;
     default: return e.kind;
   }
@@ -38,11 +42,11 @@ export function studioSummary(links: DashLink[], events: DashEvent[], pieceNames
       opens: ev.filter((e) => e.kind === "opened").length,
       changes: ev.filter((e) => e.kind === "changed").length,
       questions: ev.filter((e) => e.kind === "asked-designer" || e.kind === "asked-price" || e.kind === "asked-jeweller").length,
-      waiting: ev.some((e) => FOR_YOU.has(e.kind)),
+      waiting: ev.some(forYou),
     };
   });
   const feed = events.slice().sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).map((e) => ({
-    id: e.id, at: e.at, linkId: e.link_id, kind: e.kind,
+    id: e.id, at: e.at, linkId: e.link_id, kind: e.kind, detail: e.detail,
     text: `${client(e.link_id)} ${eventText(e, e.design_id ? pieceNames[e.design_id] ?? "a piece" : null)}`,
   }));
   const attention = new Map<string, number>();
@@ -51,11 +55,11 @@ export function studioSummary(links: DashLink[], events: DashEvent[], pieceNames
     tiles: {
       activeLinks: rows.filter((r) => r.state === "active").length,
       openedThisWeek: new Set(events.filter((e) => e.kind === "opened" && Date.parse(e.at) >= week).map((e) => e.link_id)).size,
-      messages: events.filter((e) => FOR_YOU.has(e.kind)).length,
+      messages: events.filter(forYou).length,
       designerQuestions: events.filter((e) => e.kind === "asked-designer").length,
     },
     links: rows,
-    needsYou: feed.filter((f) => FOR_YOU.has(f.kind)),
+    needsYou: feed.filter((f) => forYou(f)),
     feed: feed.slice(0, 60),
     mostViewed: [...attention].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, n]) => ({ name: pieceNames[id] ?? "A piece", interactions: n })),
   };

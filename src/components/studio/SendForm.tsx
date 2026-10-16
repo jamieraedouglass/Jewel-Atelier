@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { createClientLink } from "@/app/studio/actions";
 import { BEAD_GEMS, GEMS, GEM_LOOK, KARATS, METALS, SHAPES, label, varietiesOf } from "@/lib/design";
 import { AllowSchema, type Allow, type StoneOption, optionLook, optionName } from "@/lib/studio/links";
+import { PricingSchema, type Pricing } from "@/lib/studio/pricing";
+import PriceEditor, { filledPricing } from "./PriceEditor";
 import { Chips, Range, Toggle } from "../controls/fields";
 import MultiChips from "../style/MultiChips";
 
@@ -20,6 +22,7 @@ export default function SendForm({ designs, initial }: { designs: DesignRow[]; i
   const [picked, setPicked] = useState<string[]>(initial.filter((id) => designs.some((d) => d.id === id)));
   const [query, setQuery] = useState("");
   const [allow, setAllow] = useState<Allow>(AllowSchema.parse({}));
+  const [pricing, setPricing] = useState<Pricing>(PricingSchema.parse({}));
   const [expires, setExpires] = useState(30);
   const [aiLimit, setAiLimit] = useState(20);
   const [result, setResult] = useState<{ url?: string; error?: string } | null>(null);
@@ -30,7 +33,7 @@ export default function SendForm({ designs, initial }: { designs: DesignRow[]; i
 
   async function create() {
     setBusy(true); setResult(null);
-    const r = await createClientLink({ clientName, note, designIds: picked, allow, expiresInDays: expires, aiDailyLimit: allow.chat ? aiLimit : 0 }).catch(() => ({ error: "Couldn't create the link just now." }));
+    const r = await createClientLink({ clientName, note, designIds: picked, allow, expiresInDays: expires, aiDailyLimit: allow.chat ? aiLimit : 0 }, filledPricing(pricing)).catch(() => ({ error: "Couldn't create the link just now." }));
     setResult(r); setBusy(false);
   }
 
@@ -96,8 +99,15 @@ export default function SendForm({ designs, initial }: { designs: DesignRow[]; i
         <MultiChips name="Karat options" options={KARATS.map(String)} value={allow.karats.map(String)} fmt={(k) => `${k}k`} onChange={(ks) => set({ karats: ks.map(Number) })} />
         <Toggle id="a-chat" checked={allow.chat} onChange={(chat) => set({ chat })}>Let them ask the AI designer</Toggle>
         {allow.chat && <Chips name="Designer questions a day" options={[10, 20, 40] as const} value={aiLimit as 10 | 20 | 40} fmt={(n) => `${n} questions a day`} onPick={setAiLimit} />}
-        <p className="small muted" style={{ margin: 0 }}>Whatever they change is saved as their own copy; your designs never change. Prices are never shown: they&apos;ll ask you.</p>
+        <p className="small muted" style={{ margin: 0 }}>Whatever they change is saved as their own copy; your designs never change.</p>
       </section>
+
+      {picked.length > 0 && (
+        <section style={{ display: "grid", gap: 10 }}>
+          <h3>Prices</h3>
+          <PriceEditor pieces={picked.map((id) => ({ id, name: designs.find((d) => d.id === id)?.name ?? "A piece" }))} allow={allow} value={pricing} onChange={setPricing} />
+        </section>
+      )}
 
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <button type="button" className="btn primary" disabled={busy || !clientName.trim() || !picked.length} onClick={create}>{busy ? "Creating…" : "Create the link"}</button>

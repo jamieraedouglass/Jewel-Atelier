@@ -2,6 +2,7 @@ import Link from "next/link";
 import SpecSheet from "@/components/studio/SpecSheet";
 import { BRAND } from "@/lib/brand";
 import { describeChanges } from "@/lib/studio/links";
+import { formatMoney, versionName } from "@/lib/studio/pricing";
 import { buildSpec } from "@/lib/studio/spec";
 import { DEMO_PIECES, demoLinkDetail } from "@/lib/studio/demo";
 
@@ -23,7 +24,10 @@ export default function DemoSpecPage({ searchParams }: { searchParams: { piece?:
         Demo · {who ? `${who}'s version of the ${piece.name.toLowerCase()}` : `${piece.name}, as designed`} ·{" "}
         {detail ? <Link href={`/demo/link/${detail.link.id}`}>back to {detail.link.client_name}&apos;s link</Link> : <Link href="/demo">back to the demo</Link>} · print this page for the workshop
       </p>
-      <SpecSheet spec={buildSpec({ ...version, name: who ? `${piece.name} · for ${who}` : piece.name })} extra={who ? [{ label: "Changed by the client", lines: changes }] : []} />
+      <SpecSheet spec={buildSpec({ ...version, name: who ? `${piece.name} · for ${who}` : piece.name })} extra={[
+        ...(who ? [{ label: "Changed by the client", lines: changes }] : []),
+        ...(theirs?.priced ? [{ label: "Price quoted to the client", lines: [`${formatMoney(theirs.priced.inr, "INR")} (${versionName(piece.base, theirs.priced)})`] }] : []),
+      ]} />
     </main>
   );
 }
