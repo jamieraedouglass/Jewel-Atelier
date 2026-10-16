@@ -30,7 +30,7 @@ const SHAPE_FILL: Record<(typeof SHAPES)[number], number> = {
 };
 /** polki = flat uncut diamond with a foil back; rose-cut = faceted dome with a flat base */
 export const CUTS = ["faceted", "cabochon", "rose-cut", "polki", "briolette"] as const;
-export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round"] as const;
+export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round", "oval", "pear"] as const;
 export const SETTINGS = ["double-claw", "six-claw", "four-claw", "bezel"] as const;
 export const METALS = ["yellow-gold", "rose-gold", "white-gold", "platinum", "oxidised-silver"] as const;
 export const KARATS = [14, 18, 22, 24] as const;
@@ -72,7 +72,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 /** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop" | "frames" | "links";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -88,9 +88,13 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     navratna: { label: "Navratna", blurb: "Ruby centre ringed by the eight other planetary gems.", uses: [...CORE, "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "ruby", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#b3062a", clarity: 0.45, label: "Ruby" } } },
     "polki-cocktail": { label: "Polki cocktail", blurb: "Big polki centre, double halo with a pearl fringe.", uses: [...CORE, "accents", "fringe", "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "diamond", cut: "polki", shape: "cushion", lengthMm: 14, widthMm: 12, domeMm: 0.8, color: "#f4f6fb", clarity: 0.9, label: "Polki diamond" }, fringe: { enabled: true } } },
     eternity: { label: "Eternity band", blurb: "Stones all the way round.", uses: ["accents", "band", "ringSize"], defaults: { accents: { sizeCt: 0.1 } } },
+    deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band", "ringSize"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" } } },
+    swirl: { label: "Swirl / bypass", blurb: "Pavé ribbons sweeping around the centre stone.", uses: [...CORE, "accents", "count", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 3 }, accents: { sizeCt: 0.012 } } },
     "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band", "ringSize"] },
   },
   earrings: {
+    deco: { label: "Art Deco / layered halo stud", blurb: "A centre stone framed by layers of calibré stones, baguettes, pavé and milgrain.", uses: [...CORE, "frames"], defaults: { setting: { style: "bezel" } } },
+    flowers: { label: "Gold flower cluster", blurb: "A posy of gold flowers, plain or with a diamond in each centre.", uses: ["accents", "count", "pave"], defaults: { options: { count: 7, pave: false }, metal: "yellow-gold" } },
     stud: { label: "Stud", blurb: "One stone, or several in a row (toi-et-moi, clusters), each in its own shape, gem and angle.", uses: [...CORE, "halo", "accents", "extraStones"] },
     drop: { label: "Drop", blurb: "The stone hangs below a small top stone.", uses: [...CORE, "accentTop", "accents"] },
     hoop: { label: "Hoop", blurb: "Round, oval or paperclip hoop, plain or pavé, with an optional pearl cluster and charm.", uses: [...CORE, "hoop", "pave", "accents", "fringe"] },
@@ -115,12 +119,15 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     "rani-haar": { label: "Rani haar", blurb: "Long multi-strand necklace with a grand pendant.", uses: [...CORE, "accents", "fringe", "enamel", "layers", "length"], defaults: { options: { lengthIn: 28, layers: 4 }, fringe: { enabled: true } } },
     temple: { label: "Temple", blurb: "Gold coin motifs with a ruby-set centre coin.", uses: [...CORE, "count", "length", "fringe"], defaults: { options: { count: 17, lengthIn: 20 } } },
     mangalsutra: { label: "Mangalsutra", blurb: "Black bead strands with gold beads and a pendant.", uses: [...CORE, "length", "layers"], defaults: { options: { lengthIn: 20, layers: 2 } } },
+    "by-the-yard": { label: "Diamonds by the yard", blurb: "Bezel-set stones (rose-cut by default) linked by little gold rings, alternating sizes; wrap it once or twice.", uses: [...CORE, "length", "layers"], defaults: { options: { lengthIn: 32, layers: 2 }, center: { gem: "diamond", cut: "rose-cut", shape: "round", lengthMm: 5, widthMm: 5, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95, label: "Rose-cut diamond" }, setting: { style: "bezel" } } },
+    "gold-collar": { label: "Gold link collar", blurb: "Rigid gold collar of X-links with pavé, or chevrons with rows of stones.", uses: ["accents", "length", "links"], defaults: { options: { lengthIn: 15, linkStyle: "x" }, metal: "yellow-gold", accents: { sizeCt: 0.02 } } },
     "pearl-strand": { label: "Pearl strand", blurb: "Layered strands of pearls or beads.", uses: ["fringe", "layers", "length"], defaults: { options: { layers: 1, lengthIn: 18 }, fringe: { enabled: true, sizeMm: 7 } } },
     "motif-pendant": { label: "Custom motif pendant", blurb: "Your own shape as the pendant.", uses: ["motif", "center", "accents", "enamel", "fringe", "length", "chain"] },
     "motif-station": { label: "Custom motif stations", blurb: "Your shape repeated along a chain.", uses: ["motif", "center", "accents", "enamel", "length", "chain", "count"], defaults: { options: { count: 7 } } },
   },
   bracelet: {
-    tennis: { label: "Tennis", blurb: "A full line of stones: one shape, or a repeating mix like oval–round.", uses: ["accents", "accentShapes", "wrist"] },
+    tennis: { label: "Tennis", blurb: "A full line of stones: one shape, or a repeating mix like round–baguette; one row or several, with an optional halo round each stone.", uses: ["accents", "accentShapes", "wrist", "layers", "halo"], defaults: { options: { layers: 1, halo: false } } },
+    "open-bangle": { label: "Open bangle, stone ends", blurb: "An open bangle with a stone at each end, plain or with a channel of stones.", uses: [...CORE, "accents", "pave", "wrist"], defaults: { options: { pave: false }, center: { gem: "diamond", cut: "faceted", shape: "shield", lengthMm: 12, widthMm: 9, domeMm: 1.6, color: "#f4f6fb", clarity: 0.95, label: "Shield-cut diamond" } } },
     bangle: { label: "Bangle", blurb: "Solid bangle with a centre stone.", uses: [...CORE, "wrist"] },
     kada: { label: "Kada", blurb: "Heavy bangle with stones all round the front.", uses: ["accents", "enamel", "wrist", "center", "setting"] },
     cuff: { label: "Cuff", blurb: "Open cuff with a centre stone and rows of accents.", uses: [...CORE, "accents", "wrist", "layers"], defaults: { options: { layers: 2 } } },
@@ -400,6 +407,65 @@ export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[] }[] = 
   },
 ];
 
+/* ---------------- Art Deco layers around a centre stone ---------------- */
+
+export const FRAME_KINDS = ["stones", "milgrain", "metal"] as const;
+export const FrameSchema = z.object({
+  /** a layer of stones, a fine beaded (milgrain) border, or a plain gold band */
+  kind: z.enum(FRAME_KINDS).default("stones"),
+  /** the shape of this layer: round, octagon, hexagon, cushion, oval, emerald... */
+  outline: z.enum(SHAPES).default("round"),
+  gem: z.enum(GEMS).default("diamond"),
+  color: hex.default("#f4f6fb"),
+  cut: z.enum(CUTS).default("faceted"),
+  /** stone shape: round for pavé, princess or baguette for calibré, pear or oval for petals */
+  shape: z.enum(SHAPES).default("round"),
+  widthMm: z.number().min(0.6).max(8).default(1.3),
+  /** stones lie along the layer, or point out from the centre (ballerina baguettes, petals, calibré) */
+  direction: z.enum(["along", "radial"]).default("along"),
+  /** a second gem in stripes: after `every` stones of the first gem comes one of this */
+  alt: z.object({ gem: z.enum(GEMS), color: hex, shape: z.enum(SHAPES), cut: z.enum(CUTS).default("faceted") }).nullable().default(null),
+  every: z.number().int().min(1).max(8).default(1),
+  gapMm: z.number().min(0).max(4).default(0.25),
+});
+export type Frame = z.infer<typeof FrameSchema>;
+type FrameIn = z.input<typeof FrameSchema>;
+const fr = (x: FrameIn) => x;
+const look = (g: Gem) => ({ gem: g, color: GEM_LOOK[g].color });
+
+/** starting layouts, modelled on Art Deco and cocktail rings */
+export const FRAME_PRESETS: { name: string; blurb: string; frames: FrameIn[]; center?: Partial<z.input<typeof CenterStoneSchema>> }[] = [
+  { name: "Hexagon ruby Deco", blurb: "Round diamond, a ring of calibré rubies, milgrain, then a hexagon of pavé.", frames: [
+    fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "princess", widthMm: 1.6, direction: "radial", outline: "round" }),
+    fr({ kind: "milgrain", outline: "hexagon" }), fr({ outline: "hexagon", widthMm: 1.2 }), fr({ kind: "milgrain", outline: "hexagon" }) ] },
+  { name: "Octagon ruby sunburst", blurb: "Calibré rubies fanning out to an octagon, with a pavé octagon border.", frames: [
+    fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "baguette", widthMm: 1.4, direction: "radial", outline: "octagon" }),
+    fr({ kind: "metal", outline: "octagon", widthMm: 0.5 }), fr({ outline: "octagon", widthMm: 1.2 }), fr({ kind: "milgrain", outline: "octagon" }) ] },
+  { name: "Emerald & turquoise Deco", blurb: "Emerald calibré and turquoise in an octagon, framed in pavé.", frames: [
+    fr({ ...look("emerald"), shape: "baguette", widthMm: 1.4, outline: "octagon" }), fr({ ...look("turquoise"), cut: "cabochon", shape: "baguette", widthMm: 1.4, outline: "octagon" }),
+    fr({ outline: "octagon", widthMm: 1.1 }), fr({ kind: "milgrain", outline: "octagon" }) ], center: { gem: "diamond", cut: "faceted", shape: "emerald", lengthMm: 8, widthMm: 6, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
+  { name: "Emerald scalloped halo", blurb: "A frill of small emeralds round an old-cut diamond, edged in milgrain.", frames: [
+    fr({ kind: "milgrain" }), fr({ ...look("emerald"), widthMm: 1.6, outline: "round" }), fr({ ...look("emerald"), widthMm: 1.5, outline: "cushion" }), fr({ kind: "milgrain", outline: "cushion" }) ], center: { gem: "diamond", cut: "faceted", shape: "old-mine", lengthMm: 8, widthMm: 8, domeMm: 1.4, color: "#f4f6fb", clarity: 0.95 } },
+  { name: "Sapphire petals", blurb: "Sapphire cabochon petals round a cushion diamond.", frames: [
+    fr({ kind: "milgrain", outline: "cushion" }), fr({ ...look("sapphire"), cut: "cabochon", shape: "pear", widthMm: 1.8, direction: "radial", outline: "round" }),
+    fr({ ...look("sapphire"), cut: "cabochon", shape: "pear", widthMm: 2, direction: "radial", outline: "round" }), fr({ kind: "milgrain" }) ], center: { gem: "diamond", cut: "faceted", shape: "cushion", lengthMm: 8, widthMm: 7.5, domeMm: 1.4, color: "#f4f6fb", clarity: 0.95 } },
+  { name: "Sapphire & diamond stripes", blurb: "Sapphire calibré radiating in stripes with pavé diamond rays.", frames: [
+    fr({ kind: "milgrain" }), fr({ ...look("sapphire"), shape: "baguette", widthMm: 1.5, direction: "radial", alt: { gem: "diamond", color: "#f4f6fb", shape: "round", cut: "faceted" }, every: 2 }),
+    fr({ ...look("sapphire"), shape: "baguette", widthMm: 1.6, direction: "radial", alt: { gem: "diamond", color: "#f4f6fb", shape: "round", cut: "faceted" }, every: 2 }), fr({ kind: "milgrain" }) ] },
+  { name: "Ballerina", blurb: "Tapered baguettes fanning out round a round diamond.", frames: [
+    fr({ shape: "baguette", widthMm: 1.6, direction: "radial" }), fr({ shape: "baguette", widthMm: 1.8, direction: "radial", outline: "cushion" }) ], center: { gem: "diamond", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
+  { name: "Ruby labyrinth", blurb: "Alternating bands of calibré rubies and pavé in a cushion shape.", frames: [
+    fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, direction: "radial" }), fr({ outline: "cushion", widthMm: 1 }),
+    fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, outline: "cushion" }), fr({ outline: "cushion", widthMm: 1 }), fr({ kind: "milgrain", outline: "cushion" }) ] },
+  { name: "Marquise mosaic", blurb: "A marquise diamond in a cushion of pink sapphire cabochons and emerald marquise leaves.", frames: [
+    fr({ kind: "milgrain", outline: "marquise" }), fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.2, direction: "radial", outline: "oval", alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 2 }),
+    fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.2, direction: "radial", outline: "cushion", alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 3 }), fr({ kind: "milgrain", outline: "cushion" }) ],
+    center: { gem: "diamond", cut: "faceted", shape: "marquise", lengthMm: 13, widthMm: 6.5, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
+  { name: "Asscher in a pavé octagon", blurb: "A step-cut centre in two octagon rows of pavé.", frames: [
+    fr({ outline: "octagon", widthMm: 1.1 }), fr({ kind: "milgrain", outline: "octagon" }), fr({ outline: "octagon", widthMm: 1.2 }), fr({ kind: "milgrain", outline: "octagon" }) ],
+    center: { gem: "diamond", cut: "faceted", shape: "asscher", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
+];
+
 export const DesignSchema = z
   .object({
     type: z.enum(TYPES).default("ring"),
@@ -417,6 +483,8 @@ export const DesignSchema = z
       orientation: z.enum(["along", "across", "alternate"]).default("along"),
       /** extra turn for each stone in the pattern, degrees, matching shapes by position (e.g. rounds 0, marquise 90) */
       turns: z.array(z.number().min(-180).max(180)).max(12).default([]),
+      /** a pair of stones side by side at this spot in the pattern (e.g. twin baguettes between rounds) */
+      twins: z.array(z.boolean()).max(12).default([]),
     }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),
@@ -439,6 +507,8 @@ export const DesignSchema = z
       /** earrings: a stud post behind the top part, or a hook above it */
       top: z.enum(["post", "hook"]).default("post"),
     }).default({}),
+    /** Art Deco / layered halo styles: the layers around the centre stone, inside out */
+    frames: z.array(FrameSchema).max(8).default(FRAME_PRESETS[0].frames),
     /** earrings: null = a matching pair (one design for both); otherwise the right earring's own design */
     rightEar: z.record(z.unknown()).nullable().default(null),
     /** mirror the second earring of a pair */
@@ -454,6 +524,8 @@ export const DesignSchema = z
         hoopDiameterMm: z.number().min(8).max(70).default(22),
         /** hoops: round, a tall oval, or a long paperclip */
         hoopShape: z.enum(["round", "oval", "paperclip"]).default("round"),
+        /** gold collar link: crossed X links with pavé, or chevrons with stone rows */
+        linkStyle: z.enum(["x", "chevron"]).default("x"),
         /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         /** hoops: which face of the wire the stones sit on — the narrow front edge, the wide outer side, or inside */
@@ -568,8 +640,8 @@ export function estimateDims(gem: Gem, cut: CenterStone["cut"], shape: CenterSto
 /** side-stone length/width from carat, for a ~0.6 depth ratio diamond */
 export function sideStoneDims(kind: Design["sides"]["kind"], ct: number) {
   const vol = ((ct * 0.2) / 3.52) * 1000;
-  const fill = kind === "round" ? 0.5 : kind === "half-moon" ? 0.55 : 0.62;
-  const aspect = kind === "round" ? 1 : kind === "baguette" ? 2.6 : 2.1;
+  const fill = kind === "round" ? 0.5 : kind === "oval" ? 0.52 : kind === "pear" ? 0.48 : kind === "half-moon" ? 0.55 : 0.62;
+  const aspect = kind === "round" ? 1 : kind === "oval" ? 1.35 : kind === "pear" ? 1.5 : kind === "baguette" ? 2.6 : 2.1;
   const W = Math.cbrt(vol / (aspect * 0.6 * fill));
   return { L: W * aspect, W };
 }
@@ -637,4 +709,18 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Bridal maang tikka", type: "headpiece", style: "maang-tikka", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: diamond("pear", 1.5, "Polki diamond", "polki"), accents: { gem: "emerald", color: GEM_LOOK.emerald.color, sizeCt: 0.05 } } },
   { name: "Bridal nath", type: "nose", style: "nath", patch: { metal: "yellow-gold", purity: { karat: 22 }, accents: { gem: "ruby", color: GEM_LOOK.ruby.color, sizeCt: 0.03 } } },
   { name: "Ghungroo payal", type: "anklet", style: "payal", patch: { metal: "oxidised-silver" } },
+  { name: "Hexagon ruby Deco ring", type: "ring", style: "deco", patch: { metal: "platinum", center: diamond("old-mine", 1.5, "Old-mine diamond"), frames: FRAME_PRESETS[0].frames } as DesignPatch },
+  { name: "Ballerina ring", type: "ring", style: "deco", patch: { metal: "yellow-gold", center: diamond("round", 1, "Round brilliant"), frames: FRAME_PRESETS[6].frames } as DesignPatch },
+  { name: "Sapphire petal ring", type: "ring", style: "deco", patch: { metal: "platinum", center: diamond("cushion", 2, "Old cushion diamond"), frames: FRAME_PRESETS[4].frames } as DesignPatch },
+  { name: "Marquise mosaic cocktail ring", type: "ring", style: "deco", patch: { metal: "yellow-gold", center: diamond("marquise", 2.5, "Marquise diamond"), frames: FRAME_PRESETS[8].frames } as DesignPatch },
+  { name: "Pavé swirl ring", type: "ring", style: "swirl", patch: { metal: "white-gold", center: diamond("round", 1.2, "Round brilliant"), options: { count: 3 }, accents: { sizeCt: 0.012 } } },
+  { name: "Oval trilogy ring", type: "ring", style: "three-stone", patch: { metal: "platinum", center: diamond("oval", 2, "Oval diamond"), sides: { kind: "oval", sizeCt: 1.5 } } },
+  { name: "Old-mine and baguette line bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], sizeCt: 1.2 } } },
+  { name: "Round and twin-baguette bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true], sizeCt: 1.5 } } },
+  { name: "Three-row oval halo bracelet", type: "bracelet", style: "tennis", patch: { metal: "white-gold", accents: { shapes: ["oval"], sizeCt: 0.5 }, options: { layers: 3, halo: true } } },
+  { name: "Shield diamond open bangle", type: "bracelet", style: "open-bangle", patch: { metal: "yellow-gold", options: { pave: true }, accents: { shapes: ["baguette"], orientation: "across", sizeCt: 0.08 } } },
+  { name: "Rose-cut diamonds by the yard", type: "necklace", style: "by-the-yard", patch: { metal: "yellow-gold" } },
+  { name: "Gold X-link collar", type: "necklace", style: "gold-collar", patch: { metal: "yellow-gold", options: { linkStyle: "x" } } },
+  { name: "Ruby chevron collar", type: "necklace", style: "gold-collar", patch: { metal: "yellow-gold", options: { linkStyle: "chevron" }, accents: { gem: "ruby", color: GEM_LOOK.ruby.color, sizeCt: 0.015 } } },
+  { name: "Gold flower posy studs", type: "earrings", style: "flowers", patch: { metal: "yellow-gold", purity: { karat: 22 } } },
 ];

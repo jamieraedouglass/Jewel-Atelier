@@ -3,6 +3,7 @@
 import MotifPanel from "./MotifPanel";
 import DropComposer from "./DropComposer";
 import ShapeOrder from "./ShapeOrder";
+import FramesEditor from "./FramesEditor";
 import {
   BAND_FINISHES, BANGLE_SIZES, BEAD_GEMS, CHAIN_STYLES, CUTS, GEMS, GEM_LOOK, KARATS, METALS, NECKLACE_LENGTHS, SETTINGS, SHAPES, SHOWCASE, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL,
   SHAPE_RATIO, type Design, type DesignPatch, type ExtraStone, type Gem, applyPatch, chooseStyle, estimateDims, indianRingSize, isGold, label, styleMeta,
@@ -95,6 +96,8 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
       </section>
 
       {has("motif") && <MotifPanel design={d} userId={userId} onChange={onChange} />}
+
+      {has("frames") && <FramesEditor design={d} onChange={onChange} />}
 
       {has("drop") && <DropComposer design={d} onChange={onChange} focusIndex={dropFocus} />}
 
@@ -199,7 +202,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {!BEAD_GEMS.has(d.accents.gem) && (
             <>
               <span className="small muted">Pattern, repeated along every line of these stones. Add the same shape as often as you like (up to 12 stones per repeat).</span>
-              <ShapeOrder chips shapes={d.accents.shapes} turns={d.accents.turns} max={12} onChange={(shapes, turns) => onChange({ accents: { shapes, turns } })} />
+              <ShapeOrder chips shapes={d.accents.shapes} turns={d.accents.turns} twins={d.accents.twins} max={12} onChange={(shapes, turns, twins) => onChange({ accents: { shapes, turns, twins: twins ?? [] } })} />
               <div className="chips" role="group" aria-label="Quick patterns">
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["oval", "round"], turns: [] } })}>Oval–round</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["emerald", "round", "round"], turns: [] } })}>Emerald–round–round</button>
@@ -208,6 +211,8 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "round", "round", "marquise"], turns: [0, 0, 0, 90] } })}>3 rounds + marquise turned across</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["pear", "pear"], turns: [0, 180] } })}>Pears, alternating up and down</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"], turns: [] } })}>All hearts</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], twins: [] } })}>Old-mine round + baguette across</button>
+                <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true] } })}>Round + twin baguettes</button>
               </div>
               <span className="small muted">Stone direction</span>
               <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}
@@ -250,17 +255,17 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
         </section>
       )}
 
-      {(has("setting") || has("halo") || has("accentTop") || has("pave") || has("hoop") || has("length") || has("chain") || has("count") || has("layers") || has("wrist")) && (
+      {(has("setting") || has("halo") || has("accentTop") || has("pave") || has("hoop") || has("length") || has("chain") || has("count") || has("layers") || has("wrist") || has("links")) && (
         <section style={{ display: "grid", gap: 12 }}>
           <h3>Construction</h3>
           {has("setting") && <Chips name="Setting" options={SETTINGS} value={d.setting.style} onPick={(style) => onChange({ setting: { style } })} />}
           {has("setting") && d.type === "ring" && (
             <Range id="height" label="Height" value={d.setting.height} min={0} max={1} step={0.05} format={(n) => (n < 0.2 ? "Low, seated in shank" : n < 0.6 ? "Medium" : "Tall cathedral")} onChange={(height) => onChange({ setting: { height } })} />
           )}
-          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>Halo of accent stones</Toggle>}
+          {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{d.style === "tennis" ? "A halo round every stone" : "Halo of accent stones"}</Toggle>}
           {has("accentTop") && <Toggle id="acc-top" checked={o.accentTop} onChange={(accentTop) => setOpt({ accentTop })}>Accent stone at the top</Toggle>}
-          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>Set with stones</Toggle>}
-          {has("pave") && o.pave && (
+          {has("pave") && <Toggle id="pave" checked={o.pave} onChange={(pave) => setOpt({ pave })}>{d.style === "flowers" ? "A diamond in each flower" : d.style === "open-bangle" ? "A channel of stones along the bangle" : "Set with stones"}</Toggle>}
+          {has("pave") && o.pave && (d.style === "hoop" || d.style === "huggie") && (
             <>
               <span className="small muted">How far the stones run</span>
               <Chips name="Coverage" options={["front", "half", "full"] as const} value={o.paveCoverage}
@@ -280,8 +285,9 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
           {has("hoop") && <Range id="hoop" label="Diameter" value={o.hoopDiameterMm} min={8} max={70} step={1} format={(n) => `${n} mm`} onChange={(hoopDiameterMm) => setOpt({ hoopDiameterMm })} />}
           {has("length") && <Range id="length" label="Length" value={o.lengthIn} min={12} max={40} step={1} format={(n) => `${n}" (${Math.round(n * 2.54)} cm) · ${lengthName(n)}`} onChange={(lengthIn) => setOpt({ lengthIn })} />}
           {has("chain") && <Chips name="Chain" options={CHAIN_STYLES} value={o.chain} onPick={(chain) => setOpt({ chain })} />}
-          {has("count") && <Range id="count" label={d.style === "chandelier" ? "Tiers" : d.style === "tassel" ? "Strands" : d.style === "payal" ? "Bells" : "Stones"} value={o.count} min={1} max={d.style === "chandelier" ? 5 : 80} step={1} onChange={(count) => setOpt({ count })} />}
-          {has("layers") && <Range id="layers" label="Rows / strands" value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
+          {has("count") && <Range id="count" label={d.style === "swirl" ? "Ribbons" : d.style === "flowers" ? "Flowers" : d.style === "tassel" ? "Strands" : d.style === "payal" ? "Bells" : "Stones"} value={o.count} min={1} max={d.style === "swirl" ? 5 : d.style === "flowers" ? 12 : 80} step={1} onChange={(count) => setOpt({ count })} />}
+          {has("links") && <Chips name="Links" options={["x", "chevron"] as const} value={o.linkStyle} fmt={(v) => (v === "x" ? "X links with pavé" : "Chevrons with stone rows")} onPick={(linkStyle) => setOpt({ linkStyle })} />}
+          {has("layers") && <Range id="layers" label={d.style === "tennis" ? "Rows" : d.style === "by-the-yard" ? "Times round the neck" : "Rows / strands"} value={o.layers} min={1} max={7} step={1} onChange={(layers) => setOpt({ layers })} />}
           {has("wrist") && (solidBracelet
             ? <><span className="small muted">Bangle size (Indian)</span><Chips name="Bangle size" options={BANGLE_SIZES} value={o.bangleSize} fmt={(s) => s} onPick={(bangleSize) => setOpt({ bangleSize })} /></>
             : <Range id="wrist" label="Wrist" value={o.wristCm} min={13} max={24} step={0.5} format={(n) => `${n} cm`} onChange={(wristCm) => setOpt({ wristCm })} />)}

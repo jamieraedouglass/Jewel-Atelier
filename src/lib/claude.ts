@@ -110,7 +110,18 @@ const designPatchSchema = {
         },
       },
     },
-    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" } } },
+    accents: { type: "object", properties: { gem: gemProp, color: hexProp, cut: { type: "string", enum: ["faceted", "polki", "rose-cut"] }, sizeCt: { type: "number", description: "each, 0.005–6" }, shapes: { type: "array", items: { type: "string", enum: [...SHAPES] }, description: "tennis styles: 1–12 shapes repeated in order, e.g. [\"round\",\"round\",\"round\",\"marquise\"]" }, orientation: { type: "string", enum: ["along", "across", "alternate"] }, turns: { type: "array", items: { type: "number" }, description: "extra turn in degrees for each stone in shapes, by position, so some stones point one way and others another (e.g. shapes [round, round, marquise] with turns [0, 0, 90])" }, twins: { type: "array", items: { type: "boolean" }, description: "by position: true sets two stones side by side there (twin baguettes between rounds)" } } },
+    frames: {
+      type: "array",
+      description: "ring/earring style deco: layers round the centre stone, inside out. Replaces the whole list.",
+      items: { type: "object", properties: {
+        kind: { type: "string", enum: ["stones", "milgrain", "metal"] }, outline: { type: "string", enum: [...SHAPES], description: "the layer's shape: round, octagon, hexagon, cushion…" },
+        gem: gemProp, color: hexProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES], description: "stone shape: round pavé, princess/baguette calibré, pear/oval petals" },
+        widthMm: { type: "number" }, direction: { type: "string", enum: ["along", "radial"], description: "radial = fanning out from the centre (calibré, ballerina, petals)" },
+        alt: { type: "object", properties: { gem: gemProp, color: hexProp, shape: { type: "string", enum: [...SHAPES] }, cut: { type: "string", enum: [...CUTS] } }, description: "stripes of a second gem" },
+        every: { type: "integer", description: "stones of the first gem between each second-gem stone" }, gapMm: { type: "number" },
+      } },
+    },
     fringe: { type: "object", properties: { enabled: { type: "boolean" }, gem: gemProp, color: hexProp, sizeMm: { type: "number", description: "1.5–14" } } },
     enamel: { type: "object", properties: { enabled: { type: "boolean" }, color: hexProp } },
     metal: { type: "string", enum: [...METALS] },
@@ -123,7 +134,7 @@ const designPatchSchema = {
       type: "object",
       properties: {
         halo: { type: "boolean" }, accentTop: { type: "boolean" }, pave: { type: "boolean" },
-        hoopDiameterMm: { type: "number" }, hoopShape: { type: "string", enum: ["round", "oval", "paperclip"] }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
+        hoopDiameterMm: { type: "number" }, hoopShape: { type: "string", enum: ["round", "oval", "paperclip"] }, linkStyle: { type: "string", enum: ["x", "chevron"], description: "gold collar links" }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
       },

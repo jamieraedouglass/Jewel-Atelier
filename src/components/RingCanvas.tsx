@@ -294,12 +294,14 @@ function StudioLights() {
   });
   return (
     <Environment resolution={256} background={false}>
-      <color attach="background" args={["#141418"]} />
+      <color attach="background" args={["#2e2a27"]} />
       <Lightformer form="rect" intensity={11} position={[0, 19, 0]} rotation-x={Math.PI / 2} scale={[26, 5, 1]} />
       <Lightformer form="rect" intensity={7} position={[-24, 4, 10]} scale={[4, 22, 1]} target={[0, 0, 0]} />
       <Lightformer form="rect" intensity={6} position={[24, 4, -6]} scale={[4, 22, 1]} target={[0, 0, 0]} />
       <Lightformer form="rect" intensity={4.5} color="#fff3e6" position={[0, 8, 26]} scale={[18, 3, 1]} target={[0, 0, 0]} />
       {strips}
+      {/* a soft band of light all round the horizon, so the sides of settings and bezels read as polished metal, not black */}
+      {Array.from({ length: 8 }, (_, k) => { const a = (k / 8) * Math.PI * 2; return <Lightformer key={`h${k}`} form="rect" intensity={1.1} color="#f4efe8" position={[Math.cos(a) * 30, -2, Math.sin(a) * 30]} scale={[24, 7, 1]} target={[0, 0, 0]} />; })}
     </Environment>
   );
 }
