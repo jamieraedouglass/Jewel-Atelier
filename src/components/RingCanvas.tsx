@@ -8,7 +8,7 @@ import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Design } from "@/lib/design";
-import { buildPiece, type Piece } from "@/lib/jewelryModel";
+import { buildPiece, buildWornPiece, type Piece } from "@/lib/jewelryModel";
 import { disposeGroup } from "@/lib/ringModel";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { MeshRefractionMaterial } from "@react-three/drei/materials/MeshRefractionMaterial";
@@ -22,7 +22,7 @@ export type Cutout = { url: string; mmPerPx: number; widthMm: number; heightMm: 
 export type RingCanvasHandle = {
   snapshot: (type?: "image/jpeg" | "image/png") => Promise<Blob | null>;
   /** a true-to-scale picture of one piece (one earring of a pair) on a clear background, for trying it on a photo */
-  cutout?: (mode?: "whole" | "front", ear?: "left" | "right") => Cutout | null;
+  cutout?: (mode?: "whole" | "front", ear?: "left" | "right", flatten?: number) => Cutout | null;
   /** a picture from the standard ¾ view, whatever angle the viewer has turned to (for gallery thumbnails) */
   hero?: () => Promise<Blob | null>;
 };
@@ -98,14 +98,19 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       gl.render(scene, cam);
       el.toBlob((b) => { gl.autoClear = auto; gl.setRenderTarget(rt); res(b); }, "image/jpeg", 0.9);
     });
-    handle.current.cutout = (mode = "whole", ear = "left") => {
-      const { piece, design } = latest.current;
+    handle.current.cutout = (mode = "whole", ear = "left", flatten = 1) => {
+      const { piece: shown, design } = latest.current;
+      // worn: rebuild the piece with its loop flattened, so the stones keep their own shape (only the path changes)
+      const worn = mode === "front" && flatten < 0.999 && !shown.upright ? buildWornPiece(design, flatten) : null;
+      const piece = worn ?? shown;
+      if (worn) { roomLight(gl, worn.group); shown.group.visible = false; scene.add(worn.group); }
+      const done = <T,>(v: T) => { if (worn) { scene.remove(worn.group); disposeGroup(worn.group); shown.group.visible = true; } return v; };
       const { obj, hide } = subjectOf(piece, design, ear);
       piece.group.updateWorldMatrix(true, true);
       hide.forEach((h) => (h.visible = false));
       const box = new THREE.Box3().setFromObject(obj);
       hide.forEach((h) => (h.visible = true));
-      if (box.isEmpty()) return null;
+      if (box.isEmpty()) return done(null);
       // worn on a wrist, ankle or neck you only see the front of the loop: keep the front half
       let clip: THREE.Plane | null = null;
       if (mode === "front" && !piece.upright) {
@@ -176,7 +181,7 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       octx.putImageData(colour, 0, 0);
       scene.background = bg; gl.setClearColor(prevColor, clear); gl.autoClear = auto; gl.setRenderTarget(target);
       hidden.forEach((o) => (o.visible = true));
-      return { url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY };
+      return done({ url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY });
     };
   }, [gl, scene, handle]);
   return null;
@@ -187,9 +192,8 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
  * bounces light around inside, so the stone facets (and only those; metal keeps the dark light box) reflect a bright room.
  */
 let roomEnv: THREE.Texture | null = null;
-function StoneLight({ piece }: { piece: Piece }) {
-  const { gl } = useThree();
-  useEffect(() => {
+/** point stone facets at the bright room (see StoneLight); used for the on-screen piece and for try-on copies */
+function roomLight(gl: THREE.WebGLRenderer, group: THREE.Object3D) {
     if (!roomEnv) {
       const pm = new THREE.PMREMGenerator(gl);
       // a bright room with a big softbox overhead, so stones seen from above (the Top view) light up instead of going grey
@@ -200,14 +204,12 @@ function StoneLight({ piece }: { piece: Piece }) {
       roomEnv = pm.fromScene(room, 0.005).texture;
       pm.dispose();
     }
-    piece.group.traverse((o) => {
+    group.traverse((o) => {
       const mats = (o as THREE.Mesh).material;
       if (!mats) return;
       for (const mat of Array.isArray(mats) ? mats : [mats]) {
         const ph = mat as THREE.MeshPhysicalMaterial;
-        // only the mirror facets of stones (flat-shaded, metallic); coloured stone bodies and metal keep the studio light
         if (!ph.flatShading || ph.userData.roomLit) continue;
-        // the clear "skin" over colourless stones: room-lit too, gently, so pavé doesn't glow white
         if (ph.metalness < 0.9) { ph.envMap = roomEnv; ph.envMapIntensity = 1; ph.userData.roomLit = true; ph.needsUpdate = true; continue; }
         ph.envMap = roomEnv;
         ph.envMapIntensity = 1.35;
@@ -216,6 +218,12 @@ function StoneLight({ piece }: { piece: Piece }) {
         ph.needsUpdate = true;
       }
     });
+}
+
+function StoneLight({ piece }: { piece: Piece }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    roomLight(gl, piece.group);
   }, [gl, piece]);
   return null;
 }

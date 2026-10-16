@@ -604,13 +604,15 @@ function bell(d: Design, m: Mats, R: number) {
 /* ================= curves ================= */
 
 /** a closed loop of the given length; aspect widens it, point makes a soft V at the front (+Z) */
+/** 1 = the loop as it lies on a table; less = flattened front to back, as a bracelet or necklace looks when worn */
+let LOOP_FLATTEN = 1;
 function loopCurve(lengthMm: number, aspect: number, point: number) {
   const make = (k: number) => {
     const pts: THREE.Vector3[] = [];
     for (let i = 0; i < 96; i++) {
       const t = (i / 96) * Math.PI * 2;
       const x = Math.cos(t) * k * aspect;
-      let z = Math.sin(t) * k;
+      let z = Math.sin(t) * k * LOOP_FLATTEN;
       if (z > 0) z += point * k * Math.pow(Math.max(0, 1 - Math.abs(x) / (k * aspect)), 2);
       pts.push(v3(x, 0, z));
     }
@@ -837,15 +839,33 @@ function swirlArms(d: Design, m: Mats, c: CenterStone, gy: number, RIN: number) 
 }
 
 /** a posy of little gold flowers on a dome, optionally with a diamond in each centre */
-function flowerCluster(d: Design, m: Mats) {
+/**
+ * A posy of little gold flowers. With `around` (a centre stone's outline), the flowers frame the stone in a ring
+ * instead of filling the middle, sitting just below its girdle and tilting gently outward.
+ */
+function flowerCluster(d: Design, m: Mats, around?: CenterStone) {
   const g = new THREE.Group();
-  const n = Math.max(1, Math.min(12, d.options.count));
+  const n = Math.max(1, Math.min(around ? 16 : 12, d.options.count));
   const petal = new THREE.SphereGeometry(1, 14, 10);
-  const spots: { pos: THREE.Vector3; up: THREE.Vector3; r: number; petals: number }[] = [{ pos: v3(0, 2.2, 0), up: Y.clone(), r: 2.6, petals: 8 }];
-  for (let i = 1; i < n; i++) {
-    const a = (i / (n - 1)) * Math.PI * 2 + (i % 2) * 0.3, ring = 4.1 + (i % 2) * 0.6;
-    const up = v3(Math.cos(a) * 0.55, 1, Math.sin(a) * 0.55).normalize();
-    spots.push({ pos: v3(Math.cos(a) * ring, 1.1 - (i % 2) * 0.3, Math.sin(a) * ring), up, r: 1.9 + ((i * 7) % 5) * 0.15, petals: 5 + (i % 4) });
+  const spots: { pos: THREE.Vector3; up: THREE.Vector3; r: number; petals: number }[] = [];
+  let outer = 5.6;
+  if (around) {
+    const fn = outlineFn(around.shape, around.lengthMm, around.widthMm);
+    const fr = Math.max(1.6, Math.min(3, (Math.max(around.lengthMm, around.widthMm) * Math.PI) / (n * 2.1)));
+    for (let i = 0; i < n; i++) {
+      const [x, z] = fn(i / n), r0 = Math.hypot(x, z) || 1;
+      const k = (r0 + fr * 0.95 + 0.3) / r0;
+      const out = v3(x / r0, 0, z / r0);
+      spots.push({ pos: v3(x * k, -0.6 - (i % 2) * 0.25, z * k), up: v3(out.x * 0.45, 1, out.z * 0.45).normalize(), r: fr * (0.92 + ((i * 7) % 5) * 0.04), petals: 5 + (i % 3) });
+      outer = Math.max(outer, r0 + fr * 2 + 0.3);
+    }
+  } else {
+    spots.push({ pos: v3(0, 2.2, 0), up: Y.clone(), r: 2.6, petals: 8 });
+    for (let i = 1; i < n; i++) {
+      const a = (i / (n - 1)) * Math.PI * 2 + (i % 2) * 0.3, ring = 4.1 + (i % 2) * 0.6;
+      const up = v3(Math.cos(a) * 0.55, 1, Math.sin(a) * 0.55).normalize();
+      spots.push({ pos: v3(Math.cos(a) * ring, 1.1 - (i % 2) * 0.3, Math.sin(a) * ring), up, r: 1.9 + ((i * 7) % 5) * 0.15, petals: 5 + (i % 4) });
+    }
   }
   const centres: Item[] = [];
   for (const s of spots) {
@@ -865,9 +885,16 @@ function flowerCluster(d: Design, m: Mats) {
   }
   if (d.options.pave) g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, centres));
   else g.add(balls(m.metal, centres.map((c) => ({ ...c, dia: c.dia * 0.9 }))));
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(5.6, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m.metal);
-  dome.scale.y = 0.35;
-  g.add(dome);
+  if (around) {
+    // a gold gallery under the ring of flowers
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(outer * 0.92, outer * 0.75, 1.2, 48), m.metal);
+    plate.position.y = -1.6;
+    g.add(plate);
+  } else {
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(5.6, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m.metal);
+    dome.scale.y = 0.35;
+    g.add(dome);
+  }
   return g;
 }
 
@@ -965,7 +992,7 @@ function ringPiece(d: Design): Piece {
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
   const at = (o: THREE.Object3D) => { o.position.y += gy; group.add(o); };
   if (st === "halo") at(halo(d, m, c).group);
-  if (st === "posy") { const f = flowerCluster(d, m); f.scale.setScalar(Math.max(1, (Math.max(c.lengthMm, c.widthMm) + 6) / 11)); at(f); }
+  if (st === "posy") { const f = flowerCluster(d, m, c); f.rotation.y = THREE.MathUtils.degToRad(c.rotation); at(f); }
   if (st === "deco") at(decoFrames(d, m, c).group);
   if (st === "swirl") group.add(swirlArms(d, m, c, gy, ringInnerDiameter(d.ringSize) / 2));
   if (st === "polki-cocktail") {
@@ -2133,6 +2160,12 @@ function handPiece(d: Design, m: Mats): Piece {
     group.add(chainAlong(new THREE.CatmullRomCurve3([v3(x * 0.2, 0, -f.radius), v3(x * 0.6, 0, (wf.z - f.radius) / 2), end]), "fine", m));
   }
   return { group, focus: v3(), focusSize: f.radius * 6, upright: false };
+}
+
+/** build with the loop flattened (worn look): stones keep their shape and spacing, only the loop's path changes */
+export function buildWornPiece(d: Design, flatten: number): Piece {
+  LOOP_FLATTEN = Math.max(0.1, Math.min(1, flatten));
+  try { return buildPiece(d); } finally { LOOP_FLATTEN = 1; }
 }
 
 export function buildPiece(d: Design): Piece {
