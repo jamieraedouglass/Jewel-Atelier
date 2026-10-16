@@ -48,3 +48,11 @@ describe("demo link", () => {
     expect(demoLinkDetail("nobody")).toBeNull();
   });
 });
+
+describe("chat replies", () => {
+  it("come out as plain text", async () => {
+    const { plainReply } = await import("@/lib/chat");
+    expect(plainReply("**Centre stone:** an emerald.\n\n## Notes\n* round diamonds\n* rose-cuts")).toBe("Centre stone: an emerald.\n\nNotes\n• round diamonds\n• rose-cuts");
+    expect(plainReply("A 2 * 3 grid stays")).toBe("A 2 * 3 grid stays");
+  });
+});

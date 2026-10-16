@@ -3,6 +3,7 @@ import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, CHAT_SYSTEM, createMotifTool, MODEL, proposeDesignTool, storageImages, toMotif } from "@/lib/claude";
 import { MOTIF_STYLE, designForAi, normalizeDesign } from "@/lib/design";
+import { plainReply } from "@/lib/chat";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
       tools: [proposeDesignTool, createMotifTool],
       messages: apiMessages,
     });
-    const reply = msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+    const reply = plainReply(msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n"));
     const proposals = msg.content
       .filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === proposeDesignTool.name)
       .map((b) => b.input as { title: string; why: string; patch: Record<string, unknown> });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODEL, proposeDesignTool } from "@/lib/claude";
 import { applyPatchLenient, designForAi, normalizeDesign, type DesignPatch } from "@/lib/design";
-import { normalizeChat } from "@/lib/chat";
+import { normalizeChat, plainReply } from "@/lib/chat";
 import { aiFailure } from "@/lib/apiError";
 import { BRAND } from "@/lib/brand";
 import { clientChatSystem, isPriceQuestion, mentionsMoney, priceReply } from "@/lib/studio/clientChat";
@@ -58,7 +58,7 @@ export async function POST(req: Request, { params }: { params: { token: string }
       system: `${clientChatSystem(BRAND.studioName, bundle.link.client_name, bundle.link.note)}\n${allowText(bundle.allow, piece.base)}`,
       tools: [proposeDesignTool], messages: apiMessages,
     });
-    const text = msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+    const text = plainReply(msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n"));
     // the last word on prices: if one slipped through, the client gets the standard answer instead
     const reply = mentionsMoney(text) ? priceReply(BRAND.studioName) : text;
     // each suggestion becomes the finished design it would give, kept within what's allowed; no-ops are dropped
