@@ -9,7 +9,7 @@ const links: DashLink[] = [
 const events: DashEvent[] = [
   { id: 1, link_id: "L1", design_id: null, kind: "opened", detail: {}, at: "2026-10-16T09:00:00Z" },
   { id: 2, link_id: "L1", design_id: "d1", kind: "changed", detail: { changes: ["Ring size US 6.5 → 7"] }, at: "2026-10-16T09:05:00Z" },
-  { id: 3, link_id: "L1", design_id: "d1", kind: "asked-jeweller", detail: { message: "Price in 22k?", contact: "+91 98…" }, at: "2026-10-16T09:10:00Z" },
+  { id: 3, link_id: "L1", design_id: "d1", kind: "asked-jeweller", detail: { message: "Price in 22k?" }, at: "2026-10-16T09:10:00Z" },
   { id: 4, link_id: "L1", design_id: "d2", kind: "asked-designer", detail: { question: "Is it heavy?" }, at: "2026-10-16T09:07:00Z" },
 ];
 const names = { d1: "Half-flower ring", d2: "Kashi Kamal earrings" };
@@ -24,7 +24,7 @@ describe("studio dashboard", () => {
 
   it("writes events as sentences, newest first, with messages to the jeweller up top", () => {
     const s = studioSummary(links, events, names, now);
-    expect(s.feed[0].text).toBe('Meher wrote to you about Half-flower ring: "Price in 22k?" (+91 98…)');
+    expect(s.feed[0].text).toBe('Meher wrote to you about Half-flower ring: "Price in 22k?"');
     expect(s.feed.map((f) => f.text)).toContain("Meher changed Half-flower ring: Ring size US 6.5 → 7");
     expect(s.needsYou).toHaveLength(1);
     expect(s.mostViewed[0]).toEqual({ name: "Half-flower ring", interactions: 2 });

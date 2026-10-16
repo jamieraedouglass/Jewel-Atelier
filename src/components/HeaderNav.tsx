@@ -10,6 +10,7 @@ export default function HeaderNav({ userName, isAdmin }: { userName: string | nu
   return (
     <nav className="nav">
       <Link href="/design">New design</Link>
+      <Link href="/demo">Demo</Link>
       {userName !== null ? (
         <>
           <span className="muted" style={{ textTransform: "none", letterSpacing: 0 }}>{userName}</span>

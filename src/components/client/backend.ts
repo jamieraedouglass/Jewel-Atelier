@@ -10,7 +10,7 @@ export interface ClientBackend {
   /** save an adjusted piece; resolves with what was kept (only what's allowed) */
   save(designId: string, design: Design): Promise<Design | null>;
   chat(designId: string, design: Design, messages: { role: "user" | "assistant"; content: string }[], history: ChatMessage[]): Promise<{ reply: string; proposals: { title: string; why: string; design: Design }[] }>;
-  event(designId: string | null, kind: EventKind, detail?: { message?: string; contact?: string }): Promise<void>;
+  event(designId: string | null, kind: EventKind, detail?: { message?: string }): Promise<void>;
 }
 
 async function post<T>(url: string, body: unknown): Promise<T> {

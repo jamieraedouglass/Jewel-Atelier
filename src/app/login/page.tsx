@@ -2,7 +2,9 @@
 
 import { Suspense } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { BRAND } from "@/lib/brand";
 import { signInWithName } from "./actions";
 
 function Submit() {
@@ -35,6 +37,12 @@ function LoginForm() {
           No password. The same name always opens the same account, with your saved designs and style profile, on any device.
         </p>
       </form>
+      <Link href="/demo" className="card" style={{ padding: 18, gap: 6, marginTop: 28 }}>
+        <span className="small muted">New here?</span>
+        <b style={{ fontWeight: 400 }}>See what the {BRAND.private ? "studio" : "client links"} can do</b>
+        <span className="small muted">A walk-through with sample pieces and a sample client: what clients see, what you see, and the workshop sheet. Nothing is saved.</span>
+        <span className="small" style={{ color: "var(--accent)" }}>Open the demo →</span>
+      </Link>
     </main>
   );
 }

@@ -55,7 +55,7 @@ export function demoStudio(now = Date.now()) {
     ev("demo-meher", null, "opened", 2.5),
     ev("demo-meher", r1, "changed", 2.3, { changes: ["Metal 18k Yellow gold → 22k Yellow gold", "Stone size 8.4 × 8.4 → 9.2 × 9.2 mm"] }),
     ev("demo-meher", null, "tried-on", 2.1),
-    ev("demo-meher", r1, "asked-jeweller", 2, { message: "I love the ruby one in 22k. Could the band be a little thinner? And what would it cost?", contact: "+91 98200 00000" }),
+    ev("demo-meher", r1, "asked-jeweller", 2, { message: "I love the ruby one in 22k. Could the band be a little thinner? And what would it cost?" }),
     ev("demo-meera", null, "opened", 26),
     ev("demo-meera", e1, "tried-on", 25.8),
     ev("demo-meera", e1, "asked-designer", 25.5, { question: "Are these heavy to wear for a whole evening?" }),

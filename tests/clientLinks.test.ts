@@ -90,3 +90,11 @@ describe("links and access", () => {
     expect(isStudioAdmin({ email: "carl@users.jewel-atelier.invalid" }, "")).toBe(false);
   });
 });
+
+describe("private studio access", () => {
+  it("lets visitors open only sign-in, client links and the demo", async () => {
+    const { isOpenPath } = await import("@/lib/access");
+    for (const p of ["/login", "/auth/callback", "/c/abc123", "/api/client/abc/save", "/demo", "/demo/client"]) expect(isOpenPath(p), p).toBe(true);
+    for (const p of ["/", "/design", "/rings", "/studio", "/d/123", "/api/chat", "/c/abc/extra", "/demonstrate", "/loginx"]) expect(isOpenPath(p), p).toBe(false);
+  });
+});

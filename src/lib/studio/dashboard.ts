@@ -16,7 +16,7 @@ export function eventText(e: Pick<DashEvent, "kind" | "detail">, pieceName: stri
     case "tried-on": return pieceName ? `tried on${on}` : "tried the pieces on together";
     case "compared": return "compared pieces side by side";
     case "asked-designer": return `asked the designer about${on}: "${String(e.detail.question ?? "")}"`;
-    case "asked-jeweller": return `wrote to you${pieceName ? ` about${on}` : ""}: "${String(e.detail.message ?? "")}"${e.detail.contact ? ` (${String(e.detail.contact)})` : ""}`;
+    case "asked-jeweller": return `wrote to you${pieceName ? ` about${on}` : ""}: "${String(e.detail.message ?? "")}"`;
     default: return e.kind;
   }
 }

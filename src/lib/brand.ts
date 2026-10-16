@@ -17,6 +17,8 @@ export type Brand = {
   showcaseCategory: "kothari" | "ring";
   /** what clients see as the sender of a design link */
   studioName: string;
+  /** a private studio: only signed-in staff see the site; clients see nothing but the links they're sent */
+  private: boolean;
 };
 
 export const BRANDS: Record<BrandId, Brand> = {
@@ -32,6 +34,7 @@ export const BRANDS: Record<BrandId, Brand> = {
     },
     showcaseCategory: "ring",
     studioName: "Jewel Atelier",
+    private: false,
   },
   kothari: {
     id: "kothari",
@@ -45,6 +48,7 @@ export const BRANDS: Record<BrandId, Brand> = {
     },
     showcaseCategory: "kothari",
     studioName: "Kotharis Jewellers",
+    private: true,
   },
 };
 

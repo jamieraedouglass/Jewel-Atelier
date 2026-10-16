@@ -185,7 +185,7 @@ details.pos summary { cursor: pointer; color: var(--muted); }
   --fg: #151412;
   --muted: #6e675d;
   --line: rgba(21, 20, 18, 0.12);
-  --accent: #0b6b4f;
+  --accent: #a8822a; /* the house gold */
   --accent-2: #8c1c2e;
   --danger: #a3242f;
   --radius: 4px;

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
 import HeaderNav from "@/components/HeaderNav";
 import "@fontsource/bodoni-moda/400.css";
 import "@fontsource/bodoni-moda/400-italic.css";
@@ -21,11 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-brand={BRAND.id}>
       <body>
         <header className="topbar">
-          {BRAND.wordmark.sub ? (
-            <Link href="/" className="wordmark" aria-label={BRAND.name}><span className="main">{BRAND.wordmark.main}</span><span className="sub">{BRAND.wordmark.sub}</span></Link>
-          ) : (
-            <Link href="/" className="brand">{BRAND.wordmark.main} <em>{BRAND.wordmark.accent}</em></Link>
-          )}
+          <BrandMark />
           <HeaderNav userName={user ? ((user.user_metadata?.display_name as string) || "Signed in") : null} isAdmin={isStudioAdmin(user)} />
         </header>
         {children}
