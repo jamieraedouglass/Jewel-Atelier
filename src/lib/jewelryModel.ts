@@ -1025,6 +1025,20 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const c = d.center;
   const belly = c.cut === "cabochon" ? Math.min(c.widthMm * 0.14, 2) : c.cut === "faceted" ? c.widthMm * 0.43 : Math.max(0.4, c.domeMm);
   let drop: number;
+  if (prof === "flush") {
+    // centre stone level with the band: its girdle sits just at the band's surface, the band deep and wide enough
+    // under it to hold the whole stone, so nothing stands up off the band
+    const topT = Math.min(7, Math.max(2.6, belly + 0.7));
+    const c0 = d.center;
+    const prevTop = shank.userData.top as { topW: number; topT: number; spread: number } | undefined;
+    const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm + 1.4, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.6, prevTop?.spread ?? 0) };
+    shank.geometry.dispose();
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
+    shank.userData.top = top;
+    drop = gy - (RIN + top.topT + 0.05);
+    if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
+    return;
+  }
   if (prof === "set-in") {
     // the girdle ends up just above the band's top surface; the pavilion may open into the finger hole (an open gallery)
     const target = RIN + Math.max(2.9, belly * 0.75 + 0.6);

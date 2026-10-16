@@ -513,7 +513,7 @@ export const DesignSchema = z
     band: z.object({
       widthMm: z.number().min(1.5).max(16).default(2.3), finish: z.enum(BAND_FINISHES).default("polished"),
       /** the design sits up on top of the band, low on it, or set into a band that widens to hold it */
-      profile: z.enum(["raised", "low", "set-in"]).default("raised"),
+      profile: z.enum(["raised", "low", "set-in", "flush"]).default("raised"),
       /** classic (rounded, a little heavier under the head), flat (flat top, square edges), or cigar (wide, domed, even) */
       shape: z.enum(["classic", "flat", "cigar"]).default("classic"),
       /** stones running down the band from the head: none, the shoulders, half way, or all the way round */
