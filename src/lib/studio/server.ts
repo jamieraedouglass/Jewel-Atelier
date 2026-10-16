@@ -24,7 +24,8 @@ export type ClientBundle = { link: LinkRow; allow: Allow; state: ReturnType<type
 const db = () => createAdminClient();
 
 export async function linkByToken(token: string): Promise<LinkRow | null> {
-  if (!isToken(token)) return null;
+  // no database yet (a studio still being set up): no links exist
+  if (!isToken(token) || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) return null;
   const { data } = await db().from("client_links").select("*").eq("token", token).maybeSingle();
   return (data as LinkRow | null) ?? null;
 }
