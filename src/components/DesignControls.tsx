@@ -12,6 +12,17 @@ import {
 type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void; dropFocus?: number | null };
 
 const ENAMEL_SWATCHES = [["Meenakari green", "#16704c"], ["Ruby red", "#9b1630"], ["Peacock blue", "#1b3f8f"], ["Ivory", "#f3efe6"], ["Rani pink", "#d94f87"], ["Black", "#151515"]];
+/** colour runs for multi-colour lines, e.g. a rainbow sapphire tennis bracelet */
+const RAINBOW = ["#d8371f", "#ee6a1c", "#f2a81c", "#efd21f", "#9cc63a", "#2e9e54", "#1f8a9a", "#2456b8", "#4433a6", "#7a3fa6", "#c23c8f", "#e2558a"];
+const COLOR_PRESETS: [string, string[]][] = [
+  ["Rainbow", RAINBOW],
+  ["Rainbow, there and back", [...RAINBOW, ...RAINBOW.slice(1, -1).reverse()]],
+  ["Pink ombré", ["#fbd3df", "#f6a9c0", "#ee7ea2", "#e2558a", "#c23c74", "#e2558a", "#ee7ea2", "#f6a9c0"]],
+  ["Blue ombré", ["#cfe2f7", "#9cc2ec", "#5f93d8", "#2f62bd", "#1c3f94", "#2f62bd", "#5f93d8", "#9cc2ec"]],
+  ["Ruby & diamond", ["#b3062a", "#f4f6fb"]],
+  ["Emerald & diamond", ["#0b7a4b", "#f4f6fb"]],
+  ["Sapphire & diamond", ["#0c2394", "#f4f6fb"]],
+];
 const FRINGE_GEMS: Gem[] = ["pearl", "coral", "emerald", "ruby", "onyx", "turquoise", "garnet", "amethyst"];
 const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));
 
@@ -214,6 +225,25 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["heart"], turns: [], sizes: [] } } as DesignPatch)}>All hearts</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], twins: [], sizes: [] } } as DesignPatch)}>Old-mine round + baguette across</button>
                 <button type="button" className="chip" onClick={() => onChange({ accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true], sizes: [] } } as DesignPatch)}>Round + twin baguettes</button>
+              </div>
+              <span className="small muted">Colours, one stone after another (leave empty for all one colour)</span>
+              <div className="chips" role="group" aria-label="Stone colours">
+                {d.accents.colors.map((c, i) => (
+                  <span key={i} className="chip" style={{ display: "inline-flex", gap: 4, alignItems: "center", padding: "2px 4px" }}>
+                    <input type="color" aria-label={`Colour ${i + 1}`} value={c} style={{ width: 26, height: 22, border: 0, background: "none", padding: 0 }}
+                      onChange={(e) => onChange({ accents: { colors: d.accents.colors.map((x, j) => (j === i ? e.target.value : x)) } } as DesignPatch)} />
+                    <button type="button" className="chip" style={{ padding: "1px 7px" }} aria-label="Remove colour" onClick={() => onChange({ accents: { colors: d.accents.colors.filter((_, j) => j !== i) } } as DesignPatch)}>×</button>
+                  </span>
+                ))}
+                <button type="button" className="chip" disabled={d.accents.colors.length >= 60} onClick={() => onChange({ accents: { colors: [...d.accents.colors, d.accents.colors[d.accents.colors.length - 1] ?? d.accents.color] } } as DesignPatch)}>+ colour</button>
+              </div>
+              <div className="chips" role="group" aria-label="Colour presets">
+                {COLOR_PRESETS.map(([n, cols]) => (
+                  <button key={n} type="button" className="chip" style={{ textTransform: "none" }} onClick={() => onChange({ accents: { colors: cols } } as DesignPatch)}>
+                    <span style={{ display: "inline-flex", marginRight: 6 }}>{cols.slice(0, 7).map((c, k) => <span key={k} style={{ width: 8, height: 8, borderRadius: 9, background: c, marginLeft: k ? -2 : 0 }} />)}</span>{n}
+                  </button>
+                ))}
+                {d.accents.colors.length > 0 && <button type="button" className="chip" onClick={() => onChange({ accents: { colors: [] } } as DesignPatch)}>All one colour</button>}
               </div>
               <span className="small muted">Stone direction</span>
               <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={d.accents.orientation}

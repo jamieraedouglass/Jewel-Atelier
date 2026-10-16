@@ -490,6 +490,8 @@ export const DesignSchema = z
       twins: z.array(z.boolean()).max(12).default([]),
       /** size of each stone in the pattern, as a multiple of the base size (e.g. a big round, a small round, a baguette) */
       sizes: z.array(z.number().min(0.2).max(4)).max(12).default([]),
+      /** a colour for each stone in turn, repeating (rainbows, ombrés, two-tone); empty = all one colour */
+      colors: z.array(hex).max(60).default([]),
     }).default({}),
     /** hanging beads: pearl fringes, tassels, bead strands */
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),

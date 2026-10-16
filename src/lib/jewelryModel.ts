@@ -236,6 +236,28 @@ function orient(o: THREE.Object3D, it: Item) {
   o.updateMatrix();
 }
 
+/** a setting rim that follows the stone's own outline (heart, pear, marquise...), unit width, length = aspect */
+const rimCache = new Map<string, THREE.BufferGeometry>();
+function shapedRim(shape: CenterStone["shape"], asp: number, r: number) {
+  const key = `${shape}|${asp}|${r}`;
+  const hit = rimCache.get(key);
+  if (hit) return hit;
+  const fn = outlineFn(shape, asp, 1);
+  const pts = Array.from({ length: 64 }, (_, i) => { const [x, z] = fn(i / 64); const k = 1 + 0.06 / Math.max(0.2, Math.hypot(x, z)); return v3(x * k, 0, z * k); });
+  const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, "centripetal"), 96, r, 6, true);
+  rimCache.set(key, g);
+  return g;
+}
+
+/** four little claws on the stone's own outline: corners for step shapes, the point and lobes for hearts and pears */
+function prongAt(shape: CenterStone["shape"], asp: number, k: number): [number, number] {
+  const degs = clawDegrees(shape, asp, 1, "four-claw");
+  const fn = outlineFn(shape, asp, 1);
+  const deg = degs.length >= 4 ? degs[Math.floor((k * degs.length) / 4)] : 45 + k * 90;
+  const [x, z] = fn(deg / 360);
+  return [x * 1.02, z * 1.02];
+}
+
 /** small round stones in cups; beads become spheres */
 const ASPECT = SHAPE_RATIO;
 
@@ -250,7 +272,7 @@ function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], it
     const asp0 = ASPECT[shape];
     const meshes = [
       new THREE.InstancedMesh(cutGeometry("cabochon", shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: "cabochon", color, clarity: 0.45 }, 1), items.length),
-      new THREE.InstancedMesh(new THREE.TorusGeometry(0.52, 0.06, 6, 24).rotateX(Math.PI / 2).scale(1, 1, asp0), m.metal, items.length),
+      new THREE.InstancedMesh(shapedRim(shape, asp0, 0.06), m.metal, items.length),
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });
     meshes.forEach((x) => g.add(x));
@@ -270,7 +292,7 @@ function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], it
   const meshes = [
     new THREE.InstancedMesh(geo, m.mirror(tint, cut === "polki" ? 2.4 : 3.6), items.length),
     new THREE.InstancedMesh(geo, colorless ? m.skin : m.stone({ gem, cut, color, clarity: 0.8 }, 1), items.length),
-    new THREE.InstancedMesh(new THREE.TorusGeometry(0.53, cut === "faceted" ? 0.07 : 0.11, 8, 24).rotateX(Math.PI / 2).scale(1, 1, asp), m.metal, items.length),
+    new THREE.InstancedMesh(shapedRim(shape, asp, cut === "faceted" ? 0.07 : 0.11), m.metal, items.length),
   ];
   const prongs = cut === "faceted" ? new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 8, 6), m.metal, items.length * 4) : null;
   const M = new THREE.Matrix4();
@@ -279,7 +301,8 @@ function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], it
     meshes.forEach((x) => x.setMatrixAt(i, o.matrix));
     if (prongs) for (let k = 0; k < 4; k++) {
       const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-      M.makeTranslation(Math.cos(a) * 0.5, 0.12, Math.sin(a) * 0.5 * asp);
+      const [px, pz] = prongAt(shape, asp, k);
+      M.makeTranslation(px, 0.12, pz);
       prongs.setMatrixAt(i * 4 + k, o.matrix.clone().multiply(M));
     }
   });
@@ -447,7 +470,8 @@ function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from:
     basis.makeBasis(X, up, Z);
     const pos = curve.getPointAt(u).add(opts.offset?.(u) ?? new THREE.Vector3());
     const quat = new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turnOf(i)));
-    const gm = opts.gemAt?.(i) ?? null;
+    const cols = d.accents.colors;
+    const gm = opts.gemAt?.(i) ?? (cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
     const shape = gm?.shape ?? s.shape;
     const key = `${shape}|${gm ? `${gm.gem}|${gm.color}|${gm.cut}` : ""}`;
     const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);
@@ -475,8 +499,10 @@ function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number;
   const orient = d.accents.orientation;
   const byShape = new Map<string, Item[]>();
   const basis = new THREE.Matrix4();
+  const cols = d.accents.colors;
   spots.forEach((sp, i) => {
-    const shape = d.accents.shapes[i % d.accents.shapes.length];
+    const shape0 = d.accents.shapes[i % d.accents.shapes.length];
+    const shape = (cols.length ? `${shape0}|${cols[i % cols.length]}` : shape0) as CenterStone["shape"];
     const along = orient === "along" || (orient === "alternate" && i % 2 === 0);
     const up = (sp.up ?? Y).clone().normalize();
     const tp = sp.tan.clone().addScaledVector(up, -sp.tan.dot(up)).normalize();
@@ -486,7 +512,7 @@ function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number;
     (byShape.get(shape) ?? byShape.set(shape, []).get(shape)!).push({ pos: sp.pos, dia: sp.dia * (d.accents.sizes[i % d.accents.shapes.length] ?? 1), quat: new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn)) });
   });
   const g = new THREE.Group();
-  byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
+  byShape.forEach((items, key) => { const [shape, color] = key.split("|"); g.add(accents(m, d.accents.gem, color ?? d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])); });
   return g;
 }
 
@@ -746,7 +772,7 @@ function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
     const ring = (extra: number) => raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
     const centre = new THREE.CatmullRomCurve3(ring(thick / 2), true, "centripetal");
     if (f.kind === "stones") {
-      const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: f.cut === "polki" || f.cut === "rose-cut" ? f.cut : "faceted", sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [] } };
+      const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: f.cut === "polki" || f.cut === "rose-cut" ? f.cut : "faceted", sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [], colors: [] } };
       const main = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape };
       const alt = f.alt ? { gem: f.alt.gem, color: f.alt.color, cut: f.alt.cut, shape: f.alt.shape } : null;
       g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main) }).group);
@@ -988,7 +1014,7 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
   const rows = b.paveRows;
   const W = b.paveMm;
-  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: [b.paveShape], orientation: "along", turns: [], twins: [], sizes: [] } };
+  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: [b.paveShape], orientation: "along", turns: [], twins: [], sizes: [], colors: [] } };
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
   for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
     const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
@@ -1191,7 +1217,7 @@ const briolRatio = (shape: CenterStone["shape"], cut: CenterStone["cut"]) => (cu
 /** the accent settings swapped for a drop part's own small stones, so halos and pavé reuse the pattern engine */
 function paveDesign(d: Design, p: DropPart): Design {
   const cut = PAVE_CUTS.has(p.small.cut) ? (p.small.cut as "faceted" | "polki" | "rose-cut") : "faceted";
-  return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [] } };
+  return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [], colors: [] } };
 }
 function partStone(d: Design, p: DropPart): CenterStone {
   // a faceted stone needs a real crown or its facets all mirror the same light and it reads flat grey

@@ -13,14 +13,17 @@ const REFS = [
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;
 
-type Props = { cutout: Cutout; title: string; onClose: () => void };
+type Props = { cutout: Cutout; front?: Cutout | null; title: string; onClose: () => void };
 type Pt = { x: number; y: number };
 
 /**
  * Try a piece on a real photo at true size. A coin or card in the photo sets the scale (mm per pixel);
  * the piece is then drawn at exactly that scale, and you can move and turn it, but not resize it.
  */
-export default function TryOn({ cutout, title, onClose }: Props) {
+export default function TryOn({ cutout: whole, front = null, title, onClose }: Props) {
+  // bracelets, anklets and necklaces start as worn: only the front of the loop shows
+  const [showFront, setShowFront] = useState(!!front);
+  const cutout = showFront && front ? front : whole;
   const fileIn = useRef<HTMLInputElement>(null);
   const camIn = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -140,6 +143,12 @@ export default function TryOn({ cutout, title, onClose }: Props) {
 
           {placing ? (
             <>
+              {front && (
+                <div className="chips" role="group" aria-label="How much of the piece">
+                  <button type="button" className="chip" aria-pressed={showFront} onClick={() => setShowFront(true)}>As worn (front of the loop)</button>
+                  <button type="button" className="chip" aria-pressed={!showFront} onClick={() => setShowFront(false)}>Whole piece</button>
+                </div>
+              )}
               <label className="field"><span>Turn · {angle}°</span>
                 <input type="range" min={-180} max={180} step={1} value={angle} onChange={(e) => setAngle(Number(e.target.value))} />
               </label>
