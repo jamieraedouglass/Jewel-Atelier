@@ -291,7 +291,7 @@ function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], it
   const tint = cut === "polki" ? 0xfff0c8 : colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
   const meshes = [
     new THREE.InstancedMesh(geo, m.mirror(tint, cut === "polki" ? 2.4 : 3.6), items.length),
-    new THREE.InstancedMesh(geo, colorless ? m.skin : m.stone({ gem, cut, color, clarity: 0.8 }, 1), items.length),
+    new THREE.InstancedMesh(geo, colorless ? m.skin : m.stone({ gem, cut, color, clarity: 0.5 }, 1), items.length),
     new THREE.InstancedMesh(shapedRim(shape, asp, cut === "faceted" ? 0.07 : 0.11), m.metal, items.length),
   ];
   const prongs = cut === "faceted" ? new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 8, 6), m.metal, items.length * 4) : null;

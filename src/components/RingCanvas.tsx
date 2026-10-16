@@ -1,8 +1,10 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { ContactShadows, EnvironmentPortal, Lightformer, OrbitControls } from "@react-three/drei";
+import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+import STUDIO_HDR from "@/lib/hdri/studio";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Design } from "@/lib/design";
@@ -112,22 +114,50 @@ function Grabber({ piece, design, handle }: { piece: Piece; design: Design; hand
       const hidden: THREE.Object3D[] = [];
       scene.children.forEach((o) => { if (o !== piece.group && o.visible && !(o as THREE.Light).isLight) { o.visible = false; hidden.push(o); } });
       hide.forEach((h) => { h.visible = false; hidden.push(h); });
-      // the finishing pass turns off auto-clear, so clear to fully transparent ourselves before this one frame
+      // two frames: one in front of a warm neutral (so clear and coloured stones look as they do on skin, with full
+      // colour), one on a transparent background to find the piece's outline; the first gives colour, the second alpha
       const bg = scene.background, clear = gl.getClearAlpha(), prevColor = gl.getClearColor(new THREE.Color()), auto = gl.autoClear, target = gl.getRenderTarget();
-      scene.background = null;
-      gl.setRenderTarget(null);
-      gl.setClearColor(0x000000, 0);
-      gl.autoClear = true;
-      gl.clear(true, true, true);
       const prevClip = gl.clippingPlanes;
-      if (clip) gl.clippingPlanes = [clip];
-      gl.render(scene, cam);
-      gl.clippingPlanes = prevClip;
       const mmPerPx = fw / cw;
       const wPx = Math.ceil(spanX / mmPerPx), hPx = Math.ceil(spanY / mmPerPx);
+      const grab = (background: THREE.Color | null) => {
+        scene.background = background;
+        gl.setRenderTarget(null);
+        gl.setClearColor(0x000000, 0);
+        gl.autoClear = true;
+        gl.clear(true, true, true);
+        if (clip) gl.clippingPlanes = [clip];
+        gl.render(scene, cam);
+        gl.clippingPlanes = prevClip;
+        const cv = document.createElement("canvas"); cv.width = wPx; cv.height = hPx;
+        const cx2 = cv.getContext("2d")!;
+        cx2.drawImage(el, (cw - wPx) / 2, (ch - hPx) / 2, wPx, hPx, 0, 0, wPx, hPx);
+        return cx2.getImageData(0, 0, wPx, hPx);
+      };
+      // seen straight down, every facet mirrors the overhead softbox and coloured stones bleach to pastel:
+      // for this frame, calm the facet mirrors so the stones keep their body colour
+      const calmed: [THREE.MeshPhysicalMaterial, number][] = [];
+      piece.group.traverse((o) => {
+        const mt = (o as THREE.Mesh).material as THREE.MeshPhysicalMaterial | undefined;
+        if (mt && !Array.isArray(mt) && mt.flatShading && mt.metalness > 0.9 && !calmed.some(([x]) => x === mt)) { calmed.push([mt, mt.envMapIntensity]); mt.envMapIntensity *= 0.35; }
+      });
+      const colour = grab(new THREE.Color("#a88a76"));
+      calmed.forEach(([mt, v]) => (mt.envMapIntensity = v));
+      const mask = grab(null);
       const out = document.createElement("canvas");
       out.width = wPx; out.height = hPx;
-      out.getContext("2d")!.drawImage(el, (cw - wPx) / 2, (ch - hPx) / 2, wPx, hPx, 0, 0, wPx, hPx);
+      const octx = out.getContext("2d")!;
+      const px = colour.data, mk = mask.data;
+      for (let i = 0; i < px.length; i += 4) {
+        px[i + 3] = Math.min(255, mk[i + 3] * 5);
+        // a touch more colour and contrast, as a photo of the real piece would have under a lamp
+        const r = px[i], g = px[i + 1], b = px[i + 2], l = 0.3 * r + 0.59 * g + 0.11 * b;
+        const sat = 1.45, con = 1.12;
+        px[i] = Math.max(0, Math.min(255, ((l + (r - l) * sat) - 128) * con + 128));
+        px[i + 1] = Math.max(0, Math.min(255, ((l + (g - l) * sat) - 128) * con + 128));
+        px[i + 2] = Math.max(0, Math.min(255, ((l + (b - l) * sat) - 128) * con + 128));
+      }
+      octx.putImageData(colour, 0, 0);
       scene.background = bg; gl.setClearColor(prevColor, clear); gl.autoClear = auto; gl.setRenderTarget(target);
       hidden.forEach((o) => (o.visible = true));
       return { url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY };
@@ -155,7 +185,9 @@ function StoneLight({ piece }: { piece: Piece }) {
       for (const mat of Array.isArray(mats) ? mats : [mats]) {
         const ph = mat as THREE.MeshPhysicalMaterial;
         // only the mirror facets of stones (flat-shaded, metallic); coloured stone bodies and metal keep the studio light
-        if (!ph.flatShading || ph.metalness < 0.9 || ph.userData.roomLit) continue;
+        if (!ph.flatShading || ph.userData.roomLit) continue;
+        // the clear "skin" over colourless stones: room-lit too, gently, so pavé doesn't glow white
+        if (ph.metalness < 0.9) { ph.envMap = roomEnv; ph.envMapIntensity = 1; ph.userData.roomLit = true; ph.needsUpdate = true; continue; }
         ph.envMap = roomEnv;
         ph.envMapIntensity = 1.35;
         ph.emissiveIntensity = Math.min(ph.emissiveIntensity ?? 0, 0.05);
@@ -176,14 +208,18 @@ const bvhCache = new Map<string, MeshBVHUniformStruct>();
 type RefractMat = THREE.ShaderMaterial & { correctMips: boolean; bvh: MeshBVHUniformStruct; envMap: THREE.Texture; color: THREE.Color; resolution: THREE.Vector2; viewMatrixInverse: THREE.Matrix4; projectionMatrixInverse: THREE.Matrix4; bounces: number; ior: number; aberrationStrength: number; fresnel: number };
 function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
   const { gl, size } = useThree();
+  const hdr = useStudio();
   const mats = useRef<RefractMat[]>([]);
   useEffect(() => {
     if (!enabled) return;
     if (!studioCube) {
+      // what diamonds see: the photographic studio, brightened a little, plus a bright room so facets light up.
       // 8-bit cube map: half-float cube mipmaps come out black on some Mac GPUs
-      const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.UnsignedByteType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
+      const rt = new THREE.WebGLCubeRenderTarget(512, { type: THREE.UnsignedByteType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
       const cam = new THREE.CubeCamera(0.1, 100, rt);
-      cam.update(gl, new RoomEnvironment());
+      // a bright room: diamonds read white and lively; the studio HDR stays for the metal
+      const env = new RoomEnvironment();
+      cam.update(gl, env);
       studioCube = rt.texture as unknown as THREE.CubeTexture;
     }
     const made: RefractMat[] = [];
@@ -234,7 +270,7 @@ function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean }) {
       made.forEach((m) => m.dispose());
       mats.current = [];
     };
-  }, [piece, gl, enabled, size.width, size.height]);
+  }, [piece, gl, enabled, size.width, size.height, hdr]);
   useFrame(({ camera }) => {
     for (const m of mats.current) { m.viewMatrixInverse = camera.matrixWorld; m.projectionMatrixInverse = camera.projectionMatrixInverse; }
   });
@@ -312,23 +348,49 @@ function CameraRig({ view, piece, frameKey, controls }: { view: View; piece: Pie
 }
 
 /** The jeweller's light box: dark room, crisp strip lights so facets flash and metal reads as polished. */
+/** a real photographic studio (softboxes, a white sweep) for metal and stones to reflect */
+function useStudio() {
+  const tex = useLoader(EXRLoader, STUDIO_HDR);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  return tex;
+}
+
+/** The jeweller's light box: a real studio HDR, plus crisp strip lights so facets flash and metal reads as polished. */
 function StudioLights() {
+  const hdr = useStudio();
   const strips = Array.from({ length: 14 }, (_, k) => {
-    const a = (k / 14) * Math.PI * 2, h = (k % 3) * 7 - 6, I = [9, 4, 6.5][k % 3];
-    return <Lightformer key={k} form="rect" intensity={I} position={[Math.cos(a) * 27, h, Math.sin(a) * 27]} scale={[2.2, 9, 1]} target={[0, 0, 0]} />;
+    const a = (k / 14) * Math.PI * 2, h = (k % 3) * 7 - 6, I = [8, 3.5, 5.5][k % 3];
+    return <Lightformer key={k} form="rect" intensity={I} position={[Math.cos(a) * 27, h, Math.sin(a) * 27]} scale={[1.6, 9, 1]} target={[0, 0, 0]} />;
   });
   return (
-    <Environment resolution={256} background={false}>
-      <color attach="background" args={["#2e2a27"]} />
-      <Lightformer form="rect" intensity={11} position={[0, 19, 0]} rotation-x={Math.PI / 2} scale={[26, 5, 1]} />
-      <Lightformer form="rect" intensity={7} position={[-24, 4, 10]} scale={[4, 22, 1]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={6} position={[24, 4, -6]} scale={[4, 22, 1]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={4.5} color="#fff3e6" position={[0, 8, 26]} scale={[18, 3, 1]} target={[0, 0, 0]} />
+    <EnvironmentPortal map={hdr} resolution={512} background={false} environmentIntensity={0.32}>
+      <Lightformer form="rect" intensity={9} position={[0, 19, 0]} rotation-x={Math.PI / 2} scale={[22, 4, 1]} />
+      <Lightformer form="rect" intensity={4} position={[-24, 4, 10]} scale={[3, 20, 1]} target={[0, 0, 0]} />
+      <Lightformer form="rect" intensity={3.5} position={[24, 4, -6]} scale={[3, 20, 1]} target={[0, 0, 0]} />
       {strips}
-      {/* a soft band of light all round the horizon, so the sides of settings and bezels read as polished metal, not black */}
-      {Array.from({ length: 8 }, (_, k) => { const a = (k / 8) * Math.PI * 2; return <Lightformer key={`h${k}`} form="rect" intensity={1.1} color="#f4efe8" position={[Math.cos(a) * 30, -2, Math.sin(a) * 30]} scale={[24, 7, 1]} target={[0, 0, 0]} />; })}
-    </Environment>
+    </EnvironmentPortal>
   );
+}
+
+/** a soft pool of light behind the piece, like a jeweller's velvet board under a lamp */
+let backdropTex: THREE.CanvasTexture | null = null;
+function Backdrop() {
+  const { scene } = useThree();
+  useEffect(() => {
+    if (!backdropTex) {
+      const c = document.createElement("canvas"); c.width = c.height = 512;
+      const ctx = c.getContext("2d")!;
+      const g = ctx.createRadialGradient(256, 230, 20, 256, 256, 380);
+      g.addColorStop(0, "#3a332d"); g.addColorStop(0.55, "#211c18"); g.addColorStop(1, "#0d0b09");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+      backdropTex = new THREE.CanvasTexture(c);
+      backdropTex.colorSpace = THREE.SRGBColorSpace;
+    }
+    const prev = scene.background;
+    scene.background = backdropTex;
+    return () => { scene.background = prev; };
+  }, [scene]);
+  return null;
 }
 
 /** `handle` is a plain prop, not a ref: next/dynamic does not forward refs, so a ref would silently stay null. */
@@ -370,12 +432,12 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
       onCreated={({ gl }) => { canvasEl.current = gl.domElement; }}
     >
-      <color attach="background" args={["#17130f"]} />
-      <StudioLights />
+      <Backdrop />
+      <Suspense fallback={null}><StudioLights /></Suspense>
       <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
       <Model piece={piece} />
       <StoneLight piece={piece} />
-      <Refraction piece={piece} enabled={!lowPower} />
+      <Suspense fallback={null}><Refraction piece={piece} enabled={!lowPower} /></Suspense>
       <ClickPicker piece={piece} onPick={onPick} onMiss={onMiss} />
       <Grabber piece={piece} design={design} handle={handle} />
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
@@ -385,7 +447,7 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
         // flashes (the sparkle you see in person), anti-aliasing, then the same neutral tone mapping as before
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={2.2} intensity={1.6} distanceFalloff={0.6} color="#000000" quality="medium" />
-          <Bloom mipmapBlur luminanceThreshold={0.92} luminanceSmoothing={0.12} intensity={0.55} radius={0.55} />
+          <Bloom mipmapBlur luminanceThreshold={0.97} luminanceSmoothing={0.12} intensity={0.55} radius={0.55} />
           <ToneMapping mode={ToneMappingMode.NEUTRAL} />
           <SMAA />
         </EffectComposer>
