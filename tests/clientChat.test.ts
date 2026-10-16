@@ -8,7 +8,11 @@ describe("client design assistant rules", () => {
   it("spots price questions", () => {
     for (const q of ["What would this cost?", "how much is it in 22k", "Can you give me a quote", "is platinum more expensive?", "my budget is 2 lakh", "₹3,00,000 ok?", "Is it cheaper in 18k?"])
       expect(isPriceQuestion(q), q).toBe(true);
-    for (const q of ["Would this suit everyday wear?", "Is 22k too soft?", "Can I see it in platinum?", "Does the costume look work?", "How accurate is the size?"])
+    for (const q of ["How much would it be?", "how much in 22k?", "Is it more expensive in platinum?", "What's the gold rate?", "Any making charges?"])
+      expect(isPriceQuestion(q), q).toBe(true);
+    for (const q of ["Would this suit everyday wear?", "Is 22k too soft?", "Can I see it in platinum?", "Does the costume look work?", "How accurate is the size?",
+      "How much bigger can the stone go?", "How much smaller could the band be?", "Does it look expensive?", "I don't want it to look cheap", "Is this a first-rate stone?",
+      "How much of the band is set with diamonds?", "How much room is there for an engraving?"])
       expect(isPriceQuestion(q), q).toBe(false);
   });
   it("catches money in an answer but not karats or sizes", () => {

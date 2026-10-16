@@ -51,6 +51,15 @@ export async function loadClientBundle(token: string): Promise<ClientBundle | nu
   return { link, allow, state, pieces };
 }
 
+/** just enough of a link for its share preview: the client, the pieces' names and the first piece's picture */
+export async function linkPreview(token: string) {
+  const link = await linkByToken(token);
+  if (!link || linkState(link) !== "active") return null;
+  const { data } = await db().from("designs").select("id, name, thumbnail_path").in("id", link.design_ids);
+  const pieces = link.design_ids.flatMap((id) => data?.filter((d) => d.id === id) ?? []);
+  return { clientName: link.client_name, names: pieces.map((p) => p.name as string), thumbnailPath: (pieces.find((p) => p.thumbnail_path)?.thumbnail_path as string | undefined) ?? null };
+}
+
 export async function recordEvent(linkId: string, designId: string | null, kind: string, detail: Record<string, unknown> = {}) {
   await db().from("link_events").insert({ link_id: linkId, design_id: designId, kind, detail });
 }

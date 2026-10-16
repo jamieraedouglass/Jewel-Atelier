@@ -1,10 +1,26 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import ClientStudio from "@/components/client/ClientStudio";
 import { BRAND } from "@/lib/brand";
-import { loadClientBundle, markOpened } from "@/lib/studio/server";
+import { isPreviewBot, linkPreviewText, thumbnailUrl } from "@/lib/studio/preview";
+import { linkPreview, loadClientBundle, markOpened } from "@/lib/studio/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: BRAND.title, robots: { index: false, follow: false } };
+
+/** the preview WhatsApp, iMessage and email show for the link: the piece, who it's for, and its picture */
+export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
+  const base: Metadata = { title: BRAND.title, robots: { index: false, follow: false } };
+  const p = await linkPreview(params.token).catch(() => null);
+  if (!p) return base;
+  const { title, description } = linkPreviewText(BRAND.studioName, p.clientName, p.names);
+  const image = thumbnailUrl(process.env.NEXT_PUBLIC_SUPABASE_URL, p.thumbnailPath);
+  return {
+    ...base, title: `${title} · ${BRAND.name}`, description,
+    openGraph: { title, description, siteName: BRAND.name, type: "website", ...(image ? { images: [{ url: image, alt: p.names[0] }] } : {}) },
+    twitter: { card: image ? "summary_large_image" : "summary", title, description, ...(image ? { images: [image] } : {}) },
+  };
+}
 
 /** A client's private link: no sign-in, just the unguessable link the jeweller sent. */
 export default async function ClientLinkPage({ params }: { params: { token: string } }) {
@@ -18,7 +34,8 @@ export default async function ClientLinkPage({ params }: { params: { token: stri
       </main>
     );
   }
-  await markOpened(bundle.link);
+  // the robot WhatsApp sends to build a preview isn't the client opening the link
+  if (!isPreviewBot(headers().get("user-agent"))) await markOpened(bundle.link);
   return (
     <ClientStudio studioName={BRAND.studioName} clientName={bundle.link.client_name} note={bundle.link.note} allow={bundle.allow}
       pieces={bundle.pieces} mode={{ kind: "link", token: params.token }} />

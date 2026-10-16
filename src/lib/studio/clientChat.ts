@@ -24,9 +24,15 @@ ${note.trim() ? `\nTHE JEWELLER'S NOTE TO THE CLIENT\n${note.trim()}\n` : ""}`;
 export const priceReply = (studio: string) =>
   `Prices come from ${studio} directly, so I can't give one here. Use "Ask the jeweller" and they'll get back to you with a price for the piece exactly as you've set it up.`;
 
-/** a question about price or cost: answered with priceReply, without asking the AI */
-const PRICE_QUESTION = /\b(price[ds]?|pricing|cost(s|ing)?|how much|quote|quotation|rate|budget|afford(able)?|expensive|cheap(er)?|charges?|discount|rupees?|lakhs?|crores?|dollars?)\b|₹|\brs\.?\s?\d|\$\s?\d/i;
-export const isPriceQuestion = (text: string) => PRICE_QUESTION.test(text);
+/**
+ * A question about price or cost: answered with priceReply, without asking the AI. Words that are also about looks or
+ * size are only counted when they're about money: "how much bigger", "does it look expensive", "a first-rate stone".
+ */
+const PRICE_WORDS = /\b(price[ds]?|pricing|cost(s|ing)?|quote|quotation|budget|afford(able)?|discount|making charges?|gold rate|rupees?|lakhs?|crores?|dollars?)\b|₹|\brs\.?\s?\d|\$\s?\d/i;
+const HOW_MUCH = /\bhow much\b(?!\s+(bigger|smaller|larger|longer|shorter|wider|thinner|thicker|heavier|lighter|taller|higher|lower|more|less|further|room|space|of\b))/i;
+const DEAR = /\b(more |less |too |very |so |that |how )?(expensive|cheap(er)?)\b/i;
+const LOOKS = /\b(look|looks|looking|seem|seems|feel|feels|appear|appears)\b[^.?!]{0,20}\b(expensive|cheap)/i;
+export const isPriceQuestion = (text: string) => PRICE_WORDS.test(text) || HOW_MUCH.test(text) || (DEAR.test(text) && !LOOKS.test(text));
 
 /** money in an answer (a last check in case the AI slips): currency, or price words next to a number */
 const MONEY = /₹|\b(rs\.?|inr|usd|rupees?|lakhs?|lacs?|crores?|dollars?)\s?\d|\d[\d,.]*\s?(rupees?|lakhs?|lacs?|crores?|dollars?|inr|usd)\b|\$\s?\d|\b(price[ds]?|costs?|quote)\b[^.\n]{0,30}\b\d[\d,.]{2,}/i;
