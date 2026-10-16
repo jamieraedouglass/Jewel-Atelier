@@ -1,4 +1,5 @@
-import { applyGlow } from "../glow";
+import { applyGlow, cabochonBody } from "../glow";
+import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type CenterStone, type Design, type Gem } from "../design";
 import { metalTone } from "../ringModel";
@@ -13,7 +14,7 @@ export function makeMaterials(d: Design) {
     return cache.get(key) as T;
   };
   return {
-    metal: memo("metal", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 })),
+    metal: memo("metal", () => handPolished(new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 }))),
     /** brushed metal for broad flat parts (clasps, plates) that would otherwise mirror the studio lights in a blinding flash */
     satin: memo("satin", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: Math.max(0.42, tone.roughness * 2), envMapIntensity: 0.55 })),
     enamel: memo("enamel", () => new THREE.MeshPhysicalMaterial({ color: d.enamel.color, metalness: 0, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.2 })),
@@ -33,7 +34,7 @@ export function makeMaterials(d: Design) {
       return memo(`stone${c.gem}${c.cut}${c.color}${c.clarity}${glow}${Math.round(W)}`, () => {
         const color = new THREE.Color(c.color);
         const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved"; // polished, not faceted
-        return applyGlow(new THREE.MeshPhysicalMaterial({
+        const mat = applyGlow(new THREE.MeshPhysicalMaterial({
           color, metalness: 0, roughness: isCab ? 0.22 : 0.01,
           transmission: isCab ? c.clarity * 0.45 : 0.2 + c.clarity * 0.75, thickness: W * 0.8,
           ior: c.gem === "diamond" ? 2.42 : ["emerald", "aquamarine", "morganite"].includes(c.gem) ? 1.58 : 1.7,
@@ -43,6 +44,7 @@ export function makeMaterials(d: Design) {
           sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
           envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
         }), glow, isCab);
+        return isCab && c.cut !== "bead" ? cabochonBody(mat) : mat;
       });
     },
   };

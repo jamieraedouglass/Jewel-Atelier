@@ -7,6 +7,7 @@ import { MeshRefractionMaterial } from "@react-three/drei/materials/MeshRefracti
 import { MeshBVH, MeshBVHUniformStruct, SAH } from "three-mesh-bvh";
 import { useStudio } from "./studio";
 import { glowTint } from "@/lib/glow";
+import { addLightTent } from "./lightTent";
 
 /**
  * Real diamond optics for the individually set stones: light is traced through the actual facets (bouncing inside,
@@ -25,9 +26,7 @@ function studioCubeFor(gl: THREE.WebGLRenderer) {
     const cam = new THREE.CubeCamera(0.1, 100, rt);
     // a bright room: diamonds read white and lively; the studio HDR stays for the metal
     const env = new RoomEnvironment();
-    const over = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(4), side: THREE.DoubleSide }));
-    over.rotation.x = Math.PI / 2; over.position.y = 9;
-    env.add(over);
+    addLightTent(env, 4);
     cam.update(gl, env);
     cube = rt.texture as unknown as THREE.CubeTexture;
     studioCubes.set(gl, cube);
@@ -97,7 +96,8 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       mat.color = tint;
       mat.bounces = inst ? 2 : colorless ? 3 : 2;
       mat.ior = colorless ? 2.42 : 1.72;
-      mat.aberrationStrength = colorless ? 0.012 : 0.004;
+      // the split of white light into colours (fire): strong in diamonds, a little in coloured stones
+      mat.aberrationStrength = colorless ? 0.022 : 0.006;
       mat.fresnel = 1;
       // the shader works in device pixels: on a Retina screen that's twice the CSS size
       mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());

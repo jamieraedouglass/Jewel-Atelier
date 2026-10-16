@@ -1,4 +1,5 @@
-import { applyGlow } from "../glow";
+import { applyGlow, cabochonBody } from "../glow";
+import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
 import { cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
@@ -15,7 +16,7 @@ import { inclusionSpecks, phenomenonLayer } from "../jewelry/character";
 export function buildRing(d: Design): THREE.Group {
   const root = new THREE.Group();
   const tone = metalTone(d);
-  const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 });
+  const metal = handPolished(new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 }));
   const bandMetal = metal.clone();
   if (d.band.finish === "textured") {
     const bump = textureBump();
@@ -67,6 +68,7 @@ export function buildRing(d: Design): THREE.Group {
     sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
     envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
   }), c.glow, isCab);
+  if (isCab && c.cut !== "bead") cabochonBody(stoneMat);
   const stone = new THREE.Group();
   stone.userData.part = "center";
   if (isCab) stone.add(new THREE.Mesh(c.cut === "carved"
