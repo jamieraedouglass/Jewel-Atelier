@@ -283,6 +283,19 @@ export const DropPartSchema = z.object({
   /** space above this part, and what joins it to the part above */
   gapMm: z.number().min(0).max(40).default(1),
   link: z.enum(["ring", "chain", "direct"]).default("ring"),
+  /** layout: hang below a part, or sit beside it (side by side, asymmetric clusters) */
+  anchor: z.enum(["below", "beside"]).default("below"),
+  /** which part it hangs from or sits beside (0-based); -1 = the part just above in the list */
+  from: z.number().int().min(-1).max(9).default(-1),
+  /** sitting beside: on which side */
+  side: z.enum(["left", "right"]).default("right"),
+  /** nudge from its automatic spot, mm (sideways, down) */
+  offsetX: z.number().min(-40).max(40).default(0),
+  offsetZ: z.number().min(-40).max(40).default(0),
+  /** tilt the whole part, degrees */
+  tilt: z.number().min(-90).max(90).default(0),
+  /** a mirrored twin on the other side (e.g. two side drops) */
+  pair: z.boolean().default(false),
 });
 export type DropPart = z.infer<typeof DropPartSchema>;
 
@@ -356,6 +369,22 @@ export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[] }[] = 
     parts: [
       { kind: "stone", stone: dia("pear", 9, 6, 180), small: sm(["round"], 1), gapMm: 0 },
       { kind: "strands", small: sm(["pear"], 2.2, 180, "diamond", "briolette"), count: 7, perStrand: 1, spreadMm: 8, curveMm: 3, taper: "v", gapMm: 0, link: "direct" },
+    ],
+  },
+  {
+    name: "Twin side drops", blurb: "A haloed round top with a pair of pear drops swinging side by side, and a marquise between them.",
+    parts: [
+      { kind: "stone", stone: dia("round", 6, 6), halo: true, haloMm: 1.2, small: sm(["round"], 1.2), gapMm: 0 },
+      { kind: "stone", stone: dia("pear", 10, 6.5, 180), small: sm(["round"], 1), gapMm: 3, link: "chain", offsetX: 5, tilt: 8, pair: true },
+      { kind: "stone", stone: dia("marquise", 9, 4.5), small: sm(["round"], 1), gapMm: 0.8, from: 0 },
+    ],
+  },
+  {
+    name: "Asymmetric toi-et-moi drop", blurb: "A tilted pear with an emerald set beside it, and a single drop off to one side.",
+    parts: [
+      { kind: "stone", stone: dia("pear", 9, 6, 160), small: sm(["round"], 1), gapMm: 0 },
+      { kind: "stone", stone: col("emerald", "faceted", "emerald", 8, 6, 0), small: sm(["round"], 1), anchor: "beside", side: "right", gapMm: 0.6, offsetZ: 2, tilt: -15, link: "direct" },
+      { kind: "stone", stone: dia("pear", 7, 5, 180), small: sm(["round"], 1), gapMm: 1, from: 1 },
     ],
   },
   {

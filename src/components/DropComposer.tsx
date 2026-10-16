@@ -60,14 +60,21 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
   const parts = d.drop.parts;
   const setParts = (next: DropPart[]) => onChange({ drop: { parts: next } } as DesignPatch);
   const setPart = (i: number, p: Partial<DropPart>) => setParts(parts.map((x, j) => (j === i ? DropPartSchema.parse({ ...x, ...p }) : x)));
-  const move = (i: number, by: number) => { const n = [...parts]; const [x] = n.splice(i, 1); n.splice(i + by, 0, x); setParts(n); };
+  // "hangs from part N" follows its part when parts are moved, copied or removed
+  const remap = (list: DropPart[], map: (j: number) => number) => list.map((q) => (q.from >= 0 ? { ...q, from: map(q.from) } : q));
+  const move = (i: number, by: number) => {
+    const n = [...parts]; const [x] = n.splice(i, 1); n.splice(i + by, 0, x);
+    setParts(remap(n, (j) => (j === i ? i + by : j === i + by ? i : j)).map((q, k) => (q.from >= k ? { ...q, from: -1 } : q)));
+  };
+  const copyAt = (i: number) => setParts([...remap(parts.slice(0, i + 1), (j) => j), parts[i], ...remap(parts.slice(i + 1), (j) => (j > i ? j + 1 : j))]);
+  const removeAt = (i: number) => setParts(remap(parts.filter((_, j) => j !== i), (j) => (j === i ? -1 : j > i ? j - 1 : j)));
   const earrings = d.type === "earrings";
 
   return (
     <section id="sec-drop" style={{ display: "grid", gap: 12 }}>
       <h3>Build it part by part</h3>
       <p className="muted small" style={{ margin: 0 }}>
-        Parts hang one below the other, top first. Each has its own stones: a stone with a halo or petals, strands or a fringe, an open frame, or a bow.
+        Parts hang one below another by default; open Position on any part to hang it from a different part, set it beside another, shift or tilt it, or add a mirrored twin. Each has its own stones: a stone with a halo or petals, strands or a fringe, an open frame, or a bow.
         Pause the 3D view and click a part to jump to it.
       </p>
       <label className="field" htmlFor="drop-preset"><span>Start from a classic</span>
@@ -93,19 +100,44 @@ export default function DropComposer({ design: d, onChange, focusIndex }: Props)
               <span style={{ display: "flex", gap: 4 }}>
                 <button type="button" className="chip" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
                 <button type="button" className="chip" aria-label="Move down" disabled={i === parts.length - 1} onClick={() => move(i, 1)}>↓</button>
-                <button type="button" className="chip" disabled={parts.length >= 10} onClick={() => setParts([...parts.slice(0, i + 1), p, ...parts.slice(i + 1)])}>Copy</button>
-                <button type="button" className="chip" disabled={parts.length === 1} onClick={() => setParts(parts.filter((_, j) => j !== i))}>Remove</button>
+                <button type="button" className="chip" disabled={parts.length >= 10} onClick={() => copyAt(i)}>Copy</button>
+                <button type="button" className="chip" disabled={parts.length === 1} onClick={() => removeAt(i)}>Remove</button>
               </span>
             </div>
             <Chips name="Part kind" options={DROP_KINDS} value={p.kind} fmt={(k) => KIND_LABEL[k]} onPick={(kind) => set({ ...NEW_PART[kind], gapMm: p.gapMm, link: p.link })} />
 
-            {i > 0 && (
-              <div className="row2">
-                <Pick id={id("link")} text="Joined by" value={p.link} options={["ring", "chain", "direct"] as const}
-                  fmt={(v) => (v === "ring" ? "Jump ring (swings)" : v === "chain" ? "Fine chain" : "Fixed (no swing)")} onPick={(link) => set({ link })} />
-                <Num id={id("gap")} text="Space above" value={p.gapMm} min={0} max={40} step={0.2} onChange={(gapMm) => set({ gapMm })} />
+            <details className="pos" open={p.anchor === "beside" || p.pair || !!p.offsetX || !!p.tilt || p.from >= 0}>
+              <summary className="small">Position{i > 0 ? (p.anchor === "beside" ? ` · beside part ${(p.from >= 0 && p.from < i ? p.from : i - 1) + 1}` : ` · below part ${(p.from >= 0 && p.from < i ? p.from : i - 1) + 1}`) : ""}{p.pair ? " · pair" : ""}</summary>
+              <div style={{ display: "grid", gap: 8, paddingTop: 8 }}>
+                {i > 0 && (
+                  <>
+                    <Chips name="Placement" options={["below", "beside"] as const} value={p.anchor}
+                      fmt={(v) => (v === "below" ? "Hangs below" : "Sits beside")} onPick={(anchor) => set({ anchor, link: anchor === "beside" ? "direct" : p.link })} />
+                    <div className="row2">
+                      <label className="field" htmlFor={id("from")}><span>{p.anchor === "beside" ? "Beside" : "Hangs from"}</span>
+                        <select id={id("from")} value={p.from >= 0 && p.from < i ? p.from : i - 1} onChange={(e) => set({ from: Number(e.target.value) === i - 1 ? -1 : Number(e.target.value) })}>
+                          {parts.slice(0, i).map((q, j) => <option key={j} value={j}>Part {j + 1} · {KIND_LABEL[q.kind]}</option>)}
+                        </select>
+                      </label>
+                      {p.anchor === "beside"
+                        ? <Pick id={id("side")} text="Side" value={p.side} options={["left", "right"] as const} onPick={(side) => set({ side })} />
+                        : <Pick id={id("link")} text="Joined by" value={p.link} options={["ring", "chain", "direct"] as const}
+                            fmt={(v) => (v === "ring" ? "Jump ring (swings)" : v === "chain" ? "Fine chain" : "Fixed (no swing)")} onPick={(link) => set({ link })} />}
+                    </div>
+                    <Num id={id("gap")} text={p.anchor === "beside" ? "Space between" : "Space above"} value={p.gapMm} min={0} max={40} step={0.2} onChange={(gapMm) => set({ gapMm })} />
+                    <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input type="checkbox" checked={p.pair} onChange={(e) => set({ pair: e.target.checked })} />
+                      Matching twin on the other side (mirrored)
+                    </label>
+                  </>
+                )}
+                <div className="row2">
+                  <Num id={id("ox")} text="Shift sideways" value={p.offsetX} min={-40} max={40} step={0.25} onChange={(offsetX) => set({ offsetX })} />
+                  <Num id={id("oz")} text="Shift down" value={p.offsetZ} min={-40} max={40} step={0.25} onChange={(offsetZ) => set({ offsetZ })} />
+                </div>
+                <Num id={id("tilt")} text="Tilt the whole part" value={p.tilt} min={-90} max={90} step={1} unit="°" onChange={(tilt) => set({ tilt })} />
               </div>
-            )}
+            </details>
 
             {p.kind !== "strands" && (
               <>

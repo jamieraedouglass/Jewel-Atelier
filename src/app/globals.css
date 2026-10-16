@@ -160,3 +160,5 @@ input[type="range"] { width: 100%; accent-color: var(--fg); }
   .tryon { inset: 0; width: auto; border-radius: 0; border: 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); }
   input[type="range"] { min-height: 28px; }
 }
+details.pos { border-top: 1px dashed var(--line); padding-top: 8px; }
+details.pos summary { cursor: pointer; color: var(--muted); }

@@ -1066,26 +1066,60 @@ function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
 /** stack every part from the top down; the first part's top is at z = 0 */
 function dropStack(d: Design, m: Mats) {
   const group = new THREE.Group();
-  let prevHang: number | null = null;
-  let firstTop = 0;
+  // where each part landed: its x, its top and hanging point (z), and half its width
+  const placed: { x: number; top: number; hang: number; half: number }[] = [];
+  const link = (p: DropPart, ax: number, az: number, bx: number, bz: number) => {
+    const A = v3(ax, -0.3, az), B = v3(bx, -0.3, bz), len = A.distanceTo(B);
+    if (p.link === "ring" && len < 3 && Math.abs(ax - bx) < 0.5) group.add(jumpRing(m, Math.max(0.7, len / 2 + 0.55), 0.2, A.clone().lerp(B, 0.5)));
+    else if (p.link === "direct") group.add(tube(m, [A.clone().setY(-0.7).add(v3(0, 0, -0.6)), B.clone().setY(-0.7).add(v3(0, 0, 0.6))], 0.35));
+    else {
+      // longer or slanted joins: a jump ring at each end and fine chain between
+      group.add(jumpRing(m, 0.6, 0.17, A), jumpRing(m, 0.6, 0.17, B));
+      if (len > 1.2) group.add(chainAlong(new THREE.LineCurve3(A, B), "fine", m));
+    }
+  };
   d.drop.parts.forEach((p, i) => {
-    const b = p.kind === "strands" ? dropStrandsPart(d, m, p) : p.kind === "frame" ? dropFramePart(d, m, p) : p.kind === "bow" ? dropBowPart(d, m, p) : dropStonePart(d, m, p);
-    b.g.userData.part = "drop";
-    b.g.userData.dropIndex = i;
+    const build = () => {
+      const b = p.kind === "strands" ? dropStrandsPart(d, m, p) : p.kind === "frame" ? dropFramePart(d, m, p) : p.kind === "bow" ? dropBowPart(d, m, p) : dropStonePart(d, m, p);
+      b.g.userData.part = "drop";
+      b.g.userData.dropIndex = i;
+      return b;
+    };
+    const b = build();
     const box = new THREE.Box3().setFromObject(b.g);
-    const top = b.top ?? box.min.z, hang = b.hang ?? box.max.z;
-    const z0 = prevHang === null ? 0 : prevHang + p.gapMm;
-    b.g.position.z = z0 - top;
-    group.add(b.g);
-    if (prevHang !== null) {
-      const a = prevHang, c = z0;
-      if (p.link === "ring") group.add(jumpRing(m, Math.max(0.7, (c - a) / 2 + 0.55), 0.2, v3(0, -0.3, (a + c) / 2)));
-      else if (p.link === "chain") group.add(chainAlong(new THREE.LineCurve3(v3(0, -0.3, a - 0.4), v3(0, -0.3, c + 0.4)), "fine", m));
-      else group.add(tube(m, [v3(0, -0.7, a - 0.6), v3(0, -0.7, c + 0.6)], 0.35));
-    } else firstTop = z0;
-    prevHang = z0 - top + hang;
+    const top = b.top ?? box.min.z, hang = b.hang ?? box.max.z, half = (box.max.x - box.min.x) / 2;
+    const parentIdx = i === 0 ? -1 : p.from >= 0 && p.from < i ? p.from : i - 1;
+    const par = parentIdx >= 0 ? placed[parentIdx] : null;
+    const tilt = THREE.MathUtils.degToRad(p.tilt);
+    // place one copy: dir = 1 for the part, -1 for its mirrored twin
+    const put = (g: THREE.Group, dir: 1 | -1) => {
+      let x = 0, z0 = 0;
+      if (par && p.anchor === "beside") {
+        const s = (p.side === "right" ? 1 : -1) * dir;
+        x = par.x + s * (par.half + p.gapMm + half) + p.offsetX * dir;
+        z0 = par.top + p.offsetZ;
+        // a hidden bar joins neighbours behind the stones
+        group.add(tube(m, [v3(par.x, -0.9, z0 + (hang - top) / 2), v3(x, -0.9, z0 + (hang - top) / 2)], 0.35));
+      } else if (par) {
+        x = par.x + p.offsetX * dir;
+        z0 = par.hang + p.gapMm + p.offsetZ;
+        link(p, par.x, par.hang, x, z0);
+      } else { x = p.offsetX; z0 = p.offsetZ; }
+      // tilt about the part's own top, where it hangs from
+      const pivot = new THREE.Group();
+      pivot.position.set(x, 0, z0);
+      pivot.rotation.y = -tilt * dir;
+      g.position.z = -top;
+      if (dir === -1) pivot.scale.x = -1;
+      pivot.add(g);
+      group.add(pivot);
+      return { x, top: z0, hang: z0 + (hang - top) * Math.cos(tilt), half };
+    };
+    placed[i] = put(b.g, 1);
+    if (p.pair && i > 0) put(build().g, -1);
   });
-  return { group, top: firstTop, bottom: prevHang ?? 0 };
+  const all = new THREE.Box3().setFromObject(group);
+  return { group, top: placed[0]?.top ?? 0, bottom: all.isEmpty() ? 0 : all.max.z };
 }
 
 /** a french hook above an earring's top */
