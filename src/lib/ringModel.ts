@@ -220,6 +220,18 @@ function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] 
   }
   if (kind === "trapezoid") return [[0, L / 2], [W, L * 0.27], [W, -L * 0.27], [0, -L / 2]];
   if (kind === "baguette") return [[0, W / 2], [L, W * 0.38], [L, -W * 0.38], [0, -W / 2]]; // tapered, long axis outward
+  if (kind === "oval") {
+    // long axis along the finger, like the centre stone's neighbours in an oval trilogy
+    const pts: Pt[] = [];
+    for (let i = 0; i < 24; i++) { const a = (i / 24) * 2 * Math.PI; pts.push([W / 2 + (Math.cos(a) * W) / 2, (Math.sin(a) * L) / 2]); }
+    return pts;
+  }
+  if (kind === "pear") {
+    // tip pointing in toward the centre stone, round end outward
+    const fn = outlineFn("pear", L, W), b = L / 2, pts: Pt[] = [];
+    for (let i = 0; i < 24; i++) { const [x, z] = fn(i / 24); pts.push([b - z, x]); }
+    return pts;
+  }
   const pts: Pt[] = [];
   for (let i = 0; i < 16; i++) { const a = (i / 16) * 2 * Math.PI; pts.push([W / 2 + Math.cos(a) * W / 2, Math.sin(a) * W / 2]); }
   return pts;
@@ -227,12 +239,12 @@ function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] 
 
 export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number) {
   const ol = sideOutline(kind, L, W);
-  const span = kind === "baguette" ? L : W;
-  const cx = kind === "round" ? W / 2 : span * 0.42;
+  const span = kind === "baguette" || kind === "pear" ? L : W;
+  const cx = kind === "round" || kind === "oval" ? W / 2 : kind === "pear" ? L * 0.55 : span * 0.42;
   const crown = Math.min(L, W) * 0.3, pav = Math.min(L, W) * 0.75;
   const ccw = [...ol].reverse(); // facets must wind counter-clockwise to face outward
   const ring = (s: number, y: number) => ccw.map(([x, z]) => new THREE.Vector3(cx + (x - cx) * s, y, z * s));
-  const tiers: Tier[] = kind === "round"
+  const tiers: Tier[] = kind === "round" || kind === "oval" || kind === "pear"
     ? [{ s: 0.56, y: crown }, { s: 0.8, y: crown * 0.55 }, { s: 1, y: 0.04 }, { s: 1, y: -0.04 }, { s: 0.5, y: -pav * 0.6 }, { s: 0.15, y: -pav * 0.95 }]
     : [{ s: 0.46, y: crown }, { s: 0.6, y: crown * 0.87 }, { s: 0.74, y: crown * 0.65 }, { s: 0.88, y: crown * 0.36 }, { s: 1, y: 0.07 }, { s: 1, y: -0.07 },
        { s: 0.84, y: -pav * 0.31 }, { s: 0.64, y: -pav * 0.57 }, { s: 0.42, y: -pav * 0.79 }, { s: 0.18, y: -pav * 0.95 }];
@@ -441,7 +453,7 @@ export function buildRing(d: Design): THREE.Group {
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
     const shape = new THREE.Shape(sc(1.09));
     shape.holes.push(new THREE.Path(sc(0.965).reverse()));
-    const bz = new THREE.ExtrudeGeometry(shape, { depth: Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
+    const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
     const gap = W / 2 + (d.setting.style === "bezel" ? 0.62 : 0.18);
     for (const side of [1, -1]) {

@@ -240,11 +240,23 @@ function orient(o: THREE.Object3D, it: Item) {
 const ASPECT = SHAPE_RATIO;
 
 /** `dia` on each item is the stone's width; shaped stones are longer along their local Z by the shape's aspect */
-function accents(m: Mats, gem: Gem, color: string, cut: "faceted" | "polki" | "rose-cut", items: Item[], shape: CenterStone["shape"] = "round") {
+function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round") {
   const g = new THREE.Group();
   g.userData.part = "accents";
   if (!items.length) return g;
   const o = new THREE.Object3D();
+  if (cutIn === "cabochon") {
+    // little domed stones (sapphire petals, turquoise, emerald leaves) in a thin gold rim
+    const asp0 = ASPECT[shape];
+    const meshes = [
+      new THREE.InstancedMesh(cutGeometry("cabochon", shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: "cabochon", color, clarity: 0.45 }, 1), items.length),
+      new THREE.InstancedMesh(new THREE.TorusGeometry(0.52, 0.06, 6, 24).rotateX(Math.PI / 2).scale(1, 1, asp0), m.metal, items.length),
+    ];
+    items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });
+    meshes.forEach((x) => g.add(x));
+    return g;
+  }
+  const cut: "faceted" | "polki" | "rose-cut" = cutIn === "polki" || cutIn === "rose-cut" ? cutIn : "faceted";
   if (BEAD_GEMS.has(gem)) {
     const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 20, 14), m.bead(gem, color), items.length);
     items.forEach((it, i) => { orient(o, it); im.setMatrixAt(i, o.matrix); });
@@ -378,6 +390,10 @@ type RunOpts = {
   gap?: number;
   /** a full loop: trim to whole repeats of the pattern so it meets itself cleanly */
   closed?: boolean;
+  /** pick a gem for the stone at position i (stripes of two gems); default: the accent gem */
+  gemAt?: (i: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"] } | null;
+  /** called for every stone placed (e.g. to add a halo round each one) */
+  onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number) => void;
 };
 
 /**
@@ -385,7 +401,11 @@ type RunOpts = {
  * Honours the repeating shape list and the direction (along / across / alternate), spacing stones by their real footprint.
  */
 function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from: number, to: number, opts: RunOpts = {}) {
-  const dims = patternDims(d, opts.maxW);
+  const dims0 = patternDims(d, opts.maxW);
+  // in a mix of shapes, a stone turned across the line is no wider than the line itself
+  // (a baguette across between rounds is about as long as the rounds are wide)
+  if (!opts.maxW && new Set(dims0.map((x) => x.shape)).size > 1) opts = { ...opts, maxW: Math.max(...dims0.map((x) => x.W)) };
+  const dims = opts.maxW ? patternDims(d, opts.maxW) : dims0;
   const orient = d.accents.orientation;
   const along = (i: number) => orient === "along" || (orient === "alternate" && i % 2 === 0);
   const turnOf = (i: number) => THREE.MathUtils.degToRad(d.accents.turns[i % dims.length] ?? 0);
@@ -426,11 +446,23 @@ function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from:
     basis.makeBasis(X, up, Z);
     const pos = curve.getPointAt(u).add(opts.offset?.(u) ?? new THREE.Vector3());
     const quat = new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turnOf(i)));
-    (byShape.get(s.shape) ?? byShape.set(s.shape, []).get(s.shape)!).push({ pos, dia: s.W * fit(s, i), quat });
+    const gm = opts.gemAt?.(i) ?? null;
+    const shape = gm?.shape ?? s.shape;
+    const key = `${shape}|${gm ? `${gm.gem}|${gm.color}|${gm.cut}` : ""}`;
+    const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);
+    const dia = s.W * fit(s, i);
+    if (d.accents.twins[i % dims.length]) {
+      // two stones side by side across the line
+      for (const k of [-1, 1]) push({ pos: pos.clone().addScaledVector(X, k * dia * 0.26), dia: dia * 0.48, quat });
+    } else push({ pos, dia, quat });
+    opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape]);
     at += f + gap + spare;
   });
   const g = new THREE.Group();
-  byShape.forEach((items, shape) => g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"])));
+  byShape.forEach((items, key) => {
+    const [shape, gem, color, cut] = key.split("|");
+    g.add(gem ? accents(m, gem as Gem, color, cut as CenterStone["cut"], items, shape as CenterStone["shape"]) : accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"]));
+  });
   return { group: g, maxW: Math.max(...dims.map((x) => x.W)), count: seq.length };
 }
 
@@ -685,6 +717,143 @@ function motifPiece(d: Design, m: Mats): Piece {
 
 /* ================= pieces ================= */
 
+/* ================= Art Deco layers ================= */
+
+/**
+ * Layers built outward from the centre stone. Each layer's inner edge is sized so it clears the layer inside it
+ * all the way round, whatever the two shapes are (a round ring of calibré inside a hexagon of pavé, say).
+ */
+function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
+  const g = new THREE.Group();
+  g.userData.part = "accents";
+  const N = 180;
+  const theta = (x: number, z: number) => (Math.atan2(z, x) + Math.PI * 2) % (Math.PI * 2);
+  // radius of the boundary so far, by direction
+  const prev = new Float32Array(N);
+  { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = fn(k / 720); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
+  for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
+  const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
+  let y = y0, outer: THREE.Vector3[] = [];
+  d.frames.forEach((f) => {
+    const stoneL = f.widthMm * ASPECT[f.shape];
+    const thick = f.kind === "stones" ? (f.direction === "radial" ? stoneL : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm;
+    // the layer's own shape, scaled up until its inner edge clears everything inside
+    const unit = outlineFn(f.outline, c.lengthMm + 1, c.widthMm + 1);
+    const S = 240, raw = Array.from({ length: S }, (_, k) => unit(k / S));
+    let kScale = 0;
+    for (const [x, z] of raw) kScale = Math.max(kScale, (prevAt(theta(x, z)) + f.gapMm) / (Math.hypot(x, z) || 1));
+    const ring = (extra: number) => raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
+    const centre = new THREE.CatmullRomCurve3(ring(thick / 2), true, "centripetal");
+    if (f.kind === "stones") {
+      const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: f.cut === "polki" || f.cut === "rose-cut" ? f.cut : "faceted", sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [] } };
+      const main = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape };
+      const alt = f.alt ? { gem: f.alt.gem, color: f.alt.color, cut: f.alt.cut, shape: f.alt.shape } : null;
+      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main) }).group);
+    } else if (f.kind === "milgrain") {
+      const n = Math.max(12, Math.round(centre.getLength() / 0.5));
+      g.add(balls(m.metal, Array.from({ length: n }, (_, k) => ({ pos: centre.getPointAt(k / n).add(v3(0, 0.12, 0)), dia: 0.42 }))));
+    } else {
+      const band = new THREE.Mesh(new THREE.TubeGeometry(centre, 240, thick / 2, 8, true), m.metal);
+      band.scale.y = 0.6; band.position.y = (1 - 0.6) * y;
+      g.add(band);
+    }
+    outer = ring(thick);
+    for (const p of outer) { const a = theta(p.x, p.z), b = Math.floor((a / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(p.x, p.z)); }
+    for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], Math.min(prev[(b + 1) % N], prev[(b + N - 1) % N]));
+    y -= 0.12; // a gentle dome, like a cocktail ring
+  });
+  if (outer.length) {
+    // the gold plate everything is set into
+    const shape = new THREE.Shape(outer.map((p) => new THREE.Vector2(p.x, p.z)));
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.3, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
+    geo.rotateX(Math.PI / 2); geo.translate(0, y - 0.75, 0);
+    // a satin finish on the flat plate, as a jeweller would leave it, so it reads as metal rather than a black mirror
+    const satin = (m.metal as THREE.MeshPhysicalMaterial).clone();
+    satin.roughness = 0.32;
+    const plate = new THREE.Mesh(geo, satin);
+    plate.userData.part = "metal";
+    g.add(plate);
+  }
+  let extent = 0;
+  for (let b = 0; b < N; b++) extent = Math.max(extent, prev[b]);
+  return { group: g, extent };
+}
+
+/** pavé ribbons sweeping round the centre stone into the shank (swirl / bypass rings) */
+function swirlArms(d: Design, m: Mats, c: CenterStone, gy: number, RIN: number) {
+  const g = new THREE.Group();
+  const R = Math.max(c.lengthMm, c.widthMm) / 2;
+  const n = Math.max(1, Math.min(5, d.options.count));
+  const w = Math.max(1.4, patternMaxW(d, 2.2) + 0.6);
+  const bandPt = (a: number) => v3(Math.sin(a) * (RIN + 1.2), Math.cos(a) * (RIN + 1.2), 0);
+  for (let k = 0; k < n; k++) {
+    const side = k % 2 === 0 ? 1 : -1; // over the front or the back of the stone
+    const r = R + 1.1 + w / 2 + Math.floor(k / 2) * (w + 0.3) + (k % 2) * 0.4;
+    const lift = gy - 0.9 - k * 0.15;
+    const sweep = 0.35 + k * 0.12; // how far round it wraps
+    const pts = [bandPt(-0.95 - k * 0.06).add(v3(0, 0, -side * 0.6))];
+    // a bypass: from the back on one side, over the front of the stone, to the other side — the next ribbon goes the other way
+    for (let j = 0; j <= 12; j++) {
+      const t = j / 12, a = Math.PI + sweep - t * (Math.PI + 2 * sweep);
+      const z = side * (Math.sin(a) * r + (t - 0.5) * r * 0.9);
+      pts.push(v3(Math.cos(a) * r, lift + Math.sin(t * Math.PI) * 0.5, z));
+    }
+    pts.push(bandPt(0.95 + k * 0.06).add(v3(0, 0, side * 0.6)));
+    const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+    const t = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, w / 2, 10, false), m.metal);
+    t.scale.y = 1;
+    g.add(t);
+    g.add(patternRun(d, m, curve, 0.08, 0.92, { maxW: w - 0.5, gap: 0.12, offset: () => v3(0, w * 0.42, 0) }).group);
+  }
+  return g;
+}
+
+/** a posy of little gold flowers on a dome, optionally with a diamond in each centre */
+function flowerCluster(d: Design, m: Mats) {
+  const g = new THREE.Group();
+  const n = Math.max(1, Math.min(12, d.options.count));
+  const petal = new THREE.SphereGeometry(1, 14, 10);
+  const spots: { pos: THREE.Vector3; up: THREE.Vector3; r: number; petals: number }[] = [{ pos: v3(0, 2.2, 0), up: Y.clone(), r: 2.6, petals: 8 }];
+  for (let i = 1; i < n; i++) {
+    const a = (i / (n - 1)) * Math.PI * 2 + (i % 2) * 0.3, ring = 4.1 + (i % 2) * 0.6;
+    const up = v3(Math.cos(a) * 0.55, 1, Math.sin(a) * 0.55).normalize();
+    spots.push({ pos: v3(Math.cos(a) * ring, 1.1 - (i % 2) * 0.3, Math.sin(a) * ring), up, r: 1.9 + ((i * 7) % 5) * 0.15, petals: 5 + (i % 4) });
+  }
+  const centres: Item[] = [];
+  for (const s of spots) {
+    const f = new THREE.Group();
+    for (let k = 0; k < s.petals; k++) {
+      const a = (k / s.petals) * Math.PI * 2;
+      const p = new THREE.Mesh(petal, m.metal);
+      p.scale.set(s.r * 0.36, s.r * 0.14, s.r * 0.58);
+      p.position.set(Math.cos(a) * s.r * 0.55, 0.15, Math.sin(a) * s.r * 0.55);
+      p.rotation.y = -a + Math.PI / 2; p.rotation.x = 0.25;
+      f.add(p);
+    }
+    f.quaternion.setFromUnitVectors(Y, s.up);
+    f.position.copy(s.pos);
+    g.add(f);
+    centres.push({ pos: s.pos.clone().addScaledVector(s.up, 0.45), dia: s.r * 0.42, up: s.up });
+  }
+  if (d.options.pave) g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, centres));
+  else g.add(balls(m.metal, centres.map((c) => ({ ...c, dia: c.dia * 0.9 }))));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(5.6, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m.metal);
+  dome.scale.y = 0.35;
+  g.add(dome);
+  return g;
+}
+
+/** a ring of tiny stones round one stone (tennis bracelets with a halo on every stone) */
+function haloRing(pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, out: Item[]) {
+  const hd = Math.max(0.55, W * 0.17), a = W / 2 + hd / 2 + 0.15, b = L / 2 + hd / 2 + 0.15;
+  const per = Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+  const n = Math.max(8, Math.round(per / (hd + 0.12)));
+  for (let k = 0; k < n; k++) {
+    const t = (k / n) * Math.PI * 2;
+    out.push({ pos: v3(Math.cos(t) * a, -0.15, Math.sin(t) * b).applyQuaternion(quat).add(pos), dia: hd, quat });
+  }
+}
+
 function ringPiece(d: Design): Piece {
   const m = makeMaterials(d);
   const st = d.style;
@@ -731,6 +900,8 @@ function ringPiece(d: Design): Piece {
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
   const at = (o: THREE.Object3D) => { o.position.y += gy; group.add(o); };
   if (st === "halo") at(halo(d, m, c).group);
+  if (st === "deco") at(decoFrames(d, m, c).group);
+  if (st === "swirl") group.add(swirlArms(d, m, c, gy, ringInnerDiameter(d.ringSize) / 2));
   if (st === "polki-cocktail") {
     const h = halo(d, m, c, 2);
     at(h.group);
@@ -1164,7 +1335,15 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
     return f.radius;
   };
 
-  if (st === "stud") {
+  if (st === "deco") {
+    one.add(setStone(c, d.setting.style, m));
+    const f = decoFrames(d, m, c);
+    one.add(f.group);
+    focusSize = f.extent * 3;
+  } else if (st === "flowers") {
+    one.add(flowerCluster(d, m));
+    focusSize = 18;
+  } else if (st === "stud") {
     one.add(stud(d, m, mirrorStud));
     focusSize = Math.max(c.lengthMm, c.widthMm) * (1.6 + d.extraStones.length);
   } else if (st === "drop") {
@@ -1305,6 +1484,78 @@ function necklacePiece(d: Design, m: Mats): Piece {
       group.add(stack.group);
       focus = fp.clone().add(v3(0, 0, 2.4 + (stack.bottom - stack.top) / 2));
       focusSize = Math.max(24, (stack.bottom - stack.top) * 1.4);
+      break;
+    }
+    case "by-the-yard": {
+      // bezel-set stones (rose-cut by default) joined by little gold rings, big and small in turn
+      const loops = Math.max(1, Math.min(4, o.layers));
+      const big = Math.max(c.widthMm, 2), small = big * 0.72, ringR = Math.max(0.7, big * 0.17);
+      const stonesBig: Item[] = [], stonesSmall: Item[] = [], rings: Item[] = [];
+      for (let l = 0; l < loops; l++) {
+        const { curve: cv } = loopCurve(L / loops + l * 60, 0.85, 0.12 + l * 0.04);
+        const total = cv.getLength();
+        let at = 0, k = 0;
+        while (at < total - big) {
+          const dia = k % 2 ? small : big;
+          const u = (at + dia / 2) / total;
+          (k % 2 ? stonesSmall : stonesBig).push({ pos: cv.getPointAt(u), dia, yaw: yawAt(cv, u) });
+          at += dia + 0.2;
+          rings.push({ pos: cv.getPointAt(Math.min(0.999, (at + ringR) / total)), dia: ringR * 2, up: cv.getTangentAt(Math.min(0.999, (at + ringR) / total)) });
+          at += ringR * 2 + 0.2; k++;
+        }
+      }
+      const cutA = c.cut === "cabochon" ? "cabochon" : c.cut;
+      group.add(accents(m, c.gem, c.color, cutA, stonesBig, "round"), accents(m, c.gem, c.color, cutA, stonesSmall, "round"));
+      const ringIm = new THREE.InstancedMesh(new THREE.TorusGeometry(0.5, 0.11, 8, 20), m.metal, rings.length);
+      const ob = new THREE.Object3D();
+      rings.forEach((r, i) => { ob.position.copy(r.pos); ob.quaternion.setFromUnitVectors(v3(0, 0, 1), r.up!); ob.scale.setScalar(r.dia); ob.updateMatrix(); ringIm.setMatrixAt(i, ob.matrix); });
+      group.add(ringIm);
+      focusSize = 30;
+      break;
+    }
+    case "gold-collar": {
+      // a rigid collar: crossed X links with pavé between, or chevrons with rows of stones
+      const span = 0.86, from = front - span / 2;
+      const total = curve.getLength() * span, w = 8;
+      const frameAt = (u: number) => { const p = curve.getPointAt(wrap(u)), t = curve.getTangentAt(wrap(u)), n = outwardAt(curve, u); return { p, t, n }; };
+      const stones: Item[] = [], alt: Item[] = [];
+      if (o.linkStyle === "x") {
+        const seg = 9, n = Math.floor(total / seg);
+        for (let i = 0; i < n; i++) {
+          const u = from + ((i + 0.5) * seg) / curve.getLength();
+          const { p, t, n: nn } = frameAt(u);
+          for (const s1 of [-1, 1]) for (const lane of [-0.55, 0, 0.55]) {
+            // three grooved wires per bar of the X
+            const a = p.clone().addScaledVector(t, -2.6).addScaledVector(nn, s1 * w * 0.42).addScaledVector(t, lane * 0.7);
+            const b = p.clone().addScaledVector(t, 2.6).addScaledVector(nn, -s1 * w * 0.42).addScaledVector(t, lane * 0.7);
+            group.add(tube(m, [a.clone().add(v3(0, 0.6, 0)), p.clone().addScaledVector(t, lane * 0.7).add(v3(0, 1.6 + s1 * 0.25, 0)), b.clone().add(v3(0, 0.6, 0))], 0.38));
+          }
+          // pavé cluster in the gap after this X
+          const q = frameAt(u + (seg / 2) / curve.getLength());
+          const base = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 12), m.metal);
+          base.scale.set(1, 0.45, 1); base.position.copy(q.p); group.add(base);
+          const sd = Math.max(0.9, roundDiameter(d.accents.gem, d.accents.sizeCt));
+          for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7]])
+            stones.push({ pos: q.p.clone().addScaledVector(q.t, dx * sd * 1.05).addScaledVector(q.n, dz * sd * 1.05).add(v3(0, 1.15 - Math.hypot(dx, dz) * 0.25, 0)), dia: sd });
+        }
+      } else {
+        const seg = 2.4, n = Math.floor(total / seg);
+        const sd = Math.max(0.8, roundDiameter(d.accents.gem, d.accents.sizeCt));
+        for (let i = 0; i < n; i++) {
+          const u = from + (i * seg) / curve.getLength();
+          const { p, t, n: nn } = frameAt(u);
+          const tip = p.clone().add(v3(0, 1.4, 0)), l = p.clone().addScaledVector(nn, w / 2).addScaledVector(t, -2.2).add(v3(0, 0.6, 0)), r = p.clone().addScaledVector(nn, -w / 2).addScaledVector(t, -2.2).add(v3(0, 0.6, 0));
+          group.add(tube(m, [l, tip, r], 0.62));
+          if (i % 3 === 1) {
+            // a row of stones along this chevron, alternating gems row by row
+            const row = Math.floor(i / 3) % 2 === 0 ? stones : alt;
+            for (const end of [l, r]) for (let k = 1; k <= 3; k++) row.push({ pos: tip.clone().lerp(end, k / 4).add(v3(0, 0.55, 0)), dia: sd });
+          }
+        }
+      }
+      group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, stones));
+      if (alt.length) group.add(accents(m, "diamond", "#f4f6fb", "faceted", alt));
+      focusSize = 50;
       break;
     }
     case "riviera": {
@@ -1461,7 +1712,7 @@ function necklacePiece(d: Design, m: Mats): Piece {
 function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
   const c = d.center, o = d.options, st = d.style;
   const group = new THREE.Group();
-  const solid = st === "bangle" || st === "kada" || st === "cuff";
+  const solid = st === "bangle" || st === "kada" || st === "cuff" || st === "open-bangle";
   const circ = circumference ?? (solid ? Math.PI * bangleDiameter(o.bangleSize) : o.wristCm * 10 + 15);
   const { curve, front } = loopCurve(circ, 1.12, 0);
   const fp = curve.getPointAt(front);
@@ -1470,12 +1721,43 @@ function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
   const outFront = outwardAt(curve, front);
 
   if (st === "tennis") {
-    const run = patternRun(d, m, curve, front, front + 1, { closed: true, gap: 0.45 });
-    group.add(run.group);
-    const under = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.45, run.maxW * 0.08), 8, true), m.metal);
-    under.position.y = -run.maxW * 0.45;
-    group.add(under);
-    focusSize = run.maxW * 7;
+    const rows = Math.max(1, Math.min(5, o.layers));
+    const W0 = patternMaxW(d);
+    const haloItems: Item[] = [];
+    const pitch = W0 + (o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.5 : 0.5);
+    let maxW = W0;
+    for (let r = 0; r < rows; r++) {
+      const off = (r - (rows - 1) / 2) * pitch;
+      const run = patternRun(d, m, curve, front, front + 1, {
+        closed: true, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
+        offset: (u) => outwardAt(curve, u).multiplyScalar(off),
+        onPlace: o.halo ? (pos, quat, W, L) => haloRing(pos, quat, W, L, haloItems) : undefined,
+      });
+      group.add(run.group);
+      maxW = run.maxW;
+      const rail = off ? new THREE.CatmullRomCurve3(Array.from({ length: 200 }, (_, k) => curve.getPointAt(k / 200).addScaledVector(outwardAt(curve, k / 200), off)), true) : curve;
+      const under = new THREE.Mesh(new THREE.TubeGeometry(rail, 400, Math.max(0.45, run.maxW * 0.08), 8, true), m.metal);
+      under.position.y = -run.maxW * 0.45;
+      group.add(under);
+    }
+    if (haloItems.length) group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, haloItems));
+    focusSize = maxW * 7 + (rows - 1) * pitch * 2;
+  } else if (st === "open-bangle") {
+    const thick = 2.2;
+    const arc = new THREE.CatmullRomCurve3(Array.from({ length: 120 }, (_, i) => curve.getPointAt(wrap(front + 0.05 + (i / 119) * 0.9))));
+    const band = new THREE.Mesh(new THREE.TubeGeometry(arc, 300, thick, 20, false), m.metal);
+    band.scale.y = 1.3;
+    group.add(band);
+    if (o.pave) group.add(patternRun(d, m, arc, 0.02, 0.32, { offset: () => v3(0, thick * 1.25, 0), maxW: thick * 1.5, gap: 0.2 }).group);
+    // a stone at each end, lying along the bangle
+    for (const u of [0, 1]) {
+      const p = arc.getPointAt(u), t = arc.getTangentAt(u).multiplyScalar(u === 0 ? -1 : 1);
+      const s = setStone(c, d.setting.style, m, Math.min(1, 14 / Math.max(c.lengthMm, c.widthMm)));
+      s.position.copy(p).addScaledVector(t, -Math.min(c.lengthMm, 14) / 2 + 1).add(v3(0, thick * 1.25, 0));
+      s.rotation.y = Math.atan2(t.x, t.z);
+      group.add(s);
+    }
+    focus = curve.getPointAt(front).add(v3(0, thick, 0)); focusSize = 40;
   } else if (solid) {
     const thick = st === "kada" ? 3.4 : st === "cuff" ? 1.6 : 1.8;
     const height = st === "cuff" ? 7 : st === "kada" ? 1.3 : 1;
