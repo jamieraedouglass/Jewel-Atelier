@@ -1,7 +1,7 @@
 import { geometryCache } from "../cache";
 import * as THREE from "three";
 import { BEAD_GEMS, type CenterStone, type Design, type Gem } from "../design";
-import { type OutlineFn, cabochonGeo, centerFacetedGeo, clawDegrees, facetedGeo, outlineFn } from "../ringModel";
+import { type OutlineFn, cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, facetedGeo, outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
 
@@ -16,6 +16,7 @@ export function cutGeometry(cut: CenterStone["cut"], shape: CenterStone["shape"]
     if (cut === "cabochon") return cabochonGeo(fn, dome, Math.min(W * 0.14, 2));
     if (cut === "briolette") return briolGeo(L, W);
     if (cut === "bead") return beadGeo(shape, L, W);
+    if (cut === "carved") return carvedGeo(fn, dome, Math.min(W * 0.14, 2), Math.round(Math.max(12, Math.min(36, (Math.PI * (L + W)) / 2 / 2.2))));
     if (cut === "faceted") return centerFacetedGeo(shape, fn, W, Math.max(0.3, dome));
     return lowCutGeo(fn, cut as "rose-cut" | "polki", dome);
   });
@@ -115,7 +116,7 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
     return g;
   }
   const geo = cutGeometry(c.cut, c.shape, L, W, dome);
-  if (c.cut === "cabochon") {
+  if (c.cut === "cabochon" || c.cut === "carved") {
     g.add(new THREE.Mesh(geo, BEAD_GEMS.has(c.gem) ? m.bead(c.gem, c.color) : m.stone(c, W)));
     return g;
   }
@@ -148,7 +149,7 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
   g.userData.part = "center"; // what a click on it edits
   const L = c.lengthMm * scale, W = c.widthMm * scale;
   const fn = outlineFn(c.shape, L, W);
-  const isCab = c.cut === "cabochon";
+  const isCab = c.cut === "cabochon" || c.cut === "carved";
   const belly = isCab ? Math.min(W * 0.14, 2) : c.cut === "faceted" ? W * 0.43 : Math.max(0.3, c.domeMm * scale);
   const dome = Math.max(0.25, c.domeMm * scale);
   const wire = Math.max(0.12, Math.min(0.42, W * 0.04));

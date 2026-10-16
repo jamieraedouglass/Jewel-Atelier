@@ -1,9 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isOpenPath } from "@/lib/access";
+import { BRAND } from "@/lib/brand";
 
-/** Keeps the Supabase session cookie fresh on every request. */
+const gate = (request: NextRequest, signedIn: boolean, response: NextResponse) => {
+  const path = request.nextUrl.pathname;
+  if (!BRAND.private || signedIn || isOpenPath(path)) return response;
+  if (path.startsWith("/api/")) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  url.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
+  return NextResponse.redirect(url);
+};
+
+/** Keeps the Supabase session cookie fresh on every request; on a private studio, sends visitors who aren't signed in to sign in. */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
+  // no database yet (a new studio still being set up): nobody is signed in, the demo still works
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return gate(request, false, response);
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll: () => request.cookies.getAll(),
@@ -14,8 +28,8 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
-  return response;
+  const { data } = await supabase.auth.getUser();
+  return gate(request, !!data.user, response);
 }
 
 export const config = {

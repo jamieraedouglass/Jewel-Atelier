@@ -172,6 +172,37 @@ export function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   return g;
 }
 
+/**
+ * A carved stone in the Mughal manner: a polished dome cut with flutes that radiate from the centre and deepen toward
+ * a softly scalloped edge (fluted emeralds, carved aquamarines, jade). `flutes` is how many grooves run round it.
+ */
+export function carvedGeo(fn: OutlineFn, dome: number, belly: number, flutes: number) {
+  const n = Math.max(160, flutes * 12), m = 40, pos: number[] = [], idx: number[] = [];
+  // 1 on a ridge, 0 in a groove, going round the stone
+  const ridge = (t: number) => 0.5 + 0.5 * Math.cos(2 * Math.PI * flutes * t);
+  const rows: { s: number; y: number; top: boolean }[] = [];
+  for (let j = m; j >= 1; j--) { const p = (j / m) * Math.PI / 2; rows.push({ s: Math.cos(p), y: -Math.sin(p) * belly, top: false }); }
+  for (let j = 0; j <= m; j++) { const p = (j / m) * Math.PI / 2; rows.push({ s: Math.cos(p), y: Math.sin(p) * dome, top: true }); }
+  rows.forEach(({ s, y, top }) => {
+    for (let i = 0; i < n; i++) {
+      const t = i / n, [x, z] = fn(t), groove = 1 - ridge(t);
+      const edge = s * (1 - 0.04 * groove);                                   // the scalloped outline
+      const cut = top ? 1 - 0.22 * Math.pow(groove, 1.6) * Math.pow(s, 0.8) : 1; // grooves deepen toward the edge
+      pos.push(x * edge, y * cut, z * edge);
+    }
+  });
+  for (let r = 0; r < rows.length - 1; r++)
+    for (let i = 0; i < n; i++) {
+      const a = r * n + i, b = r * n + ((i + 1) % n), c = (r + 1) * n + i, d = (r + 1) * n + ((i + 1) % n);
+      idx.push(a, c, b, b, c, d);
+    }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 export type Tier = { s: number; y: number; twist?: number };
 
 /** Faceted stone from stacked outline tiers; flat-shaded so every facet catches light on its own. */

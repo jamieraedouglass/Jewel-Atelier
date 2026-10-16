@@ -6,6 +6,7 @@ import FramesEditor from "./FramesEditor";
 import { useState } from "react";
 import { SHOWCASE, SHOWCASE_CATEGORIES, STYLES, TYPES, TYPE_LABEL, type Design, type DesignPatch, type ShowcaseCategory, type Use, categoryFor, chooseStyle, showcaseDesign, showcaseIn, styleMeta } from "@/lib/design";
 import { Chips } from "./controls/fields";
+import { BRAND } from "@/lib/brand";
 import CenterStoneSection from "./controls/CenterStoneSection";
 import ExtraStonesSection from "./controls/ExtraStonesSection";
 import AccentsSection from "./controls/AccentsSection";
@@ -24,7 +25,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
   const has = (u: Use) => meta.uses.includes(u);
   const section = { d, onChange };
   // the showcase opens on the kind of piece being designed
-  const [category, setCategory] = useState<ShowcaseCategory>(() => categoryFor(d.type));
+  const [category, setCategory] = useState<ShowcaseCategory>(() => (BRAND.showcaseCategory === "kothari" ? "kothari" : categoryFor(d.type)));
 
   return (
     <>

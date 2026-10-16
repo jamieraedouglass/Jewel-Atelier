@@ -4,8 +4,9 @@ import { describeDesign, normalizeDesign } from "@/lib/design";
 import { normalizeInventory, type InventoryRow } from "@/lib/inventory";
 import { requireUser } from "@/lib/supabase/server";
 import InventoryTable from "@/components/inventory/InventoryTable";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "Inventory · Atelier" };
+export const metadata = { title: `Inventory · ${BRAND.name}` };
 
 /** Every piece marked as made: what it is, where it is, what it weighs and what it's worth. */
 export default async function InventoryPage() {

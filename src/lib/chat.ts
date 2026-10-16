@@ -56,3 +56,7 @@ export function chatForApi(messages: ChatMessage[], max = 40) {
       : m.content,
   }));
 }
+
+/** a reply as the chat shows it: plain text (the chat doesn't render markdown, so **bold** and # headings show as symbols) */
+export const plainReply = (text: string) =>
+  text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/^\s*[*]\s+/gm, "• ").trim();

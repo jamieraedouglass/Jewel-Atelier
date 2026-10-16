@@ -3,8 +3,9 @@ import { TYPES, applyPatch, chooseStyle, defaultDesign, type PieceType } from "@
 import { requireUser } from "@/lib/supabase/server";
 import { loadStyleProfile } from "@/lib/style/load";
 import { designDefaultsFrom } from "@/lib/style/profile";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "New design · Atelier" };
+export const metadata = { title: `New design · ${BRAND.name}` };
 
 export default async function NewDesignPage({ searchParams }: { searchParams: { type?: string; style?: string } }) {
   const { supabase, user } = await requireUser();

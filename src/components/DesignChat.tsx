@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { loadChat, noteAppliedSuggestion, noteDismissedSuggestion, saveChat } from "@/app/actions";
 import { TYPE_LABEL, type Design, type DesignPatch } from "@/lib/design";
-import { KEEP_MESSAGES, chatForApi, describePatch, type ChatMessage, type ChatProposal } from "@/lib/chat";
+import { KEEP_MESSAGES, chatForApi, describePatch, type ChatMessage, type ChatProposal, plainReply } from "@/lib/chat";
 
 type Props = { userId: string | null; designId: string | null; design: Design; onApply: (patch: DesignPatch) => void };
 
@@ -93,7 +93,7 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
 
       {messages.map((m, i) => (
         <div key={i} style={{ display: "grid", gap: 8 }}>
-          <div className={`msg ${m.role}`}>{m.content}</div>
+          <div className={`msg ${m.role}`}>{m.role === "assistant" ? plainReply(m.content) : m.content}</div>
           {m.proposals?.map((p, j) => (
             <div key={`${i}-${j}`} className="proposal" style={p.state === "dismissed" ? { opacity: 0.55 } : undefined}>
               <h4>{p.title}</h4>

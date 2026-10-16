@@ -1,7 +1,7 @@
 import { applyGlow } from "../glow";
 import * as THREE from "three";
 import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
-import { cabochonGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
+import { cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
 import { metalTone, textureBump } from "./metal";
 import { bandSection, shankGeo } from "./band";
 
@@ -47,7 +47,7 @@ export function buildRing(d: Design): THREE.Group {
   root.userData.head = head;
   const c = d.center;
   const L = c.lengthMm, W = c.widthMm, fn = outlineFn(c.shape, L, W);
-  const isCab = c.cut === "cabochon" || c.cut === "bead"; // smooth stones sit like a cabochon on a ring
+  const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved"; // polished stones sit like a cabochon on a ring
   const belly = isCab ? Math.min(W * 0.14, 2) : W * 0.43;
   const GY = SHANK_TOP + (isCab ? belly * 0.56 : belly * 0.45) + d.setting.height * 4;
   const color = new THREE.Color(c.color);
@@ -68,7 +68,9 @@ export function buildRing(d: Design): THREE.Group {
   }), c.glow, isCab);
   const stone = new THREE.Group();
   stone.userData.part = "center";
-  if (isCab) stone.add(new THREE.Mesh(cabochonGeo(fn, c.domeMm, belly), stoneMat));
+  if (isCab) stone.add(new THREE.Mesh(c.cut === "carved"
+    ? carvedGeo(fn, c.domeMm, belly, Math.round(Math.max(12, Math.min(36, (Math.PI * (L + W)) / 2 / 2.2))))
+    : cabochonGeo(fn, c.domeMm, belly), stoneMat));
   else {
     const g = centerFacetedGeo(c.shape, fn, W, Math.max(0.6, c.domeMm));
     const inner = mirror.clone(); inner.color = colorless ? new THREE.Color(0xf2f5ff) : color.clone().lerp(new THREE.Color(0xffffff), 0.15);

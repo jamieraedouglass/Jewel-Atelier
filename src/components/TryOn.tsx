@@ -13,14 +13,20 @@ const REFS = [
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;
 
-type Props = { cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void; recut?: (flatten: number) => Cutout | null };
+/** another piece worn in the same photo (a set: ring, earrings, necklace), placed and turned on its own */
+export type TryOnExtra = { title: string; cutout: Cutout };
+type Props = {
+  cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void; recut?: (flatten: number) => Cutout | null;
+  extras?: TryOnExtra[];
+};
+type Layer = { pos: { x: number; y: number }; angle: number; flip: boolean; on: boolean };
 type Pt = { x: number; y: number };
 
 /**
  * Try a piece on a real photo at true size. A coin or card in the photo sets the scale (mm per pixel);
  * the piece is then drawn at exactly that scale, and you can move and turn it, but not resize it.
  */
-export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut }: Props) {
+export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut, extras = [] }: Props) {
   // bracelets, anklets and necklaces start as worn: only the front of the loop shows
   const [showFront, setShowFront] = useState(!!front0);
   const [ear, setEar] = useState<"left" | "right">("left");
@@ -50,7 +56,14 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
   const [angle, setAngle] = useState(0);
   const [flip, setFlip] = useState(false);
   const [shown, setShown] = useState(1); // displayed px per photo px
-  const drag = useRef<{ from: Pt; start: Pt } | null>(null);
+  const drag = useRef<{ from: Pt; start: Pt; layer: number } | null>(null);
+  // the other pieces of a set; -1 moves the main piece, 0… one of these
+  const [layers, setLayers] = useState<Layer[]>(() => extras.map(() => ({ pos: { x: 0, y: 0 }, angle: 0, flip: false, on: true })));
+  const [active, setActive] = useState(-1);
+  const setLayer = (i: number, l: Partial<Layer>) => setLayers((cur) => cur.map((x, j) => (j === i ? { ...x, ...l } : x)));
+  const activeAngle = active < 0 ? angle : layers[active]?.angle ?? 0;
+  const turn = (a: number) => (active < 0 ? setAngle(a) : setLayer(active, { angle: a }));
+  const mirror = () => (active < 0 ? setFlip(!flip) : setLayer(active, { flip: !layers[active].flip }));
 
   const refMm = ref.id === "custom" ? Number(customMm) || 0 : ref.mm;
   const mmPerPhotoPx = pts.length === 2 && refMm > 0 ? refMm / Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) : null;
@@ -71,7 +84,11 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
     setLoadError(null);
     const url = URL.createObjectURL(f);
     const img = new Image();
-    img.onload = () => { setPhoto({ url, w: img.naturalWidth, h: img.naturalHeight }); setPts([]); setPos({ x: img.naturalWidth / 2, y: img.naturalHeight / 2 }); };
+    img.onload = () => {
+      setPhoto({ url, w: img.naturalWidth, h: img.naturalHeight }); setPts([]); setPos({ x: img.naturalWidth / 2, y: img.naturalHeight / 2 });
+      // the other pieces start spread across the photo, so none hides another
+      setLayers((cur) => cur.map((l, i) => ({ ...l, pos: { x: (img.naturalWidth * (i + 2)) / (cur.length + 3), y: img.naturalHeight * 0.35 } })));
+    };
     img.onerror = () => { URL.revokeObjectURL(url); setLoadError("That photo couldn't be opened here. Try a JPEG or PNG."); };
     img.src = url;
   }
@@ -87,16 +104,21 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
 
   // the piece's size in photo pixels
   const pieceW = mmPerPhotoPx ? cutout.widthMm / mmPerPhotoPx : 0, pieceH = mmPerPhotoPx ? (cutout.heightMm * squash) / mmPerPhotoPx : 0;
+  const sizeOf = (c: Cutout) => (mmPerPhotoPx ? { w: c.widthMm / mmPerPhotoPx, h: c.heightMm / mmPerPhotoPx } : { w: 0, h: 0 });
 
   async function savePicture() {
     if (!photo || !mmPerPhotoPx) return;
     const c = document.createElement("canvas");
     c.width = photo.w; c.height = photo.h;
     const ctx = c.getContext("2d")!;
-    const [bg, fg] = await Promise.all([photo.url, cutout.url].map((u) => new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; })));
+    const loadImg = (u: string) => new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+    const [bg, fg, ...more] = await Promise.all([photo.url, cutout.url, ...extras.map((x) => x.cutout.url)].map(loadImg));
     ctx.drawImage(bg, 0, 0);
-    ctx.translate(pos.x, pos.y); ctx.rotate((angle * Math.PI) / 180); if (flip) ctx.scale(-1, 1);
-    ctx.drawImage(fg, -pieceW / 2, -pieceH / 2, pieceW, pieceH);
+    const draw = (img: HTMLImageElement, at: Pt, deg: number, mirrored: boolean, w: number, h: number) => {
+      ctx.save(); ctx.translate(at.x, at.y); ctx.rotate((deg * Math.PI) / 180); if (mirrored) ctx.scale(-1, 1); ctx.drawImage(img, -w / 2, -h / 2, w, h); ctx.restore();
+    };
+    draw(fg, pos, angle, flip, pieceW, pieceH);
+    extras.forEach((x, i) => { const l = layers[i], sz = sizeOf(x.cutout); if (l?.on) draw(more[i], l.pos, l.angle, l.flip, sz.w, sz.h); });
     c.toBlob(async (b) => {
       if (!b) return;
       const file = new File([b], `${title.replace(/[^\w\- ]+/g, "") || "try-on"}-try-on.jpg`, { type: "image/jpeg" });
@@ -155,36 +177,61 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
             {placing && (
               <img src={cutout.url} alt={title} draggable={false} className="tryon-piece"
                 style={{ left: pos.x * shown, top: pos.y * shown, width: pieceW * shown, height: pieceH * shown, transform: `translate(-50%, -50%) rotate(${angle}deg) scaleX(${flip ? -1 : 1})` }}
-                onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = { from: toPhoto(e), start: pos }; }}
-                onPointerMove={(e) => { const d = drag.current; if (!d) return; const p = toPhoto(e); setPos({ x: d.start.x + p.x - d.from.x, y: d.start.y + p.y - d.from.y }); }}
+                onPointerDown={(e) => { e.stopPropagation(); setActive(-1); (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = { from: toPhoto(e), start: pos, layer: -1 }; }}
+                onPointerMove={(e) => { const d = drag.current; if (!d || d.layer !== -1) return; const p = toPhoto(e); setPos({ x: d.start.x + p.x - d.from.x, y: d.start.y + p.y - d.from.y }); }}
                 onPointerUp={() => (drag.current = null)} />
             )}
+            {placing && extras.map((x, i) => {
+              const l = layers[i], sz = sizeOf(x.cutout);
+              if (!l?.on) return null;
+              return (
+                <img key={i} src={x.cutout.url} alt={x.title} draggable={false} className="tryon-piece"
+                  style={{ left: l.pos.x * shown, top: l.pos.y * shown, width: sz.w * shown, height: sz.h * shown, transform: `translate(-50%, -50%) rotate(${l.angle}deg) scaleX(${l.flip ? -1 : 1})` }}
+                  onPointerDown={(e) => { e.stopPropagation(); setActive(i); (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = { from: toPhoto(e), start: l.pos, layer: i }; }}
+                  onPointerMove={(e) => { const d = drag.current; if (!d || d.layer !== i) return; const p = toPhoto(e); setLayer(i, { pos: { x: d.start.x + p.x - d.from.x, y: d.start.y + p.y - d.from.y } }); }}
+                  onPointerUp={() => (drag.current = null)} />
+              );
+            })}
           </div>
 
           {placing ? (
             <>
-              {right && (
+              {extras.length > 0 && (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <span className="small muted">The set: tap a piece to move or turn it; switch pieces on and off</span>
+                  <div className="chips" role="group" aria-label="Pieces in the photo">
+                    <button type="button" className="chip" style={{ textTransform: "none" }} aria-pressed={active === -1} onClick={() => setActive(-1)}>{title}</button>
+                    {extras.map((x, i) => (
+                      <span key={i} style={{ display: "inline-flex", gap: 2 }}>
+                        <button type="button" className="chip" style={{ textTransform: "none", opacity: layers[i]?.on ? 1 : 0.5 }} aria-pressed={active === i} onClick={() => { setActive(i); if (!layers[i].on) setLayer(i, { on: true }); }}>{x.title}</button>
+                        <button type="button" className="chip" aria-label={layers[i]?.on ? `Hide ${x.title}` : `Show ${x.title}`} onClick={() => setLayer(i, { on: !layers[i].on })}>{layers[i]?.on ? "×" : "+"}</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {right && active < 0 && (
                 <div className="chips" role="group" aria-label="Which earring">
                   <button type="button" className="chip" aria-pressed={ear === "left"} onClick={() => setEar("left")}>Left earring</button>
                   <button type="button" className="chip" aria-pressed={ear === "right"} onClick={() => setEar("right")}>Right earring</button>
                 </div>
               )}
-              {front && showFront && (
+              {front && showFront && active < 0 && (
                 <label className="field"><span>How it curves round · {Math.round(curve * 100)}%</span>
                   <input type="range" min={0.15} max={1} step={0.05} value={curve} onChange={(e) => changeCurve(Number(e.target.value))} />
                 </label>
               )}
-              {front && (
+              {front && active < 0 && (
                 <div className="chips" role="group" aria-label="How much of the piece">
                   <button type="button" className="chip" aria-pressed={showFront} onClick={() => setShowFront(true)}>As worn (front of the loop)</button>
                   <button type="button" className="chip" aria-pressed={!showFront} onClick={() => setShowFront(false)}>Whole piece</button>
                 </div>
               )}
-              <label className="field"><span>Turn · {angle}°</span>
-                <input type="range" min={-180} max={180} step={1} value={angle} onChange={(e) => setAngle(Number(e.target.value))} />
+              <label className="field"><span>Turn {active >= 0 ? extras[active]?.title : extras.length ? title : ""} · {activeAngle}°</span>
+                <input type="range" min={-180} max={180} step={1} value={activeAngle} onChange={(e) => turn(Number(e.target.value))} />
               </label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="btn" onClick={() => setFlip(!flip)}>Mirror (other ear / hand)</button>
+                <button type="button" className="btn" onClick={mirror}>Mirror (other ear / hand)</button>
                 <button type="button" className="btn" onClick={() => setPts([])}>Re-measure the coin</button>
                 <button type="button" className="btn" onClick={() => { setPhoto(null); setPts([]); }}>New photo</button>
                 <button type="button" className="btn primary" onClick={savePicture}>Save picture</button>

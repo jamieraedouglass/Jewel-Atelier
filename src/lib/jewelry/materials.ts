@@ -14,6 +14,8 @@ export function makeMaterials(d: Design) {
   };
   return {
     metal: memo("metal", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 })),
+    /** brushed metal for broad flat parts (clasps, plates) that would otherwise mirror the studio lights in a blinding flash */
+    satin: memo("satin", () => new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: Math.max(0.42, tone.roughness * 2), envMapIntensity: 0.55 })),
     enamel: memo("enamel", () => new THREE.MeshPhysicalMaterial({ color: d.enamel.color, metalness: 0, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.2 })),
     skin: memo("skin", () => new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0, transparent: true, opacity: 0.22, specularIntensity: 1, envMapIntensity: 3, flatShading: true, depthWrite: false })),
     mirror: (tint: THREE.ColorRepresentation = 0xf2f5ff, intensity = 3.6) =>
@@ -30,7 +32,7 @@ export function makeMaterials(d: Design) {
       const glow = c.glow ?? (c.gem === d.accents.gem ? d.accents.glow : 0);
       return memo(`stone${c.gem}${c.cut}${c.color}${c.clarity}${glow}${Math.round(W)}`, () => {
         const color = new THREE.Color(c.color);
-        const isCab = c.cut === "cabochon" || c.cut === "bead"; // polished, not faceted
+        const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved"; // polished, not faceted
         return applyGlow(new THREE.MeshPhysicalMaterial({
           color, metalness: 0, roughness: isCab ? 0.22 : 0.01,
           transmission: isCab ? c.clarity * 0.45 : 0.2 + c.clarity * 0.75, thickness: W * 0.8,

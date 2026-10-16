@@ -4,7 +4,7 @@ import type { Design } from "@/lib/design";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { Canvas } from "@react-three/fiber";
 import { ContactShadows, OrbitControls } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { buildPiece } from "@/lib/jewelryModel";
 import { Bloom, EffectComposer, N8AO, SMAA, ToneMapping } from "@react-three/postprocessing";
@@ -12,8 +12,8 @@ import { ToneMappingMode } from "postprocessing";
 import { type Measure, type Pick, type RingCanvasHandle, type View } from "./canvas/types";
 import { FOV, measurePiece } from "./canvas/framing";
 import { Grabber } from "./canvas/Grabber";
-import { StoneLight } from "./canvas/stoneLight";
-import { Refraction } from "./canvas/Refraction";
+import { StoneLight, forgetRoomEnv } from "./canvas/stoneLight";
+import { Refraction, forgetStudioCube } from "./canvas/Refraction";
 import { CameraRig, ClickPicker, Model } from "./canvas/sceneParts";
 import { Backdrop, StudioLights } from "./canvas/studio";
 
@@ -30,7 +30,9 @@ type Props = {
 export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure, lite, quality = "high" }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
-  const piece = useMemo(() => buildPiece(design), [design]);
+  // bumped when the browser restores a lost 3D context: the piece is rebuilt so every stone gets fresh lighting
+  const [restored, setRestored] = useState(0);
+  const piece = useMemo(() => buildPiece(design), [design, restored]); // eslint-disable-line react-hooks/exhaustive-deps
   const floor = useMemo(() => {
     const box = new THREE.Box3().setFromObject(piece.group);
     return { y: box.min.y - 0.05, scale: Math.max(40, (box.max.x - box.min.x) * 1.6, (box.max.z - box.min.z) * 1.6) };
@@ -54,7 +56,11 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       dpr={[1, 2]}
       camera={{ fov: FOV, position: [20, 30, 52], near: 0.2, far: 5000 }}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
-      onCreated={({ gl }) => { canvasEl.current = gl.domElement; }}
+      onCreated={({ gl }) => {
+        canvasEl.current = gl.domElement;
+        // a lost and restored context (GPU switch, sleep) leaves the rendered light maps empty: stones would go black
+        gl.domElement.addEventListener("webglcontextrestored", () => { forgetRoomEnv(gl); forgetStudioCube(gl); setRestored((n) => n + 1); });
+      }}
     >
       <Backdrop />
       <Suspense fallback={null}><StudioLights /></Suspense>

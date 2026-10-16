@@ -10,7 +10,7 @@ const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCa
 export function stoneText(c: CenterStone) {
   if (c.none) return "no main stone";
   const cut = c.cut === "faceted" ? `${c.shape}-cut` : c.cut;
-  return `${c.carat ? `${c.carat} ct ` : ""}${gemName(c.gem)} ${cut} (${c.lengthMm} × ${c.widthMm} mm)`;
+  return `${c.carat ? `${c.carat} ct ` : ""}${gemName(c.gem)} ${cut} (${Math.round(c.lengthMm * 10) / 10} × ${Math.round(c.widthMm * 10) / 10} mm)`;
 }
 
 export function describeDesign(d: Design): string {
