@@ -522,7 +522,10 @@ export function buildRing(d: Design): THREE.Group {
       const isCabC = c.cut === "cabochon";
       const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
       const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : 0;
-      const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.2), topT: Math.max(2.4, pav * 0.55 + 0.9, setIn), spread: gap + spanX * 0.9 };
+      // stones set into a band are cut a little shallower and sit in a closed metal seat: the band is made deep and wide
+      // enough at the shoulders that no stone shows below or beside the metal
+      const pavF = 0.6, pavD = pav * pavF;
+      const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
       shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
       shankMesh.userData.top = top;
@@ -540,12 +543,25 @@ export function buildRing(d: Design): THREE.Group {
         pos.needsUpdate = true; out.computeVertexNormals();
         return out;
       };
-      const gb = bent(g), bzb = bent(bz);
+      // shallower pavilion (everything below the girdle scaled up toward it)
+      const shallow = g.clone();
+      { const pos = shallow.getAttribute("position") as THREE.BufferAttribute; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y < 0) pos.setY(i, y * pavF); } pos.needsUpdate = true; shallow.computeVertexNormals(); }
+      // a closed seat: the rim carried down past the culet, so the band's metal wraps each stone
+      const seatShape = new THREE.Shape(sc(1.04));
+      seatShape.holes.push(new THREE.Path(sc(0.985).reverse()));
+      const seat = new THREE.ExtrudeGeometry(seatShape, { depth: pavD + 0.5, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 24 });
+      seat.rotateX(Math.PI / 2); seat.translate(0, 0.12, 0);
+      const floorShape = new THREE.Shape(sc(1.0));
+      const floor = new THREE.ExtrudeGeometry(floorShape, { depth: 0.4, bevelEnabled: false, curveSegments: 24 });
+      floor.rotateX(Math.PI / 2); floor.translate(0, -pavD - 0.05, 0);
+      const gb = bent(shallow), bzb = bent(seat), flb = bent(floor);
       for (const side of [1, -1]) {
         const grp = new THREE.Group();
         grp.userData.part = "sides";
         grp.userData.onBand = true;
-        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, metal));
+        // the seat walls get a soft satin, like a polished wall seen side-on, rather than mirroring the dark room
+        const seatMetal = (metal as THREE.MeshPhysicalMaterial).clone(); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
+        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, seatMetal), new THREE.Mesh(flb, seatMetal));
         // small claws at the corners, on the band's curve
         for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
           const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 10), metal);
