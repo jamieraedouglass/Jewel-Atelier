@@ -76,8 +76,9 @@ input[type="range"] { width: 100%; accent-color: var(--fg); }
 .stage-ui > * { pointer-events: auto; }
 .summary { max-width: 52ch; font-family: var(--font-display), Georgia, serif; font-size: 15px; }
 .panel { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
-.tabs { display: flex; border-bottom: 1px solid var(--line); }
-.tabs button { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 13px 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+/* side padding and a gap so long labels never run into each other; they wrap onto two lines when the panel is narrow */
+.tabs button { all: unset; cursor: pointer; flex: 1 1 0; min-width: 0; text-align: center; padding: 12px 6px; line-height: 1.35; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); overflow-wrap: break-word; }
 .tabs button[aria-selected="true"] { color: var(--fg); box-shadow: inset 0 -2px 0 var(--fg); }
 .tab-pane { display: grid; gap: 20px; align-content: start; }
 .tab-pane[hidden] { display: none; }
@@ -248,4 +249,13 @@ details.pos summary { cursor: pointer; color: var(--muted); }
   .demo-split, .demo-split.closed { grid-template-columns: minmax(0, 1fr); }
   .demo-side { height: auto; border-left: 0; border-top: 1px solid var(--accent); }
   .demo-side-open { writing-mode: horizontal-tb; }
+}
+
+/*
+ * Phones and tablets: an up/down swipe on the 3D view scrolls the page (the 3D controls would otherwise take every
+ * touch, trapping you on the picture); a sideways swipe still turns the piece, and pinching still zooms.
+ */
+@media (pointer: coarse) {
+  /* the canvas and the boxes the 3D library wraps it in (one of them also turns touch gestures off) */
+  .stage canvas, .stage div:has(> canvas), .stage div:has(> div > canvas) { touch-action: pan-y !important; }
 }

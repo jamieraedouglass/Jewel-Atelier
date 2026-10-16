@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { chatForApi, type ChatMessage } from "@/lib/chat";
+import { chatForApi, type ChatMessage, plainReply } from "@/lib/chat";
 import { describeChanges } from "@/lib/studio/links";
 import type { Design } from "@/lib/design";
 import type { ClientBackend } from "./backend";
@@ -41,7 +41,7 @@ export default function ClientChat({ designId, base, design, history, backend, o
       {!history.length && <div className="chips">{STARTERS.map((s) => <button key={s} type="button" className="chip" style={{ textTransform: "none" }} onClick={() => send(s)}>{s}</button>)}</div>}
       {history.map((m, i) => (
         <div key={i} style={{ display: "grid", gap: 8 }}>
-          <div className={`msg ${m.role}`}>{m.content}</div>
+          <div className={`msg ${m.role}`}>{m.role === "assistant" ? plainReply(m.content) : m.content}</div>
           {m.proposals?.map((p, j) => {
             // what trying it would change from the piece as it is now
             const changes = describeChanges(design, p.patch as unknown as Design);

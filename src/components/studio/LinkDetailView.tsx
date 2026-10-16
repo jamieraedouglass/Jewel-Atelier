@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { describeDesign, type Design } from "@/lib/design";
 import type { ChatMessage } from "@/lib/chat";
+import { plainReply } from "@/lib/chat";
 import { formatMoney, versionName, type PriceVersion } from "@/lib/studio/pricing";
 import { eventText, type DashEvent } from "@/lib/studio/dashboard";
 
@@ -56,7 +57,7 @@ export default function LinkDetailView({ clientName, status, allowed, backHref, 
               <div className="chat" style={{ marginTop: 8 }}>
                 {p.chat.map((m, i) => (
                   <div key={i} style={{ display: "grid", gap: 6 }}>
-                    <div className={`msg ${m.role}`}>{m.content}</div>
+                    <div className={`msg ${m.role}`}>{m.role === "assistant" ? plainReply(m.content) : m.content}</div>
                     {m.proposals?.map((s, j) => (
                       <div key={j} className="small muted" style={{ paddingLeft: 12 }}>
                         Suggested: {s.title} · {s.state === "applied" ? "they tried it" : s.state === "dismissed" ? "not for them" : "no answer"}
