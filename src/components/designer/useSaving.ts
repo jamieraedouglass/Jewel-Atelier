@@ -16,22 +16,19 @@ type Opts = {
   dirty: boolean; setDirty: (d: boolean) => void; flash: (msg: string) => void; setStatus: (s: string | null) => void;
 };
 
-/** saving, copying and sharing the design on screen */
 export function useSaving({ initialId, initialPublic, userId, designRef, canvas, dirty, setDirty, flash, setStatus }: Opts) {
   const router = useRouter();
   const [id, setId] = useState(initialId);
   const idRef = useRef(id);
   idRef.current = id;
   const [isPublic, setIsPublic] = useState(initialPublic);
-  // one save at a time: a second press (or Save then Share) waits for the first rather than making a second design
   const inFlight = useRef<Promise<string | null> | null>(null);
 
-  /** a picture of the piece for the gallery; a failure here never loses the saved design */
   async function saveThumbnail(designId: string) {
     if (!userId) return;
     try {
       const blob = (await canvas.current?.hero?.()) ?? (await canvas.current?.snapshot());
-      if (!blob || blob.size < 2000) return; // nothing drawn yet
+      if (!blob || blob.size < 2000) return;
       const path = thumbPath(userId, designId);
       const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
       if (error) console.warn("thumbnail upload failed:", error.message);
@@ -48,11 +45,9 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     try { r = await saveDesign(current, saving); } catch { r = { error: "Couldn't reach the server. Check your connection and try again." }; }
     if (r.error || !r.id) { setStatus(r.error ?? "Save failed."); return null; }
     const newId = r.id;
-    // anything changed while saving is still unsaved
     if (designRef.current === saving) setDirty(false);
     if (!current) {
       setId(newId); idRef.current = newId;
-      // move to the design's own address through the router rather than editing browser history directly
       router.replace(`/design/${newId}`, { scroll: false });
     }
     flash("Saved");
@@ -64,7 +59,6 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     return inFlight.current;
   }
 
-  /** links are private until you share one */
   async function shareLink(): Promise<string | null> {
     const current = !idRef.current || dirty ? await save() : idRef.current;
     if (!current) return null;
@@ -92,7 +86,6 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  /** WhatsApp: on phones, share the render itself plus the link; elsewhere open WhatsApp with the link. */
   async function whatsapp() {
     const link = await shareLink();
     if (!link) return;
@@ -101,7 +94,7 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     const blob = await canvas.current?.snapshot("image/png");
     const file = blob ? new File([blob], fileName(d), { type: "image/png" }) : null;
     if (file && navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], text }); return; } catch { /* cancelled or unsupported: fall through */ }
+      try { await navigator.share({ files: [file], text }); return; } catch {}
     }
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   }

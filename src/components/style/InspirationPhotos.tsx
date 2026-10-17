@@ -6,10 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export type Img = { path: string; url: string };
 
-/**
- * Inspiration photos: dropped or chosen, compressed, uploaded to the person's own folder. `onChange` receives the
- * new list and saves it; uploads that overlap build on the latest list, not a stale copy.
- */
 export default function InspirationPhotos({ userId, images, latest, onChange, onStatus }: {
   userId: string; images: Img[]; latest: () => Img[]; onChange: (f: (cur: Img[]) => Img[], msg: string) => void; onStatus: (s: string) => void;
 }) {
@@ -27,7 +23,7 @@ export default function InspirationPhotos({ userId, images, latest, onChange, on
         const path = `${userId}/${uid()}.jpg`;
         const { error } = await supabase.storage.from("inspiration").upload(path, blob, { contentType: "image/jpeg" });
         if (!error) added.push({ path, url: URL.createObjectURL(blob) });
-      } catch { /* skip unreadable files */ }
+      } catch {}
     }
     onChange((cur) => [...cur, ...added].slice(0, 12), added.length ? `Added ${added.length} photo${added.length > 1 ? "s" : ""}` : "Those files couldn't be read");
   }

@@ -10,8 +10,6 @@ import AllowEditor from "./AllowEditor";
 
 type DesignRow = { id: string; name: string; summary: string; owner: string };
 
-
-/** Carl picks the pieces, what the client may change, and how long the link lasts; the result is a private link. */
 export default function SendForm({ designs, initial }: { designs: DesignRow[]; initial: string[] }) {
   const [clientName, setClientName] = useState("");
   const [note, setNote] = useState("");

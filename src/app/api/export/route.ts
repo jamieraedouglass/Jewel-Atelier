@@ -3,13 +3,12 @@ import { requireUser } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-/** Every design you own (and its saved versions), as one JSON file you can keep as a backup. */
 export async function GET() {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const list = (cols: string) => supabase.from("designs").select(cols).eq("owner", user.id).order("updated_at", { ascending: false });
   let res = await list("id, name, data, created_at, updated_at, status, made_at, inventory");
-  if (res.error) res = await list("id, name, data, created_at, updated_at"); // before the status and inventory columns exist
+  if (res.error) res = await list("id, name, data, created_at, updated_at");
   const designs = res.data;
   const { data: versions } = await supabase.from("design_versions").select("design_id, name, data, created_at").eq("owner", user.id).order("created_at", { ascending: false });
   const body = JSON.stringify({ app: "jewel-atelier", exportedAt: new Date().toISOString(), designs: designs ?? [], versions: versions ?? [] }, null, 1);

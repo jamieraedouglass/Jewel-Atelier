@@ -8,7 +8,6 @@ const METAL_BASE: Record<Design["metal"], { color: number; roughness: number }> 
   platinum: { color: 0xcdd0d4, roughness: 0.2 },
   "oxidised-silver": { color: 0x8e8a84, roughness: 0.46 },
 };
-/** higher-karat yellow and rose gold is richer and warmer: 22k reads deep, 24k almost orange */
 export function metalTone(d: Pick<Design, "metal" | "purity">) {
   const base = METAL_BASE[d.metal];
   if (d.metal !== "yellow-gold" && d.metal !== "rose-gold") return base;

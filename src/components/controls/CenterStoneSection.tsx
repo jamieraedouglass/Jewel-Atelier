@@ -7,28 +7,23 @@ import {
 import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type SectionProps } from "./fields";
 import ColourGrade from "./ColourGrade";
 
-/** typical crown (or dome) height as a share of width, by cut, when there is no carat weight to work from */
 const DOME_SHARE: Record<Design["center"]["cut"], number> = { cabochon: 0.45, "rose-cut": 0.3, polki: 0.07, faceted: 0.14, briolette: 0.14, bead: 0.5, carved: 0.4 };
 
-/** the main (centre) stone: gem, carat, cut, shape, size, colour and angle */
 export default function CenterStoneSection({ d, onChange }: SectionProps) {
   const c = d.center;
   const setCenter = (p: Partial<Design["center"]>) => onChange({ center: p });
   const ratio = canReproportion(c.shape) ? stoneRatio(c) : 1;
 
-  // the carat box keeps what was typed ("0", "0.") until it is a usable weight; outside changes still show up
   const [caratText, setCaratText] = useState(c.carat?.toString() ?? "");
   useEffect(() => {
     const typed = Number(caratText);
     const typedValid = caratText.trim() !== "" && typed > 0;
     if (c.carat !== null ? c.carat !== typed : typedValid) setCaratText(c.carat?.toString() ?? "");
-    // only react to the design changing, not to typing
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.carat]);
   function setCarat(v: string) {
     setCaratText(v);
     const ct = Number(v);
-    // a new weight keeps the stone's chosen proportions (a long oval stays long)
     if (v.trim() !== "" && Number.isFinite(ct) && ct > 0) setCenter({ carat: ct, ...estimateDims(c.gem, c.cut, c.shape, ct, ratio) });
     else if (c.carat !== null) setCenter({ carat: null });
   }
@@ -96,7 +91,6 @@ export default function CenterStoneSection({ d, onChange }: SectionProps) {
         {c.cut !== "bead" && (
           <div style={{ display: "grid", gap: 6 }}>
             <Chips name="Effect" options={["none", "star", "cats-eye"] as const} value={c.phenomenon} fmt={(p) => (p === "none" ? "None" : p === "star" ? "Star" : "Cat's eye")}
-              // a star or cat's eye only shows on a cabochon
               onPick={(phenomenon) => setCenter(phenomenon === "none" || c.cut === "cabochon" || c.cut === "carved" ? { phenomenon } : { phenomenon, cut: "cabochon", domeMm: Math.round(c.widthMm * DOME_SHARE.cabochon * 10) / 10 })} />
             {c.phenomenon === "star" && <Chips name="Star rays" options={STAR_RAYS} value={c.rays} fmt={(n) => `${n} rays`} onPick={(rays) => setCenter({ rays })} />}
           </div>

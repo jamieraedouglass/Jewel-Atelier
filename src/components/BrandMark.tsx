@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 
-/** the header wordmark; on a client link (and the client demo) it's only a name, not a way into the rest of the site */
 export default function BrandMark() {
   const path = usePathname() ?? "";
   const isClient = path.startsWith("/c/") || path === "/demo/client";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dailyLimit } from "@/lib/usage";
-import { CHAT_SYSTEM, proposeDesignTool } from "@/lib/claude";
+import { CHAT_SYSTEM, proposeDesignTool } from "@/lib/ai";
 
 describe("dailyLimit", () => {
   it("reads a sensible AI_DAILY_LIMIT", () => {

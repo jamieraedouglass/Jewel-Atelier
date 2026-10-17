@@ -9,7 +9,6 @@ import { rupeeRate } from "@/lib/studio/fx";
 
 export const dynamic = "force-dynamic";
 
-/** the preview WhatsApp, iMessage and email show for the link: the piece, who it's for, and its picture */
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const base: Metadata = { title: BRAND.title, robots: { index: false, follow: false } };
   const p = await linkPreview(params.token).catch(() => null);
@@ -23,7 +22,6 @@ export async function generateMetadata({ params }: { params: { token: string } }
   };
 }
 
-/** A client's private link: no sign-in, just the unguessable link the jeweller sent. */
 export default async function ClientLinkPage({ params }: { params: { token: string } }) {
   const bundle = await loadClientBundle(params.token);
   if (!bundle) notFound();
@@ -36,7 +34,6 @@ export default async function ClientLinkPage({ params }: { params: { token: stri
       </main>
     );
   }
-  // the robot WhatsApp sends to build a preview isn't the client opening the link
   if (!isPreviewBot(headers().get("user-agent"))) await markOpened(bundle.link);
   const rate = Object.keys(bundle.pricing.pieces).length ? await rupeeRate(bundle.pricing.currency) : null;
   return (

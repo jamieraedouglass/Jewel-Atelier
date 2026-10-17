@@ -1,13 +1,5 @@
 import type { Gem } from "./vocab";
 
-/**
- * Trade colour grades: the same gem from different deposits looks different. A Burmese ruby's chromium makes it glow
- * red even in daylight, a Thai ruby's iron makes it darker and quieter; a Colombian emerald is a pure, lively green,
- * a Zambian one deeper and bluer. Each grade sets the stone's colour, transparency and glow (0–1: how much the stone
- * seems lit from within, from fluorescence and saturation).
- *
- * These describe a look the jeweller chooses. The app never claims where a real stone came from; only a lab report can.
- */
 export type Variety = { id: string; name: string; blurb: string; color: string; clarity: number; glow: number };
 
 export const GEM_VARIETIES: Partial<Record<Gem, Variety[]>> = {
@@ -35,12 +27,9 @@ export const GEM_VARIETIES: Partial<Record<Gem, Variety[]>> = {
   ],
 };
 
-/** the grades offered for a gem (none for gems without notable regional differences) */
 export const varietiesOf = (gem: Gem): Variety[] => GEM_VARIETIES[gem] ?? [];
 
-/** the grade a stone's look matches, if it is exactly one of them */
 export const matchingVariety = (gem: Gem, s: { color: string; glow: number }) =>
   varietiesOf(gem).find((v) => v.color.toLowerCase() === s.color.toLowerCase() && v.glow === s.glow);
 
-/** what a stone's fields become when a grade is chosen */
 export const varietyLook = (v: Variety) => ({ color: v.color, clarity: v.clarity, glow: v.glow });

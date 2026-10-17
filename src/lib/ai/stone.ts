@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { CUTS, DIAMOND_GRADE_IDS, GEMS, SHAPES } from "../design";
 
-/** Reading a loose stone from photos. */
-
 export const stoneAnalysisTool: Anthropic.Tool = {
   name: "record_stone_analysis",
   description: "Record what can be seen about the gemstone in the photos.",

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Cutout } from "./canvas/types";
 
-/** Things of known size people usually have to hand. */
 const REFS = [
   { id: "quarter", name: "US quarter", mm: 24.26, hint: "Tap one edge of the quarter, then the opposite edge (straight across the middle)." },
   { id: "penny", name: "US penny", mm: 19.05, hint: "Tap one edge of the penny, then the opposite edge." },
@@ -13,7 +12,6 @@ const REFS = [
   { id: "custom", name: "Something else I've measured", mm: 0, hint: "Tap the two ends of the thing you measured." },
 ] as const;
 
-/** another piece worn in the same photo (a set: ring, earrings, necklace), placed and turned on its own */
 export type TryOnExtra = { title: string; cutout: Cutout };
 type Props = {
   cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void; recut?: (flatten: number) => Cutout | null;
@@ -22,17 +20,10 @@ type Props = {
 type Layer = { pos: { x: number; y: number }; angle: number; flip: boolean; on: boolean };
 type Pt = { x: number; y: number };
 
-/**
- * Try a piece on a real photo at true size. A coin or card in the photo sets the scale (mm per pixel);
- * the piece is then drawn at exactly that scale, and you can move and turn it, but not resize it.
- */
 export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut, extras = [] }: Props) {
-  // bracelets, anklets and necklaces start as worn: only the front of the loop shows
   const [showFront, setShowFront] = useState(!!front0);
   const [ear, setEar] = useState<"left" | "right">("left");
-  // how much the loop curves: a bracelet on a wrist, seen from above, is much flatter than the loop lying on a table
   const [curve, setCurve] = useState(0.45);
-  // the worn picture is rebuilt for each curve (the loop flattens; stones keep their own shape)
   const [front, setFront] = useState<Cutout | null>(front0);
   const recutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (recutTimer.current) clearTimeout(recutTimer.current); }, []);
@@ -51,13 +42,12 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
   const [photo, setPhoto] = useState<{ url: string; w: number; h: number } | null>(null);
   const [ref, setRef] = useState<(typeof REFS)[number]>(REFS[0]);
   const [customMm, setCustomMm] = useState("");
-  const [pts, setPts] = useState<Pt[]>([]); // in photo pixels
+  const [pts, setPts] = useState<Pt[]>([]);
   const [pos, setPos] = useState<Pt>({ x: 0, y: 0 });
   const [angle, setAngle] = useState(0);
   const [flip, setFlip] = useState(false);
-  const [shown, setShown] = useState(1); // displayed px per photo px
+  const [shown, setShown] = useState(1);
   const drag = useRef<{ from: Pt; start: Pt; layer: number } | null>(null);
-  // the other pieces of a set; -1 moves the main piece, 0… one of these
   const [layers, setLayers] = useState<Layer[]>(() => extras.map(() => ({ pos: { x: 0, y: 0 }, angle: 0, flip: false, on: true })));
   const [active, setActive] = useState(-1);
   const setLayer = (i: number, l: Partial<Layer>) => setLayers((cur) => cur.map((x, j) => (j === i ? { ...x, ...l } : x)));
@@ -69,7 +59,6 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
   const mmPerPhotoPx = pts.length === 2 && refMm > 0 ? refMm / Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) : null;
   const placing = !!mmPerPhotoPx;
 
-  // keep track of how big the photo is drawn
   useEffect(() => {
     const el = box.current;
     if (!el || !photo) return;
@@ -86,7 +75,6 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
     const img = new Image();
     img.onload = () => {
       setPhoto({ url, w: img.naturalWidth, h: img.naturalHeight }); setPts([]); setPos({ x: img.naturalWidth / 2, y: img.naturalHeight / 2 });
-      // the other pieces start spread across the photo, so none hides another
       setLayers((cur) => cur.map((l, i) => ({ ...l, pos: { x: (img.naturalWidth * (i + 2)) / (cur.length + 3), y: img.naturalHeight * 0.35 } })));
     };
     img.onerror = () => { URL.revokeObjectURL(url); setLoadError("That photo couldn't be opened here. Try a JPEG or PNG."); };
@@ -102,7 +90,6 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
     setPts((cur) => (cur.length >= 2 ? [p] : [...cur, p]));
   }
 
-  // the piece's size in photo pixels
   const pieceW = mmPerPhotoPx ? cutout.widthMm / mmPerPhotoPx : 0, pieceH = mmPerPhotoPx ? (cutout.heightMm * squash) / mmPerPhotoPx : 0;
   const sizeOf = (c: Cutout) => (mmPerPhotoPx ? { w: c.widthMm / mmPerPhotoPx, h: c.heightMm / mmPerPhotoPx } : { w: 0, h: 0 });
 
@@ -122,7 +109,7 @@ export default function TryOn({ cutout: whole, front: front0 = null, right = nul
     c.toBlob(async (b) => {
       if (!b) return;
       const file = new File([b], `${title.replace(/[^\w\- ]+/g, "") || "try-on"}-try-on.jpg`, { type: "image/jpeg" });
-      if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], text: `${title}, true to size` }); return; } catch { /* fall through */ } }
+      if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], text: `${title}, true to size` }); return; } catch {} }
       const href = URL.createObjectURL(b);
       const a = document.createElement("a"); a.href = href; a.download = file.name; a.click();
       setTimeout(() => URL.revokeObjectURL(href), 1000);

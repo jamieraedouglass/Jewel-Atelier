@@ -12,17 +12,14 @@ async function admin() {
   return user && isStudioAdmin(user) ? user : null;
 }
 
-/** send designs to a client: a new private link (the client needs no account) */
 export async function createClientLink(input: CreateLink, prices?: Pricing): Promise<{ url?: string; id?: string; error?: string }> {
   const user = await admin();
   if (!user) return { error: "Only the studio's master accounts can send designs to clients." };
   const parsed = CreateLinkSchema.safeParse(input);
   if (!parsed.success) return { error: "Add the client's name and at least one piece." };
-  // check the chosen pieces themselves, however old (not just the most recent ones)
   const bases = await designsByIds(parsed.data.designIds);
   if (parsed.data.designIds.some((id) => !bases[id])) return { error: "One of those pieces no longer exists." };
   try {
-    // prices only for versions the client can actually reach on this link
     const pricing = cleanPricing(normalizePricing(prices), bases, parsed.data.allow);
     const { id, token } = await createLink(user.id, { ...parsed.data, pricing });
     revalidatePath("/studio");
@@ -34,7 +31,6 @@ export async function createClientLink(input: CreateLink, prices?: Pricing): Pro
   }
 }
 
-/** turn a link off (the client sees that it has closed; their changes are kept), or back on */
 export async function setLinkRevoked(id: string, revoked: boolean): Promise<{ error?: string }> {
   if (!(await admin())) return { error: "Not allowed." };
   if (!(await linkById(id))) return { error: "That link doesn't exist." };
@@ -43,7 +39,6 @@ export async function setLinkRevoked(id: string, revoked: boolean): Promise<{ er
   return {};
 }
 
-/** give a link more time: `days` from now, or no end at all (0) */
 export async function extendLink(id: string, days: number): Promise<{ error?: string }> {
   if (!(await admin())) return { error: "Not allowed." };
   if (!(await linkById(id))) return { error: "That link doesn't exist." };
@@ -53,7 +48,6 @@ export async function extendLink(id: string, days: number): Promise<{ error?: st
   return {};
 }
 
-/** change a link's prices (or the currency the client sees them in); the client sees the new prices next time they look */
 export async function setLinkPricing(id: string, prices: Pricing): Promise<{ error?: string; pricing?: Pricing }> {
   if (!(await admin())) return { error: "Not allowed." };
   const link = await linkById(id);

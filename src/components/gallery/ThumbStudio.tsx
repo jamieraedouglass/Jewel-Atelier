@@ -7,13 +7,8 @@ import { thumbQueue } from "./thumbQueue";
 
 const RingCanvas = dynamic(() => import("../RingCanvas"), { ssr: false });
 
-/** a picture smaller than this is an empty frame: nothing drawn yet */
 const BLANK_BYTES = 2000;
 
-/**
- * The one canvas that draws every gallery card's picture, one design after another, off screen.
- * Mount it once on a page whose cards use LiveThumb.
- */
 export default function ThumbStudio() {
   const job = useSyncExternalStore(thumbQueue.subscribe, thumbQueue.current, () => null);
   const handle = useRef<RingCanvasHandle | null>(null);
@@ -27,7 +22,6 @@ export default function ThumbStudio() {
       const blob = await handle.current?.snapshot().catch(() => null);
       if (done) return;
       if (blob && blob.size >= BLANK_BYTES) { warm.current = true; thumbQueue.finish(job, blob); return; }
-      // the studio light takes a moment to load the first time; after that a frame or two is enough
       if (++tries < 6) t = setTimeout(grab, 1200);
       else thumbQueue.finish(job, null);
     };

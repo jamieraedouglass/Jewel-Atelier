@@ -4,7 +4,6 @@ import { useState } from "react";
 
 const ICON_IDEAS = ["Grace Kelly", "Jackie Kennedy", "Carolyn Bessette-Kennedy", "Sofia Richie Grainge", "Kelly Rutherford", "Princess Diana", "Audrey Hepburn", "Zendaya", "Gayatri Devi", "Rekha"];
 
-/** people whose jewellery taste they admire; the designer draws on each one's well-known style in general terms */
 export default function StyleIcons({ icons, onChange }: { icons: string[]; onChange: (icons: string[]) => void }) {
   const [draft, setDraft] = useState("");
   const add = (name: string) => {

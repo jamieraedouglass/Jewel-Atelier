@@ -1,6 +1,5 @@
 "use client";
 
-/** Downscale an image file to a JPEG no larger than maxSide pixels (keeps uploads and API calls small). */
 export async function compressImage(file: Blob, maxSide = 1600): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
@@ -12,7 +11,6 @@ export async function compressImage(file: Blob, maxSide = 1600): Promise<Blob> {
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Couldn't process image"))), "image/jpeg", 0.88));
 }
 
-/** Pull evenly spaced still frames out of a short video, so a phone clip of a stone can be analysed. */
 export async function videoFrames(file: File, count = 4, maxSide = 1400): Promise<Blob[]> {
   const url = URL.createObjectURL(file);
   try {

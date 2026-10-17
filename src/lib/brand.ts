@@ -1,23 +1,14 @@
-/**
- * Which studio this deployment is: Jewel Atelier (the default) or a jeweller's own branded studio. Set with
- * NEXT_PUBLIC_BRAND; everything else (design tools, AI, database) is the same code.
- */
 export type BrandId = "atelier" | "kothari";
 
 export type Brand = {
   id: BrandId;
-  /** the name in titles and sentences */
   name: string;
-  /** the wordmark in the header: a main word and an optional small spaced line under it */
   wordmark: { main: string; sub?: string; accent?: string };
   title: string;
   description: string;
   hero: { title: string; emphasis: string; after: string; body: string };
-  /** the showcase category to open on */
   showcaseCategory: "kothari" | "ring";
-  /** what clients see as the sender of a design link */
   studioName: string;
-  /** a private studio: only signed-in staff see the site; clients see nothing but the links they're sent */
   private: boolean;
 };
 

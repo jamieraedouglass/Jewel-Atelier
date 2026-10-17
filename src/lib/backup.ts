@@ -1,10 +1,6 @@
 import { DesignSchema, type Design } from "./design";
 import { normalizeInventory, normalizeStatus, type Inventory, type Status } from "./inventory";
 
-/**
- * The designs in a backup file, ready to insert as new designs. Entries that aren't valid designs are skipped
- * (and counted) rather than turned into blank ones; photos stay private, so photo links are dropped.
- */
 export type BackupRow = { data: Design; name: string; status?: Status; made_at?: string | null; inventory?: Inventory };
 
 export function backupRows(json: string): { rows: BackupRow[]; skipped: number } | { error: string } {
@@ -18,7 +14,6 @@ export function backupRows(json: string): { rows: BackupRow[]; skipped: number }
     const r = DesignSchema.safeParse(entry.data);
     if (!r.success) { skipped++; continue; }
     const data = { ...r.data, center: { ...r.data.center, photoPath: null } };
-    // newer backups also carry where each piece is and its inventory details
     const tracked = entry.status !== undefined
       ? { status: normalizeStatus(entry.status), made_at: typeof entry.made_at === "string" ? entry.made_at : null, inventory: normalizeInventory(entry.inventory) }
       : {};

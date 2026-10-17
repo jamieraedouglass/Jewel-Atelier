@@ -7,7 +7,7 @@ import { studioSummary } from "@/lib/studio/dashboard";
 
 const base = DEMO_PIECES[0].base;
 const ruby = DEMO_PRICING.pieces[DEMO_PIECES[0].designId];
-const as = (d: Design) => clampToAllowed(base, d, DEMO_ALLOW); // what the client's own change becomes on the link
+const as = (d: Design) => clampToAllowed(base, d, DEMO_ALLOW);
 const emerald = optionLook({ gem: "emerald", grade: "colombian" });
 
 describe("prices on a client link", () => {
@@ -21,7 +21,7 @@ describe("prices on a client link", () => {
     expect(priceFor(base, em, ruby)?.inr).toBe(440000);
   });
   it("disappears for anything he didn't price", () => {
-    expect(priceFor(base, MEHER_RUBY, ruby)).toBeNull(); // her stone is 10% bigger
+    expect(priceFor(base, MEHER_RUBY, ruby)).toBeNull();
     expect(priceFor(base, as(applyPatch(base, { metal: "platinum" })), ruby)).toBeNull();
     expect(priceFor(base, base, undefined)).toBeNull();
     expect(priceFor(base, base, [])).toBeNull();
@@ -43,8 +43,8 @@ describe("prices on a client link", () => {
     expect(clean.currency).toBe("USD");
     expect(Object.keys(clean.pieces)).toEqual([DEMO_PIECES[0].designId]);
     const vs = clean.pieces[DEMO_PIECES[0].designId];
-    expect(vs.some((v) => v.metal === "rose-gold")).toBe(false); // rose gold isn't allowed on this link
-    expect(vs.filter((v) => v.karat === 22)).toEqual([{ inr: 499000, karat: 22 }]); // the later price for the same version wins
+    expect(vs.some((v) => v.metal === "rose-gold")).toBe(false);
+    expect(vs.filter((v) => v.karat === 22)).toEqual([{ inr: 499000, karat: 22 }]);
   });
   it("names versions and shows prices the Indian way, or converted", () => {
     expect(versionName(base, {})).toBe("As designed");
@@ -54,7 +54,7 @@ describe("prices on a client link", () => {
     const usd = priceText(485000, "USD", 0.0105);
     expect(usd.main).toBe("≈ $5,093");
     expect(usd.sub).toMatch(/₹4,85,000/);
-    expect(priceText(485000, "USD", null).main).toBe("₹4,85,000"); // no rate: rupees only
+    expect(priceText(485000, "USD", null).main).toBe("₹4,85,000");
     expect(knownPriceReply("Kotharis Jewellers", "ruby ring", 485000, "GBP", 0.0079)).toMatch(/≈ £3,832.*rupees/);
   });
 });

@@ -7,7 +7,6 @@ import { allDesigns, allLinks, listAccounts, recentEvents } from "@/lib/studio/s
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Studio · ${BRAND.name}`, robots: { index: false } };
 
-/** The studio's overview, for its master accounts only. */
 export default async function StudioPage() {
   await requireStudioAdmin();
   const [links, events, designs, accounts] = await Promise.all([allLinks(), recentEvents(500), allDesigns(), listAccounts()]);

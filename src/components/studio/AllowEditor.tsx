@@ -5,11 +5,9 @@ import { type Allow, type StoneOption, optionLook, optionName } from "@/lib/stud
 import { Range, Toggle } from "../controls/fields";
 import MultiChips from "../style/MultiChips";
 
-/** every stone a client could be offered: each gem, and each of its colour grades */
 const STONE_OPTIONS: StoneOption[] = GEMS.filter((g) => !BEAD_GEMS.has(g) && g !== "other").flatMap((gem) => [{ gem }, ...varietiesOf(gem).map((v) => ({ gem, grade: v.id }))]);
 const keyOf = (o: StoneOption) => `${o.gem}:${o.grade ?? ""}`;
 
-/** what a client may change on a link (used when sending one, and in the demo) */
 export default function AllowEditor({ allow, onChange, idPrefix = "a" }: { allow: Allow; onChange: (a: Allow) => void; idPrefix?: string }) {
   const set = (p: Partial<Allow>) => onChange({ ...allow, ...p });
   return (

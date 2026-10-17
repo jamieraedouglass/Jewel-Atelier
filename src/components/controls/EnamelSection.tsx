@@ -4,7 +4,6 @@ import { Toggle, sectionStyle, type SectionProps } from "./fields";
 
 const ENAMEL_SWATCHES = [["Meenakari green", "#16704c"], ["Ruby red", "#9b1630"], ["Peacock blue", "#1b3f8f"], ["Ivory", "#f3efe6"], ["Rani pink", "#d94f87"], ["Black", "#151515"]];
 
-/** meenakari enamel: on or off, and its colour */
 export default function EnamelSection({ d, onChange }: SectionProps) {
   return (
     <section style={sectionStyle}>

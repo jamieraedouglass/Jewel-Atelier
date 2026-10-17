@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import type { Piece } from "@/lib/jewelryModel";
 
-/** FNV-1a over a stream of rounded numbers */
 function hasher() {
   let h = 0x811c9dc5;
   return {
@@ -14,10 +13,6 @@ function hasher() {
   };
 }
 
-/**
- * A compact, deterministic summary of a built piece: how many meshes and vertices it has, where it sits, and a hash
- * of every vertex in world space. Two builds with the same fingerprint drew the same thing.
- */
 export function fingerprint(p: Piece) {
   p.group.updateMatrixWorld(true);
   const h = hasher();

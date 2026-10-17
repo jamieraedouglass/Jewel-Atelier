@@ -13,7 +13,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Spec sheet · ${BRAND.name}`, robots: { index: false } };
 
-/** the workshop sheet for a design as made, or (with ?link=) as a client adjusted it; master accounts only */
 export default async function SpecPage({ params, searchParams }: { params: { designId: string }; searchParams: { link?: string } }) {
   await requireStudioAdmin();
   const row = await designById(params.designId);

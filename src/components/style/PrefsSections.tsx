@@ -10,14 +10,12 @@ import MultiChips from "./MultiChips";
 type Props = { prefs: StylePrefs; onChange: (p: StylePrefs) => void };
 const sec = { display: "grid", gap: 10 } as const;
 
-/** a single choice that can be cleared by tapping it again */
 function OneOf<T extends string>({ name, options, value, fmt, onPick }: { name: string; options: readonly T[]; value: T | null; fmt: (v: T) => string; onPick: (v: T | null) => void }) {
   return <Chips name={name} options={options} value={value as T} fmt={fmt} onPick={(v) => onPick(v === value ? null : v)} />;
 }
 
 const num = (v: string) => (v.trim() === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 
-/** the structured part of the profile: who it's for, style, metals, gems, shapes, scale, occasions, budget and sizes */
 export default function PrefsSections({ prefs: p, onChange }: Props) {
   const set = (x: Partial<StylePrefs>) => onChange({ ...p, ...x });
   return (

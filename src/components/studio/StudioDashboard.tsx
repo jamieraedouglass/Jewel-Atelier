@@ -6,7 +6,6 @@ const STATE_LABEL = { active: "Active", expired: "Expired", revoked: "Turned off
 
 export type AccountRow = { id: string; name: string; designs: number; lastSignIn: string | null };
 
-/** Carl's overview: what clients are doing on their links, who needs an answer, and every account. */
 export default function StudioDashboard({ summary: s, accounts, linkHref, accountHref, newLinkHref }: {
   summary: StudioSummary; accounts: AccountRow[]; linkHref: (id: string) => string; accountHref?: (id: string) => string; newLinkHref?: string;
 }) {

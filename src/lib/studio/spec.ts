@@ -7,12 +7,6 @@ import { sizeText } from "./links";
 import { buildPiece } from "../jewelryModel";
 import { disposeGroup } from "../ringModel";
 
-/**
- * The spec sheet for the workshop: what the piece is, every stone (with sizes and estimated weights), the metal and
- * its estimated weight, sizes and construction notes. Weights are estimates from the 3D model, to be confirmed.
- */
-
-/** g/cm³ */
 export function metalDensity(d: Pick<Design, "metal" | "purity">) {
   if (d.metal === "platinum") return 21.4;
   if (d.metal === "oxidised-silver") return 10.4;
@@ -21,7 +15,6 @@ export function metalDensity(d: Pick<Design, "metal" | "purity">) {
   return d.metal === "white-gold" ? base + 0.3 : d.metal === "rose-gold" ? base - 0.4 : base;
 }
 
-/** volume enclosed by a closed mesh, mm³ (signed-tetrahedron sum; the sign is dropped) */
 function closedVolume(g: THREE.BufferGeometry) {
   const pos = g.getAttribute("position");
   if (!pos) return 0;
@@ -34,11 +27,10 @@ function closedVolume(g: THREE.BufferGeometry) {
   return Math.abs(v);
 }
 
-/** a metal part's volume in its own units: wires and tubes from their dimensions, closed shapes from their surface */
 export function geometryVolume(g: THREE.BufferGeometry) {
   const p = (g as THREE.BufferGeometry & { parameters?: Record<string, unknown> }).parameters;
   if (g.type === "TubeGeometry" && p) return Math.PI * (p.radius as number) ** 2 * (p.path as THREE.Curve<THREE.Vector3>).getLength();
-  if (g.type === "CylinderGeometry" && p?.openEnded) return 0; // a bare surface (the wide band's walls): no volume of its own
+  if (g.type === "CylinderGeometry" && p?.openEnded) return 0;
   return closedVolume(g);
 }
 
@@ -47,7 +39,6 @@ const isMetal = (m: THREE.Material | THREE.Material[]) => {
   return !!mat && mat.metalness >= 0.9 && !mat.flatShading;
 };
 
-/** estimated metal weight of a built piece, grams */
 export function metalWeight(group: THREE.Object3D, density: number) {
   group.updateMatrixWorld(true);
   const m = new THREE.Matrix4();
@@ -66,7 +57,6 @@ export function metalWeight(group: THREE.Object3D, density: number) {
 
 export type StoneLine = { what: string; count: number; size: string; eachCt: number | null; totalCt: number | null };
 
-/** the small stones set across a built piece (halos, pavé, lines, petals), grouped by size */
 export function smallStones(group: THREE.Object3D): { count: number; diaMm: number }[] {
   const bySize = new Map<number, number>();
   const s = new THREE.Vector3(), q = new THREE.Quaternion(), p = new THREE.Vector3(), m = new THREE.Matrix4();
@@ -74,7 +64,7 @@ export function smallStones(group: THREE.Object3D): { count: number; diaMm: numb
   group.traverse((o) => {
     if (o.userData.part !== "accents") return;
     const first = o.children[0] as THREE.InstancedMesh | undefined;
-    if (!first?.isInstancedMesh) return; // a wrapper of other accent groups
+    if (!first?.isInstancedMesh) return;
     for (let i = 0; i < first.count; i++) {
       first.getMatrixAt(i, m); m.premultiply(first.matrixWorld); m.decompose(p, q, s);
       const dia = Math.round(Math.min(s.x, s.z) * 10) / 10;
@@ -96,7 +86,6 @@ export type Spec = {
   notes: string[];
 };
 
-/** everything the workshop needs to make the piece */
 export function buildSpec(d: Design): Spec {
   const pair = d.type === "earrings" ? 2 : 1;
   const stones: StoneLine[] = [];

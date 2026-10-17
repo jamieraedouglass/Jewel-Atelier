@@ -6,9 +6,8 @@ import { formatMoney, versionName } from "@/lib/studio/pricing";
 import { allowedText } from "@/lib/studio/links";
 
 export const metadata = { title: `Client link demo · ${BRAND.name}` };
-export const dynamic = "force-dynamic"; // sample activity is dated relative to now
+export const dynamic = "force-dynamic";
 
-/** a sample client's link, as the jeweller sees it: their changes, what they asked, the workshop sheets */
 export default function DemoLinkPage({ params }: { params: { id: string } }) {
   const detail = demoLinkDetail(params.id);
   if (!detail) notFound();

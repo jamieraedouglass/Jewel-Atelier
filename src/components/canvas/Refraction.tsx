@@ -9,22 +9,13 @@ import { useStudio } from "./studio";
 import { glowTint } from "@/lib/glow";
 import { addLightTent } from "./lightTent";
 
-/**
- * Real diamond optics for the individually set stones: light is traced through the actual facets (bouncing inside,
- * with a little fire), instead of the faster mirror-and-glass look. Small pavé stones are instanced and keep the fast look.
- */
 const studioCubes = new WeakMap<THREE.WebGLRenderer, THREE.CubeTexture>();
-/** after the browser restores a lost 3D context, rendered textures are empty: draw the studio again */
 export const forgetStudioCube = (gl: THREE.WebGLRenderer) => studioCubes.delete(gl);
-/** what diamonds see, rendered once per renderer (a texture drawn in one WebGL context is empty in any other) */
 function studioCubeFor(gl: THREE.WebGLRenderer) {
   let cube = studioCubes.get(gl);
   if (!cube) {
-    // the photographic studio, brightened a little, plus a bright room so facets light up.
-    // 8-bit cube map: half-float cube mipmaps come out black on some Mac GPUs
     const rt = new THREE.WebGLCubeRenderTarget(512, { type: THREE.UnsignedByteType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
     const cam = new THREE.CubeCamera(0.1, 100, rt);
-    // a bright room: diamonds read white and lively; the studio HDR stays for the metal
     const env = new RoomEnvironment();
     addLightTent(env, 4);
     cam.update(gl, env);
@@ -34,10 +25,6 @@ function studioCubeFor(gl: THREE.WebGLRenderer) {
   return cube;
 }
 
-/**
- * Ray-tracing data for each stone geometry, shared by every stone (and every canvas) using it. Counted, so it is freed
- * once nothing uses it; the release waits a tick so a re-run of the same effect (a resize, say) keeps it.
- */
 const bvhs = new Map<string, { bvh: MeshBVHUniformStruct; users: number }>();
 function acquireBvh(geometry: THREE.BufferGeometry) {
   let e = bvhs.get(geometry.uuid);
@@ -78,11 +65,9 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh || Array.isArray(mesh.material)) return;
       const inst = (mesh as THREE.InstancedMesh).isInstancedMesh;
-      // pavé and lines of small stones are traced too (instanced), up to a sensible number of stones
       if (inst && (instCount += (mesh as THREE.InstancedMesh).count) > 1600) return;
       const mirror = mesh.material as THREE.MeshPhysicalMaterial;
       if (!mirror.flatShading || mirror.metalness < 0.9 || !mesh.parent) return;
-      // the stone body drawn on top of the mirror shares its geometry: use its colour, then hide it
       const twin = mesh.parent.children.find((c) => c !== mesh && (c as THREE.Mesh).geometry === mesh.geometry) as THREE.Mesh | undefined;
       const body = twin?.material as THREE.MeshPhysicalMaterial | undefined;
       const colorless = !body || body.opacity < 0.5;
@@ -96,18 +81,14 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       mat.color = tint;
       mat.bounces = inst ? 2 : colorless ? 3 : 2;
       mat.ior = colorless ? 2.42 : 1.72;
-      // the split of white light into colours (fire): strong in diamonds, a little in coloured stones
       mat.aberrationStrength = colorless ? 0.022 : 0.006;
       mat.fresnel = 1;
-      // the shader works in device pixels: on a Retina screen that's twice the CSS size
       mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());
       mat.correctMips = false;
-      // never let a stray ray (NaN or a runaway value) turn a stone black or flare in the glow pass
       mat.fragmentShader = mat.fragmentShader.replace(
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         "vec3 outC = mix(diffuseColor.rgb, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);",
       );
-      // a stone with inclusions lets them show through (see seeThrough): keep that, and draw it after the metal
       mat.depthWrite = (mesh.material as THREE.Material).depthWrite;
       made.push(mat);
       swaps.push({ mesh, before: mesh.material, hidden: twin ? [twin] : [] });

@@ -106,7 +106,6 @@ describe("profile text extras", () => {
     expect(text).toContain("as read by the studio: Warm yellow gold, Mughal motifs.");
     expect(text).toContain("turned down");
     expect(text).toContain("Platinum swap");
-    // sent images take precedence over the read
     expect(describeProfile({ prefs: normalizePrefs({}), icons: [], notes: "", photoRead: "x", photos: 2 })).not.toContain("as read by the studio");
   });
 

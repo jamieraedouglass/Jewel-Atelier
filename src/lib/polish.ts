@@ -1,10 +1,5 @@
 import * as THREE from "three";
 
-/**
- * Hand-polished metal: the finish varies very slightly across the surface (polishing marks, the odd softer patch),
- * so highlights break up a little instead of reading as computer-perfect chrome. The pattern is fixed to the piece,
- * so it turns with it rather than swimming over it.
- */
 export function handPolished<T extends THREE.MeshPhysicalMaterial>(mat: T): T {
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
@@ -20,7 +15,6 @@ export function handPolished<T extends THREE.MeshPhysicalMaterial>(mat: T): T {
                      mix(mix(polishHash(i + vec3(0,0,1)), polishHash(i + vec3(1,0,1)), f.x), mix(polishHash(i + vec3(0,1,1)), polishHash(i + vec3(1,1,1)), f.x), f.y), f.z);
         }`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
-        // fine marks stretched one way (the polishing direction), over a broad, gentle variation
         float marks = polishNoise(vPolishPos * vec3(9.0, 1.2, 9.0));
         float broad = polishNoise(vPolishPos * 0.35);
         roughnessFactor = clamp(roughnessFactor * (0.7 + 0.45 * marks + 0.35 * broad), 0.02, 1.0);`);

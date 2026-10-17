@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "check:render": "node scripts/render-check.cjs",
+    "check:recreate": "node scripts/recreate-check.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit && next lint && vitest run"

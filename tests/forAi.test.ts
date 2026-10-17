@@ -8,7 +8,7 @@ describe("the design as the AI sees it", () => {
     const emerald = applyPatch(ruby, { center: { gem: "emerald", label: "Colombian emerald" } });
     const { label, ...rest } = designForAi(emerald);
     const text = JSON.stringify(rest);
-    expect(label).toMatch(/ruby/i); // the jeweller's name for it stays as it was
+    expect(label).toMatch(/ruby/i);
     expect(text).not.toMatch(/ruby|pearl/i);
     expect(text).toMatch(/emerald/);
     expect(rest.inWords).toMatch(/emerald/);

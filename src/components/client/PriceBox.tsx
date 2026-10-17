@@ -3,10 +3,6 @@
 import type { Design } from "@/lib/design";
 import { applyVersion, priceFor, priceText, versionName, type Currency, type PriceVersion } from "@/lib/studio/pricing";
 
-/**
- * The jeweller's price for the piece as the client has it, shown only while it's one of the versions he priced; any
- * other change and it reads "on request". His priced versions are one tap away.
- */
 export default function PriceBox({ base, design, versions, currency, rate, studioName, onPick }: {
   base: Design; design: Design; versions: PriceVersion[] | undefined; currency: Currency; rate: number | null; studioName: string;
   onPick: (d: Design) => void;

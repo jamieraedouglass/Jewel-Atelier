@@ -19,7 +19,6 @@ function Sel<T extends string>({ id, text, value, options, fmt, onPick }: { id: 
   );
 }
 
-/** The layers round the centre stone of an Art Deco / cocktail piece, inside out. */
 export default function FramesEditor({ design: d, onChange }: Props) {
   const frames = d.frames;
   const setFrames = (next: Frame[]) => onChange({ frames: next } as DesignPatch);

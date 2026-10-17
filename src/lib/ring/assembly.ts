@@ -8,12 +8,6 @@ import { bandSection, shankGeo } from "./band";
 import { inclusionSpecks, phenomenonLayer, seeThrough } from "../jewelry/character";
 import { canHug } from "../design/buildRules";
 
-/**
- * Builds the whole ring as a plain three.js Group from a Design.
- * Units are millimetres. The band lies in the XY plane, the finger runs along Z,
- * the top of the ring is +Y. Stone "length" runs along Z (north–south on the hand).
- */
-
 export function buildRing(d: Design): THREE.Group {
   const root = new THREE.Group();
   const tone = metalTone(d);
@@ -23,8 +17,6 @@ export function buildRing(d: Design): THREE.Group {
     const bump = textureBump();
     if (bump) { bandMetal.bumpMap = bump; bandMetal.bumpScale = 0.6; bandMetal.roughness = tone.roughness + 0.12; }
   }
-  // Diamonds: a thin dielectric "glass" skin over mirrored facets. Real-time transmission can't do total
-  // internal reflection, so mirrored facets stand in for the hall-of-mirrors look of a step cut.
   const diamond = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0, transparent: true, opacity: 0.22, specularIntensity: 1, envMapIntensity: 3, flatShading: true, depthWrite: false });
   const mirror = new THREE.MeshPhysicalMaterial({ color: 0xf2f5ff, metalness: 1, roughness: 0, envMapIntensity: 4.5, emissive: 0xf2f5ff, emissiveIntensity: 0.12, flatShading: true, iridescence: 0.25, iridescenceIOR: 1.8, iridescenceThicknessRange: [250, 650] });
   const roseMat = new THREE.MeshPhysicalMaterial({ color: 0xf4f6ff, metalness: 1, roughness: 0, envMapIntensity: 4, flatShading: true });
@@ -37,26 +29,22 @@ export function buildRing(d: Design): THREE.Group {
     return im;
   };
 
-  /* band */
   const RIN = ringInnerDiameter(d.ringSize) / 2;
   const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), bandMetal);
   shankMesh.userData.shank = true;
   root.add(shankMesh);
   const SHANK_TOP = RIN + 2.3;
 
-  /* centre stone (stone + claws live in `head`, which turns with the stone's angle) */
   const head = new THREE.Group();
   root.add(head);
   root.userData.head = head;
   const c = d.center;
   const L = c.lengthMm, W = c.widthMm, fn = outlineFn(c.shape, L, W);
-  const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved"; // polished stones sit like a cabochon on a ring
+  const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved";
   const belly = isCab ? Math.min(W * 0.14, 2) : W * 0.43;
   const GY = SHANK_TOP + (isCab ? belly * 0.56 : belly * 0.45) + d.setting.height * 4;
   const color = new THREE.Color(c.color);
   const colorless = c.gem === "diamond" || c.gem === "aquamarine";
-  // three.js treats hex colours as sRGB and lights in linear space, so a cabochon needs a little
-  // self-glow (emissive) to read with the velvety body colour you see in person.
   const stoneMat = applyGlow(new THREE.MeshPhysicalMaterial({
     color, metalness: 0,
     roughness: isCab ? 0.22 : 0.01,
@@ -80,7 +68,6 @@ export function buildRing(d: Design): THREE.Group {
     const inner = mirror.clone(); inner.color = colorless ? new THREE.Color(0xf2f5ff) : color.clone().lerp(new THREE.Color(0xffffff), 0.15);
     stone.add(new THREE.Mesh(g, inner), new THREE.Mesh(g, stoneMat));
   }
-  // the stone's character: a star or cat's-eye band on a cabochon, inclusions inside
   if (isCab && c.cut !== "bead") {
     const star = phenomenonLayer(c, (stone.children[0] as THREE.Mesh).geometry, L, W);
     if (star) stone.add(star);
@@ -92,12 +79,10 @@ export function buildRing(d: Design): THREE.Group {
   stone.position.y = GY;
   head.add(stone);
 
-  /* head */
   const loop = (s: number, y: number, n = 96) => Array.from({ length: n }, (_, i) => { const [x, z] = fn(i / n); return new THREE.Vector3(x * s, y, z * s); });
   const lowRailY = GY - Math.min(belly, 2) - 0.1;
   if (d.band.profile !== "flush") head.add(tube(loop(0.7, lowRailY), 0.42, true));
   if (d.band.profile === "flush") {
-    // centre stone level with the band: a fine collar at the girdle, no claws standing up; the band holds the rest
     const shape = new THREE.Shape(loop(1.035, 0).map((p) => new THREE.Vector2(p.x, p.z)));
     shape.holes.push(new THREE.Path(loop(0.985, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
     const g = new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 64 });
@@ -111,7 +96,6 @@ export function buildRing(d: Design): THREE.Group {
     head.add(new THREE.Mesh(g, metal));
   } else {
     head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
-    // side stones that hug the centre take over the claws on those sides (they share them), so nothing holds them apart
     const hugging = d.sides.kind !== "none" && d.sides.hug && canHug(d.sides.kind) && d.sides.follow !== "band";
     const positions = clawDegrees(c.shape, L, W, d.setting.style).filter((deg) => {
       if (!hugging) return true;
@@ -131,13 +115,11 @@ export function buildRing(d: Design): THREE.Group {
   }
   head.rotation.y = THREE.MathUtils.degToRad(d.center.rotation ?? 0);
 
-  /* posts into the shank (not needed when the stone is set level in the band) */
   if (d.band.profile !== "flush") for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const [x, z] = fn(((sx > 0 ? (sz > 0 ? 45 : 315) : sz > 0 ? 135 : 225)) / 360);
     root.add(tube([new THREE.Vector3(x * 0.49, lowRailY, z * 0.49), new THREE.Vector3(sx * 2.4, SHANK_TOP - 0.9, sz * 1.3), new THREE.Vector3(sx * 2.6, SHANK_TOP - 1.7, sz * 1.1)], 0.5));
   }
 
-  /* a hidden halo: a row of small rose-cuts round the gallery, under the stone, facing out */
   if (d.gallery.roseCut && d.gallery.under === "hidden-halo") {
     const r = Math.max(0.4, Math.min(0.75, Math.min(L, W) * 0.08));
     const y = GY - Math.min(belly, 2) * 0.55;
@@ -148,7 +130,7 @@ export function buildRing(d: Design): THREE.Group {
     const rg = roseCutGeo(r, r * 0.55);
     const hh = new THREE.Group();
     hh.userData.part = "accents";
-    hh.userData.keep = true; // the gallery stones have their own on/off
+    hh.userData.keep = true;
     for (let i = 0; i < n; i++) {
       const [x, z] = fn(i / n), out = new THREE.Vector3(x, 0, z).normalize();
       const s = new THREE.Mesh(rg, roseMat);
@@ -160,7 +142,6 @@ export function buildRing(d: Design): THREE.Group {
     head.add(hh);
   }
 
-  /* rose-cut gallery: two stones peeking out at the ends */
   if (d.gallery.roseCut && d.gallery.under !== "hidden-halo") {
     const rg = roseCutGeo(0.68, 0.38);
     for (const sz of [-1, 1]) {
@@ -174,9 +155,7 @@ export function buildRing(d: Design): THREE.Group {
     }
   }
 
-  /* side stones */
   if (d.sides.kind !== "none") {
-    // hugging: the straight edge runs most of the centre stone's length, like a classic half-moon trilogy
     const asp = { "half-moon": 0.46, trapezoid: 0.5, baguette: 2.6, round: 1, oval: 0.74, pear: 1.5, none: 1 }[d.sides.kind];
     const hugL = L * d.sides.hugFrac;
     const fitted = d.sides.hug && canHug(d.sides.kind);
@@ -186,17 +165,13 @@ export function buildRing(d: Design): THREE.Group {
     const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
     const hug = fitted;
-    // hugging stones get a fine rim, so the stones themselves meet the centre stone
     const shape = new THREE.Shape(sc(hug ? 1.035 : 1.09));
     shape.holes.push(new THREE.Path(sc(hug ? 0.985 : 0.965).reverse()));
     const bz = new THREE.ExtrudeGeometry(shape, { depth: hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
-    // the centre stone's edge in the direction of the side stones (its outline at the widest point across the finger)
     const edgeX = Math.max(...Array.from({ length: 180 }, (_, i) => fn(i / 180)[0]));
     const gap = (hug ? edgeX : W / 2) + (d.setting.style === "bezel" ? 0.62 : hug ? 0.04 : 0.18);
     if (hug) {
-      // fitted: curve the side stones' inner edge to follow the centre stone, the way a cutter matches a pair to a stone,
-      // so they sit flush all along the edge instead of touching at one point
       const edgeAt = (z: number) => {
         let best = 0;
         for (let i = 0; i < 360; i++) { const [x, zz] = fn(i / 360); if (x > 0 && Math.abs(zz - z) < L / 90 + 0.05) best = Math.max(best, x); }
@@ -217,16 +192,11 @@ export function buildRing(d: Design): THREE.Group {
       }
     }
     if (d.sides.follow === "band") {
-      /* curving with the band: the band thickens and widens under the side stones, and each stone (with its rim) is bent
-         along the band's own curve and set into its surface, so it sits flush instead of standing up beside the centre */
       const spanX = Math.max(...ol.map(([x]) => x)) || 1;
       const isCabC = c.cut === "cabochon";
       const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
-      // the band depth must match what the chosen profile will ask of it, so the curved stones stay on its surface
       const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
-      // stones set into a band are cut a little shallower and sit in a closed metal seat: the band is made deep and wide
-      // enough at the shoulders that no stone shows below or beside the metal
-      const pavF = 0.85, pavD = pav * pavF; // nearly full depth: a shallow pavilion lets light leak out the back and the stone looks hazy
+      const pavF = 0.85, pavD = pav * pavF;
       const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
       shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
@@ -245,10 +215,8 @@ export function buildRing(d: Design): THREE.Group {
         pos.needsUpdate = true; out.computeVertexNormals();
         return out;
       };
-      // shallower pavilion (everything below the girdle scaled up toward it)
       const shallow = g.clone();
       { const pos = shallow.getAttribute("position") as THREE.BufferAttribute; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y < 0) pos.setY(i, y * pavF); } pos.needsUpdate = true; shallow.computeVertexNormals(); }
-      // a closed seat: the rim carried down past the culet, so the band's metal wraps each stone
       const seatShape = new THREE.Shape(sc(1.04));
       seatShape.holes.push(new THREE.Path(sc(0.985).reverse()));
       const seat = new THREE.ExtrudeGeometry(seatShape, { depth: pavD + 0.5, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 24 });
@@ -261,10 +229,8 @@ export function buildRing(d: Design): THREE.Group {
         const grp = new THREE.Group();
         grp.userData.part = "sides";
         grp.userData.onBand = true;
-        // the seat walls get a soft satin, like a polished wall seen side-on, rather than mirroring the dark room
         const seatMetal = handPolished((metal as THREE.MeshPhysicalMaterial).clone()); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
         grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, seatMetal), new THREE.Mesh(flb, seatMetal));
-        // small claws at the corners, on the band's curve
         for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
           const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 10), metal);
           tip.position.copy(bend(x, 0.22, zEnd * (sl / 2) * (x ? 1 : 0.94)));
@@ -276,7 +242,6 @@ export function buildRing(d: Design): THREE.Group {
     } else for (const side of [1, -1]) {
       const grp = new THREE.Group();
       grp.userData.part = "sides";
-      // a round, oval or pear is claw-set like the centre stone; fitted shapes sit in a fine rim
       const clawSet = !hug && (d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear");
       grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond));
       if (!clawSet) grp.add(new THREE.Mesh(bz, metal));
@@ -292,7 +257,6 @@ export function buildRing(d: Design): THREE.Group {
         grp.add(tube([new THREE.Vector3(cx + 0.3, -pav * 0.7, z), new THREE.Vector3(-0.3, -pav * 0.72, z * 0.9), new THREE.Vector3(-(gap - W * 0.35) + 0.3, lowRailY - GY, z * 0.8)], 0.42));
       }
       if (hug) {
-        // set tight against the centre, turning with it, girdles level; small shared claws at the two ends of the straight edge
         grp.position.set(side * gap, GY - 0.02, 0);
         grp.rotation.z = side * -0.03;
         if (side < 0) grp.rotation.y = Math.PI;

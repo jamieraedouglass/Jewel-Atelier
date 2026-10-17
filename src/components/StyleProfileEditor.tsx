@@ -13,18 +13,15 @@ type Props = {
   initial: { icons: string[]; notes: string; images: Img[]; prefs: StylePrefs; applied: string[]; dismissed: string[]; photoRead: string };
 };
 
-/** The style profile: preferences, photos, icons and notes, plus what their designs say, and exactly what the designer reads. */
 export default function StyleProfileEditor({ userId, initial, taste }: Props) {
   const [prefs, setPrefs] = useState(initial.prefs);
   const [icons, setIcons] = useState(initial.icons);
   const [notes, setNotes] = useState(initial.notes);
   const [images, setImagesState] = useState(initial.images);
   const [dirty, setDirty] = useState(false);
-  // the latest values, for saves that happen after an upload finishes
   const latest = useRef({ prefs, icons, notes, images });
   latest.current = { prefs, icons, notes, images: latest.current.images };
   const [status, setStatus] = useState<string | null>(null);
-  // the studio's written read of the photos, which the designer uses instead of the photos themselves
   const [photoRead, setPhotoRead] = useState(initial.photoRead);
   const [reading, setReading] = useState(false);
   async function readPhotos() {

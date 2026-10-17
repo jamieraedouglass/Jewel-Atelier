@@ -7,9 +7,6 @@ import { setStone } from "./stones";
 import { ASPECT, type Item, accents, backingPlate, balls } from "./elements";
 import { wrap } from "./curves";
 
-/* ================= accent patterns ================= */
-
-/** the accent pattern's stones: width and length of each shape at the chosen carat weight */
 function patternDims(d: Design, maxW?: number) {
   return d.accents.shapes.map((shape, i) => {
     const e = estimateDims(d.accents.gem, d.accents.cut, shape, d.accents.sizeCt);
@@ -21,39 +18,26 @@ function patternDims(d: Design, maxW?: number) {
 export const patternMaxW = (d: Design, maxW?: number) => Math.max(...patternDims(d, maxW).map((x) => x.W));
 
 export type RunOpts = {
-  /** which way the stones face at curve param u (default up, +Y) */
   up?: (u: number) => THREE.Vector3;
-  /** extra offset from the curve at u */
   offset?: (u: number) => THREE.Vector3;
   maxW?: number;
   gap?: number;
-  /** a full loop: trim to whole repeats of the pattern so it meets itself cleanly */
   closed?: boolean;
-  /** pick a gem for the stone at position i (stripes of two gems); default: the accent gem */
   gemAt?: (i: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"] } | null;
-  /** called for every stone placed (e.g. to add a halo round each one) */
   onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, shape: CenterStone["shape"]) => void;
 };
 
-/**
- * Lay the accent pattern along a curve between params from..to (to may exceed 1 to wrap a closed curve).
- * Honours the repeating shape list and the direction (along / across / alternate), spacing stones by their real footprint.
- */
 export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from: number, to: number, opts: RunOpts = {}) {
   const dims0 = patternDims(d, opts.maxW);
-  // in a mix of shapes, a stone turned across the line is no wider than the line itself
-  // (a baguette across between rounds is about as long as the rounds are wide)
   if (!opts.maxW && new Set(dims0.map((x) => x.shape)).size > 1) opts = { ...opts, maxW: Math.max(...dims0.map((x) => x.W)) };
   const dims = opts.maxW ? patternDims(d, opts.maxW) : dims0;
   const orient = d.accents.orientation;
   const along = (i: number) => orient === "along" || (orient === "alternate" && i % 2 === 0);
   const turnOf = (i: number) => THREE.MathUtils.degToRad(d.accents.turns[i % dims.length] ?? 0);
-  // extent of a stone along the line and across it, once pointed along/across and given its own turn
   const ext = (s: (typeof dims)[number], i: number) => {
     const a = along(i) ? s.L : s.W, b = along(i) ? s.W : s.L, t = turnOf(i), c = Math.abs(Math.cos(t)), n = Math.abs(Math.sin(t));
     return { line: c * a + n * b, cross: c * b + n * a };
   };
-  // stones turned across a narrow band are shrunk so they still fit it
   const fit = (s: (typeof dims)[number], i: number) => { const x = ext(s, i).cross; return opts.maxW && x > opts.maxW ? opts.maxW / x : 1; };
   const foot = (s: (typeof dims)[number], i: number) => ext(s, i).line * fit(s, i);
   const curveLen = curve.getLength();
@@ -92,7 +76,6 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);
     const dia = s.W * fit(s, i);
     if (d.accents.twins[i % dims.length]) {
-      // two stones side by side across the line
       for (const k of [-1, 1]) push({ pos: pos.clone().addScaledVector(X, k * dia * 0.26), dia: dia * 0.48, quat });
     } else push({ pos, dia, quat });
     opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape], shape);
@@ -106,10 +89,6 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
   return { group: g, maxW: Math.max(...dims.map((x) => x.W)), count: seq.length };
 }
 
-/**
- * The accent pattern at fixed spots (graduated climbers, stations, wings): shapes cycle through the pattern,
- * each spot keeps its own width, and elongated stones point along or across `tan`.
- */
 export function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: number; tan: THREE.Vector3; up?: THREE.Vector3 }[]) {
   const orient = d.accents.orientation;
   const byShape = new Map<string, Item[]>();
@@ -131,7 +110,6 @@ export function patternAt(d: Design, m: Mats, spots: { pos: THREE.Vector3; dia: 
   return g;
 }
 
-/** a closed curve following a stone's outline, pushed outward by `gap` */
 export function outlineCurve(c: CenterStone, gap: number, y: number) {
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
   const pts = Array.from({ length: 160 }, (_, i) => {
@@ -141,7 +119,6 @@ export function outlineCurve(c: CenterStone, gap: number, y: number) {
   return new THREE.CatmullRomCurve3(pts, true, "centripetal");
 }
 
-/** halo of accents around the main stone, on a gold rim */
 export function halo(d: Design, m: Mats, c: CenterStone, rings = 1) {
   const g = new THREE.Group();
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm);
@@ -156,7 +133,6 @@ export function halo(d: Design, m: Mats, c: CenterStone, rings = 1) {
   return { group: g, extent: gap };
 }
 
-/** kundan flower: centre stone, a ring of petal stones, a gold plate, optional enamel rim */
 export function flower(d: Design, m: Mats, c: CenterStone, scale = 1) {
   const g = new THREE.Group();
   g.add(setStone(c, "bezel", m, scale));
@@ -181,7 +157,6 @@ export function flower(d: Design, m: Mats, c: CenterStone, scale = 1) {
   return { group: g, radius: outer + (d.enamel.enabled ? 0.9 : 0) };
 }
 
-/** gold coin (temple jewellery): disc, beaded rim, raised centre */
 export function coin(m: Mats, r: number) {
   const g = new THREE.Group();
   const disc = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.7, 48), m.metal);
@@ -194,7 +169,6 @@ export function coin(m: Mats, r: number) {
   return g;
 }
 
-/** jhumka bell lying on its side, opening toward +Z */
 export function bell(d: Design, m: Mats, R: number) {
   const g = new THREE.Group();
   const prof = [[0.4, 0], [R * 0.3, R * 0.05], [R * 0.62, R * 0.25], [R * 0.86, R * 0.6], [R * 0.98, R * 1.0], [R, R * 1.12]].map(([x, y]) => new THREE.Vector2(x, y));
@@ -205,13 +179,12 @@ export function bell(d: Design, m: Mats, R: number) {
   const inside = new THREE.Mesh(geo, inner.material.clone());
   (inside.material as THREE.Material).side = THREE.BackSide;
   g.add(outer, inside);
-  // rim stones and ribs
   const rimR = R * 0.93 + 0.2;
   const rim = new THREE.CatmullRomCurve3(Array.from({ length: 96 }, (_, i) => { const a = (i / 96) * Math.PI * 2; return v3(Math.cos(a) * rimR, R * 0.82, Math.sin(a) * rimR); }), true);
   const rimRun = patternRun(d, m, rim, 0, 1, { closed: true, maxW: R * 0.25, gap: 0.3, up: (u) => rim.getPointAt(u).setY(0).normalize() });
   g.add(rimRun.group);
   const n = Math.max(12, rimRun.count);
   g.add(balls(m.metal, Array.from({ length: n * 2 }, (_, i) => { const a = (i / (n * 2)) * Math.PI * 2; return { pos: v3(Math.cos(a) * R, R * 1.12, Math.sin(a) * R), dia: 0.55 }; })));
-  g.rotation.x = Math.PI / 2; // axis Y → Z (opening toward +Z)
+  g.rotation.x = Math.PI / 2;
   return { group: g, rimZ: R * 1.12, R };
 }

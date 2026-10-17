@@ -3,7 +3,6 @@
 import { BAND_FINISHES, GEMS, GEM_LOOK, SHAPES, type Design, indianRingSize, label } from "@/lib/design";
 import { Chips, GemSelect, Range, sectionStyle, type SectionProps } from "./fields";
 
-/** a ring's band: how the head meets it, its shape, finish, stones, width and size */
 export default function BandSection({ d, onChange }: SectionProps) {
   const b = d.band;
   const setBand = (p: Partial<Design["band"]>) => onChange({ band: p });

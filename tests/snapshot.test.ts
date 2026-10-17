@@ -4,10 +4,6 @@ import { disposeGroup } from "@/lib/ringModel";
 import { fingerprint } from "./fingerprint";
 import { allDesigns } from "./pieces";
 
-/**
- * Characterisation snapshots: the exact geometry every style, showcase piece and preset produces.
- * A refactor must leave these unchanged; an intended visual change updates them with `npx vitest -u`.
- */
 describe("geometry snapshots", () => {
   for (const { name, design } of allDesigns()) {
     it(name, () => {

@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ALL_STYLES, TYPES } from "../design";
+import { z } from "zod";
+import { STYLES, designForAi, normalizeDesign } from "../design";
+import { callTool } from "./client";
+import { ALL_STYLES, FRAME_PRESETS, SHOWCASE, TYPES } from "../design";
 import { STYLE_GUIDE, designPatchSchema } from "./chat";
-
-/** Recreating a finished piece from a photo. */
 
 export const recreateDesignTool: Anthropic.Tool = {
   name: "recreate_design",
@@ -20,6 +21,10 @@ export const recreateDesignTool: Anthropic.Tool = {
     required: ["title", "type", "style", "patch", "description", "not_modelled"],
   },
 };
+
+const FRAME_TEMPLATES = FRAME_PRESETS.map((p) => `    - ${p.name}: ${p.blurb} frames=${JSON.stringify(p.frames)}`).join("\n");
+const mosaic = SHOWCASE.find((x) => x.name === "Marquise mosaic cocktail ring");
+const MOSAIC_EXAMPLE = mosaic ? JSON.stringify({ type: mosaic.type, style: mosaic.style, patch: mosaic.patch }) : "";
 
 export const RECREATE_SYSTEM = `You are a master jeweller looking at a photo of a finished piece of jewellery (or a sketch, or a reference picture).
 Rebuild it as faithfully as you can in a 3D design app, using only the fields of recreate_design, so the person can then customise it.
@@ -43,8 +48,63 @@ How to choose:
   * A mosaic of mixed stones (e.g. pink cabochons with green marquise leaves): a layer of the main stones with the second gem as alt
     every few stones, rather than separate rings of each.
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
+  * Start from the closest of these layer templates and adapt it (stone sizes, colours, outlines, how many layers):
+${FRAME_TEMPLATES}
+  * A worked example, a domed marquise cocktail ring packed with pink sapphire cabochons and emerald leaves, its stones
+    carried on down the band: ${MOSAIC_EXAMPLE}
   * When the stones carry on down the shank, set band.pave ("shoulders", "half" or "full") with paveRows, paveGem, paveColor and
     paveShape matching the stones on the top (a vine of angled marquise leaves for leaf patterns), and a wider band (widthMm 4–8).
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.
 If the stones in a line change colour (rainbow, ombré, alternating gems), list them in accents.colors in order, one hex per stone, repeating; don't flatten them to one colour.
 Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
+
+export const REFINE_SYSTEM = () => `${RECREATE_SYSTEM}
+
+YOU ARE NOW CHECKING YOUR OWN WORK. The first images are the real piece; the last image is the 3D build made from your
+previous answer (its design is given below). Compare them closely and correct the build so it looks as much like the
+real piece as this app allows:
+- overall outline and proportions of the piece, and its size;
+- the centre stone: shape, size, colour, cut, how it is set;
+- every layer or row of stones: shape, size, colour, how many, which way they point, how tightly they are packed, and
+  whether gold shows between them;
+- the metal colour, a flat or domed top, and whether the pattern continues down the band;
+- anything missing or extra.
+Return the whole corrected design with recreate_design (not just the changes). If it already matches closely, return it
+unchanged. List anything the app can't build in not_modelled.`;
+
+const Result = z.object({
+  title: z.string(), type: z.enum(TYPES), style: z.string(), patch: z.record(z.unknown()),
+  description: z.string(), not_modelled: z.array(z.string()).default([]),
+});
+export type Recreation = { title: string; type: (typeof TYPES)[number]; style: string; patch: Record<string, unknown>; description: string; notModelled: string[] };
+
+function tidy(input: unknown): Recreation | null {
+  const r = Result.safeParse(input);
+  if (!r.success) return null;
+  const d = r.data;
+  const style = Object.hasOwn(STYLES[d.type], d.style) ? d.style : Object.keys(STYLES[d.type])[0];
+  return { title: d.title.slice(0, 80), type: d.type, style, patch: d.patch, description: d.description, notModelled: d.not_modelled.slice(0, 8) };
+}
+
+type Image = Anthropic.ImageBlockParam;
+
+export async function recreateFromPhotos(photos: Image[], notes?: string, profile?: string): Promise<Recreation | null> {
+  const text = [
+    photos.length > 1 ? `${photos.length} photos of the same piece.` : "A photo of the piece.",
+    notes ? `Notes: ${notes}` : null,
+    profile ? `Use this only for what the photo can't show, such as karat, an unclear metal, and sizes:\n${profile}` : null,
+  ].filter(Boolean).join("\n");
+  return tidy(await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 4000, content: [...photos, { type: "text", text }] }));
+}
+
+export async function refineFromRender(photos: Image[], render: Image, design: unknown, round: number, notes?: string): Promise<Recreation | null> {
+  const current = normalizeDesign(design);
+  const text = [
+    `${photos.length > 1 ? `The first ${photos.length} images are photos of the real piece.` : "The first image is a photo of the real piece."} The last image is our 3D build (check ${round}).`,
+    notes ? `Notes from the person: ${notes}` : null,
+    `The build's design now: ${JSON.stringify({ type: current.type, style: current.style, ...designForAi(current) })}`,
+  ].filter(Boolean).join("\n");
+  return tidy(await callTool({ system: REFINE_SYSTEM(), tool: recreateDesignTool, maxTokens: 4000, content: [...photos, render, { type: "text", text }] }));
+}
+
+export const jpegImage = (dataUrl: string): Image => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: dataUrl.replace(/^data:image\/jpeg;base64,/, "") } });

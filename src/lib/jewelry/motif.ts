@@ -8,7 +8,6 @@ import { setStone, tube } from "./stones";
 import { type Item, accents, chainAlong, fringe, jumpRing } from "./elements";
 import { loopCurve, outwardAt, place, spreadParams, wrap } from "./curves";
 
-/** a custom motif: gold plate with its stones, top face at y = 0, the drawing's bottom toward +Z */
 function motif(d: Design, m: Mats, scale = 1) {
   const mo = { ...d.motif, widthMm: d.motif.widthMm * scale };
   const g = motifPlate(mo, m.metal, d.enamel.enabled ? m.enamel : null);
@@ -38,7 +37,6 @@ export function motifPiece(d: Design, m: Mats): Piece {
     const mo = motif(d, m);
     mo.group.position.y = RIN + 2.3 + d.motif.thicknessMm + 0.3;
     group.add(mo.group);
-    // posts joining the plate to the shank
     for (const sx of [-1, 1]) group.add(tube(m, [v3(sx * 1.6, RIN + 2.1, 0), v3(sx * 2.4, RIN + 2.3 + 0.3, 0)], 0.7));
     return { group, focus: v3(0, mo.group.position.y, 0), focusSize: Math.max(18, mo.width * 1.6), upright: true };
   }
@@ -77,7 +75,6 @@ export function motifPiece(d: Design, m: Mats): Piece {
   for (const u of params) {
     const mo = motif(d, m, isNecklace ? 0.6 : 0.5);
     const out = outwardAt(curve, u);
-    // turn the motif so its top meets the chain and it hangs outward
     place(mo.group, curve.getPointAt(u).addScaledVector(out, -mo.top * 0.9), Math.atan2(out.x, out.z));
     group.add(mo.group);
     size = mo.width;

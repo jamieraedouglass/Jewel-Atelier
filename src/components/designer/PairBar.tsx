@@ -1,6 +1,5 @@
 "use client";
 
-/** earrings: a matching (optionally mirrored) pair, or each earring designed on its own */
 export default function PairBar({ unmatched, ear, mirrorPair, onMatched, onEar, onMirror }: {
   unmatched: boolean; ear: "left" | "right"; mirrorPair: boolean;
   onMatched: (matched: boolean) => void; onEar: (ear: "left" | "right") => void; onMirror: (mirror: boolean) => void;

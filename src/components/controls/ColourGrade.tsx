@@ -5,11 +5,6 @@ import { Range } from "./fields";
 
 type Look = { color: string; clarity: number; glow: number };
 
-/**
- * Trade colour grades for gems that differ by deposit (Colombian vs Zambian emerald, Burmese vs Thai ruby…),
- * plus a glow slider for how lit-from-within the stone looks. Nothing is shown for gems without grades unless
- * the stone already glows, so the slider can always be turned back down.
- */
 export default function ColourGrade({ id, gem, look, onPick }: { id: string; gem: Gem; look: Look; onPick: (look: Look, v?: Variety) => void }) {
   const grades = varietiesOf(gem);
   if (!grades.length && !look.glow) return null;

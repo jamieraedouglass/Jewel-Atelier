@@ -14,7 +14,6 @@ import { normalizeInventory, normalizeStatus, type Status } from "@/lib/inventor
 export async function saveDesign(id: string | null, raw: unknown): Promise<{ id?: string; error?: string }> {
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Sign in to save designs." };
-  // never overwrite a design with a blank one because what arrived didn't validate
   const parsed = DesignSchema.safeParse(raw);
   if (!parsed.success) return { error: "This design has a value the app can't save. Undo the last change and try again." };
   const data = parsed.data;
@@ -34,13 +33,11 @@ export async function saveDesign(id: string | null, raw: unknown): Promise<{ id?
   return { id: row.id };
 }
 
-/** log the real cause on the server; tell the person something they can act on */
 function failed(what: string, error: { message: string }) {
   console.error(`${what} failed:`, error.message);
   return { error: `Couldn't ${what} just now. Please try again.` };
 }
 
-/** "Name (copy)", without piling up "(copy) (copy)", within the 80-character name limit */
 const copyName = (name: string) => {
   const base = name.replace(/ \(copy( \d+)?\)$/, "");
   return `${base.slice(0, 80 - " (copy)".length)} (copy)`;
@@ -48,13 +45,12 @@ const copyName = (name: string) => {
 
 type Supa = Awaited<ReturnType<typeof requireUser>>["supabase"];
 
-/** every save keeps a copy, so earlier versions can be brought back; only the newest 40 are kept */
 async function keepVersion(supabase: Supa, designId: string, data: ReturnType<typeof normalizeDesign>) {
   try {
     await supabase.from("design_versions").insert({ design_id: designId, name: data.name, data });
     const { data: old } = await supabase.from("design_versions").select("id").eq("design_id", designId).order("created_at", { ascending: false }).range(40, 200);
     if (old?.length) await supabase.from("design_versions").delete().in("id", old.map((v) => v.id));
-  } catch { /* versions are a convenience; never fail a save over them */ }
+  } catch {}
 }
 
 export async function listVersions(designId: string): Promise<{ id: string; name: string; created_at: string; data: unknown }[]> {
@@ -64,7 +60,6 @@ export async function listVersions(designId: string): Promise<{ id: string; name
   return data ?? [];
 }
 
-/** a copy of one of your designs (or of what is on screen), to try a variation without touching the original */
 export async function duplicateDesign(raw: unknown): Promise<{ id?: string; error?: string }> {
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Sign in to make copies." };
@@ -82,7 +77,6 @@ export async function setThumbnail(id: string, path: string) {
   if (!user || !path.startsWith(`${user.id}/`)) return;
   const { data: before } = await supabase.from("designs").select("thumbnail_path").eq("id", id).eq("owner", user.id).maybeSingle();
   await supabase.from("designs").update({ thumbnail_path: path }).eq("id", id).eq("owner", user.id);
-  // the picture it replaces (an older look, under another name) isn't needed any more
   const old = (before as { thumbnail_path?: string | null } | null)?.thumbnail_path;
   if (old && old !== path && old.startsWith(`${user.id}/`)) await supabase.storage.from("thumbnails").remove([old]).catch(() => {});
   revalidatePath("/rings");
@@ -111,7 +105,7 @@ export async function copyDesign(id: string) {
   const { data: src } = await supabase.from("designs").select("data, name, owner").eq("id", id).single();
   if (!src) redirect("/rings");
   const data = { ...normalizeDesign(src.data), name: copyName(src.name) };
-  if (src.owner !== user.id) data.center = { ...data.center, photoPath: null }; // someone else's photo stays private
+  if (src.owner !== user.id) data.center = { ...data.center, photoPath: null };
   const { data: row } = await supabase.from("designs").insert({ data, name: data.name }).select("id").single();
   redirect(row ? `/design/${row.id}` : "/rings");
 }
@@ -135,35 +129,29 @@ export async function saveStyleProfile(input: { icons: string[]; notes: string; 
   const row = { user_id: user.id, icons, notes: parsed.data.notes.slice(0, 2000), image_paths, updated_at: new Date().toISOString() };
   const { error } = await supabase.from("style_profiles").upsert({ ...row, prefs: prefs.data });
   if (!error) return {};
-  // a database without the prefs column (migration not run yet) still keeps photos, icons and notes
   const fallback = await supabase.from("style_profiles").upsert(row);
   if (fallback.error) return failed("save your style profile", fallback.error);
   return { error: "Saved your photos, icons and notes. To keep the preferences too, run supabase/migrations/20261016_style_profile_prefs.sql." };
 }
 
-/** remember a design suggestion someone applied, so later suggestions build on what they liked (the newest 20) */
 export async function noteAppliedSuggestion(title: string): Promise<void> {
   const { supabase, user } = await requireUser();
   const t = String(title ?? "").trim().slice(0, 120);
   if (!user || !t) return;
   const profile = await loadStyleProfile(supabase, user.id);
   const applied = [t, ...(profile?.applied ?? []).filter((x) => x !== t)].slice(0, 20);
-  // needs the applied column; quietly does nothing without it
   await supabase.from("style_profiles").upsert({ user_id: user.id, applied }, { onConflict: "user_id" });
 }
 
-/** remember a suggestion someone turned down, so it isn't offered again (the newest 20) */
 export async function noteDismissedSuggestion(title: string): Promise<void> {
   const { supabase, user } = await requireUser();
   const t = String(title ?? "").trim().slice(0, 120);
   if (!user || !t) return;
   const profile = await loadStyleProfile(supabase, user.id);
   const dismissed = [t, ...(profile?.dismissed ?? []).filter((x) => x !== t)].slice(0, 20);
-  // needs the dismissed column; quietly does nothing without it
   await supabase.from("style_profiles").upsert({ user_id: user.id, dismissed }, { onConflict: "user_id" });
 }
 
-/** a saved design's conversation with the consultant */
 export async function loadChat(designId: string): Promise<ChatMessage[]> {
   const { supabase, user } = await requireUser();
   if (!user) return [];
@@ -178,7 +166,6 @@ export async function saveChat(designId: string, messages: unknown): Promise<{ e
   return error ? { error: "The conversation isn't being kept: run supabase/migrations/20261017_tracking_inventory_feedback.sql." } : {};
 }
 
-/** move a design along: an idea, in the workshop, made (made pieces join the inventory) */
 export async function setDesignStatus(id: string, status: Status): Promise<{ error?: string }> {
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Sign in first." };
@@ -192,7 +179,6 @@ export async function setDesignStatus(id: string, status: Status): Promise<{ err
   return {};
 }
 
-/** the inventory details of a made piece: reference, weights, price, availability, client, notes */
 export async function saveInventory(id: string, details: unknown, madeAt?: string | null): Promise<{ error?: string }> {
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Sign in first." };
@@ -205,14 +191,12 @@ export async function saveInventory(id: string, details: unknown, madeAt?: strin
   return {};
 }
 
-/** bring designs back from a backup file: each becomes a new design (nothing existing is overwritten) */
 export async function importDesigns(json: string): Promise<{ count?: number; skipped?: number; error?: string }> {
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Sign in first." };
   const r = backupRows(json);
   if ("error" in r) return r;
   let { error } = await supabase.from("designs").insert(r.rows);
-  // a database without the status and inventory columns still takes the designs themselves
   if (error) ({ error } = await supabase.from("designs").insert(r.rows.map(({ data, name }) => ({ data, name }))));
   if (error) return failed("restore those designs", error);
   revalidatePath("/rings");

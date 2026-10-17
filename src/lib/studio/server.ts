@@ -6,13 +6,7 @@ import { normalizeChat, type ChatMessage } from "../chat";
 import { clampToAllowed, describeChanges, linkState, normalizeAllow, type Allow } from "./links";
 import { normalizePricing, priceFor, type Pricing } from "./pricing";
 
-/**
- * Server-side access to client links. Clients don't sign in, so every read and write here goes through the service
- * role after checking the link's token; nothing about links is reachable with the public key.
- */
-
 export const newToken = () => randomBytes(32).toString("base64url");
-/** a token is 43 base64url characters; anything else is turned away before touching the database */
 export const isToken = (t: string) => /^[A-Za-z0-9_-]{43}$/.test(t);
 
 export type LinkRow = {
@@ -25,13 +19,11 @@ export type ClientBundle = { link: LinkRow; allow: Allow; pricing: Pricing; stat
 const db = () => createAdminClient();
 
 export async function linkByToken(token: string): Promise<LinkRow | null> {
-  // no database yet (a studio still being set up): no links exist
   if (!isToken(token) || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) return null;
   const { data } = await db().from("client_links").select("*").eq("token", token).maybeSingle();
   return (data as LinkRow | null) ?? null;
 }
 
-/** everything a client link shows: its pieces, each as the jeweller made it and as the client has adjusted it */
 export async function loadClientBundle(token: string): Promise<ClientBundle | null> {
   const link = await linkByToken(token);
   if (!link) return null;
@@ -53,7 +45,6 @@ export async function loadClientBundle(token: string): Promise<ClientBundle | nu
   return { link, allow, pricing, state, pieces };
 }
 
-/** just enough of a link for its share preview: the client, the pieces' names and the first piece's picture */
 export async function linkPreview(token: string) {
   const link = await linkByToken(token);
   if (!link || linkState(link) !== "active") return null;
@@ -70,7 +61,6 @@ export async function markOpened(link: LinkRow) {
   await Promise.all([db().from("client_links").update({ last_opened_at: new Date().toISOString() }).eq("id", link.id), recordEvent(link.id, null, "opened")]);
 }
 
-/** save the client's adjusted piece (clamped to what's allowed), noting what changed since their last save */
 export async function saveClientVersion(bundle: ClientBundle, designId: string, proposed: unknown): Promise<Design | null> {
   const piece = bundle.pieces.find((p) => p.designId === designId);
   if (!piece) return null;
@@ -81,19 +71,13 @@ export async function saveClientVersion(bundle: ClientBundle, designId: string, 
   return version;
 }
 
-/**
- * Keep the client's conversation about a piece. Only the conversation: the AI takes a few seconds, and the client may
- * have changed the piece meanwhile, so the design saved then must not be overwritten with the one from before.
- */
 export async function saveClientChat(bundle: ClientBundle, designId: string, chat: ChatMessage[]) {
   const piece = bundle.pieces.find((p) => p.designId === designId);
   if (!piece) return;
   const now = new Date().toISOString(), messages = normalizeChat(chat);
   const { data } = await db().from("client_versions").update({ chat: messages, updated_at: now }).eq("link_id", bundle.link.id).eq("design_id", designId).select("design_id");
   if (data?.length) return;
-  // no copy yet: start one from the piece as it is
   const { error } = await db().from("client_versions").insert({ link_id: bundle.link.id, design_id: designId, data: piece.version, chat: messages, updated_at: now });
-  // a save landed in between and made the row: just add the conversation to it
   if (error) await db().from("client_versions").update({ chat: messages, updated_at: now }).eq("link_id", bundle.link.id).eq("design_id", designId);
 }
 
@@ -103,12 +87,9 @@ export async function spendLinkAiCall(link: LinkRow): Promise<boolean> {
   return !error && !!data;
 }
 
-/** give back a question the AI couldn't answer (it failed or timed out) */
 export async function refundLinkAiCall(link: LinkRow) {
   await db().rpc("refund_link_ai_call", { lid: link.id });
 }
-
-/* ---------------- the studio's view (master accounts only; callers check isStudioAdmin) ---------------- */
 
 export type Account = { id: string; name: string; lastSignIn: string | null };
 
@@ -123,14 +104,12 @@ export async function listAccounts(): Promise<Account[]> {
   return out;
 }
 
-/** designs by id, as designs (for checking prices against what each piece is) */
 export async function designsByIds(ids: string[]): Promise<Record<string, Design>> {
   if (!ids.length) return {};
   const { data } = await db().from("designs").select("id, data").in("id", ids);
   return Object.fromEntries((data ?? []).map((d) => [d.id as string, normalizeDesign(d.data)]));
 }
 
-/** particular designs, however old (the full list stops at the 500 most recent) */
 export async function designRowsByIds(ids: string[]) {
   if (!ids.length) return [];
   const { data } = await db().from("designs").select("id, owner, name, data, status, updated_at, thumbnail_path").in("id", ids);
@@ -180,7 +159,6 @@ export async function updateLink(id: string, patch: Partial<Pick<LinkRow, "revok
   if (error) throw new Error(error.message);
 }
 
-/** a link with its pieces as sent, the client's versions and conversations, and its events */
 export async function linkDetail(id: string) {
   const link = await linkById(id);
   if (!link) return null;
@@ -203,7 +181,6 @@ export async function linkDetail(id: string) {
   return { link, allow, pricing, state: linkState(link), pieces, events };
 }
 
-/** a client's version of one piece (for the spec sheet) */
 export async function clientVersion(linkId: string, designId: string) {
   const detail = await linkDetail(linkId);
   const p = detail?.pieces.find((x) => x.designId === designId);

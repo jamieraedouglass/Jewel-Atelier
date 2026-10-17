@@ -10,7 +10,6 @@ export const TYPE_LABEL: Record<PieceType, string> = {
   mens: "Cufflinks & buttons",
 };
 
-/** which controls a style uses */
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
   | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop" | "frames" | "links" | "hang" | "clasp";
@@ -108,46 +107,35 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   },
 };
 
-/** the motif style to switch to when a motif is created for a piece type that has one */
 export const MOTIF_STYLE: Partial<Record<PieceType, string>> = { ring: "motif-ring", earrings: "motif", necklace: "motif-pendant", bracelet: "motif-station" };
 
 export const ALL_STYLES = Array.from(new Set(Object.values(STYLES).flatMap((s) => Object.keys(s))));
 export const firstStyle = (t: PieceType) => Object.keys(STYLES[t])[0];
-/** whether `s` is one of type `t`'s styles (an own key: "toString" and friends are not styles) */
 export const hasStyle = (t: PieceType, s: string) => Object.hasOwn(STYLES[t], s);
 export const styleMeta = (t: PieceType, s: string): StyleMeta => (hasStyle(t, s) ? STYLES[t][s] : STYLES[t][firstStyle(t)]);
 export const uses = (d: Design, u: Use) => styleMeta(d.type, d.style).uses.includes(u);
 
-/** styles where the accent stones are extras around a main stone, so they can be switched off (not tennis or eternity, where they are the piece) */
 export const accentsOptional = (d: Pick<Design, "type" | "style">) => {
   const u = styleMeta(d.type, d.style).uses;
   return u.includes("center") && (u.includes("accents") || u.includes("halo") || u.includes("pave") || u.includes("accentTop"));
 };
-/**
- * Why a design has no accent stones to switch, if it hasn't: a toi-et-moi only has them in its optional surround or
- * along the band, so with both off the switch would do nothing.
- */
 export function noAccentsYet(d: Design): string | null {
   if (d.type === "ring" && d.style === "two-stone" && !d.options.halo && d.band.pave === "none")
     return "This ring has no accent stones yet: switch on \"A surround round each stone\" under Construction, or add stones along the band.";
   return null;
 }
 
-/** whether this design's accent stones are switched off */
 export const accentsOff = (d: Design) => !d.accents.enabled && accentsOptional(d);
 
-/** bracelet styles made as one rigid piece, sized by Indian bangle size rather than wrist measurement */
 export const SOLID_BRACELETS = new Set(["bangle", "kada", "cuff", "open-bangle"]);
 export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type === "bracelet" && SOLID_BRACELETS.has(d.style);
 
-/** clasps a style can have; stone lines can also hide the clasp or set it with stones */
 export const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
 export type ClaspChoice = (typeof CLASPS)[number];
 const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded"]);
 export const claspChoices = (style: string): readonly ClaspChoice[] =>
   STONE_LINES.has(style) ? CLASPS : (["auto", "lobster", "spring-ring", "toggle", "box"] as const);
 
-/** the clasp actually drawn: "auto" is the style's usual one (a box on lines and strands, none shown on chains and tennis) */
 export function resolveClasp(style: string, choice: ClaspChoice): Exclude<ClaspChoice, "auto"> | "none" {
   if (!claspChoices(style).includes(choice)) return resolveClasp(style, "auto");
   if (choice !== "auto") return choice;

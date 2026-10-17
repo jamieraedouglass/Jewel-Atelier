@@ -11,7 +11,6 @@ type Row = InventoryRow & { thumb: string | null };
 const num = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Number(v));
 const money = (n: number, c: string) => `${n.toLocaleString("en-IN")} ${c}`;
 
-/** made pieces, editable in place: reference, availability, client, weights, cost and price, notes */
 export default function InventoryTable({ rows: initial }: { rows: Row[] }) {
   const [rows, setRows] = useState(initial);
   const [dirty, setDirty] = useState<Set<string>>(new Set());

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { ClientBackend } from "./backend";
 
-/** A message straight to the jeweller: a quote, a change the tools don't cover, a question. */
 export default function AskJeweller({ backend, designId, studioName }: { backend: ClientBackend; designId: string | null; studioName: string }) {
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-/** the site menu; hidden on client links (and the client demo), where a client sees only the jeweller's brand */
 export default function HeaderNav({ userName, isAdmin }: { userName: string | null; isAdmin: boolean }) {
   const path = usePathname() ?? "";
   if (path.startsWith("/c/") || path === "/demo/client") return null;

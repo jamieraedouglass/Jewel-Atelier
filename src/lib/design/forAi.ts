@@ -2,11 +2,6 @@ import { describeDesign } from "./describe";
 import type { Design } from "./schema";
 import { uses } from "./styles";
 
-/**
- * A design as the AI should see it: only the parts this piece actually has, plus a summary in words. Every design keeps
- * settings for parts its style doesn't use (a drop's pearl, a switched-off fringe); left in, the AI talks about stones
- * that aren't there. The name is the jeweller's label and can still mention a stone the piece no longer has.
- */
 export function designForAi(d: Design) {
   const has = (...u: Parameters<typeof uses>[1][]) => u.some((x) => uses(d, x));
   const out: Record<string, unknown> = {

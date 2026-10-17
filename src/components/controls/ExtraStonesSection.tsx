@@ -10,7 +10,6 @@ const TOI_ET_MOI: DesignPatch = {
   extraStones: [{ gem: "emerald", cut: "faceted", shape: "emerald", lengthMm: 7, widthMm: 5, domeMm: 0.8, color: GEM_LOOK.emerald.color, clarity: 0.5, rotation: -35, dx: 3, dz: -1 }],
 } as DesignPatch;
 
-/** a ring's second stone, or the stones stacked below a stud */
 export default function ExtraStonesSection({ d, onChange }: SectionProps) {
   const setStones = (extraStones: ExtraStone[]) => onChange({ extraStones } as DesignPatch);
   return (

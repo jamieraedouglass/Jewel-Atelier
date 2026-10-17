@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { CUTS, GEM_LOOK, type Gem, SHAPES } from "./vocab";
-// types only: schema.ts reads these presets for its defaults, so a value import here would be a cycle
 import type { CenterStoneSchema, DropPartSchema, FrameIn } from "./schema";
 import { varietiesOf, varietyLook } from "./varieties";
-
-/** Starting points for drops, chandeliers and Art Deco frames. */
 
 type PartIn = z.input<typeof DropPartSchema>;
 const W_ = "#f4f6fb";
@@ -13,8 +10,6 @@ const col = (gem: Gem, cut: (typeof CUTS)[number], shape: (typeof SHAPES)[number
   ({ gem, cut, shape, lengthMm, widthMm, domeMm: cut === "cabochon" ? widthMm * 0.4 : 0.8, color: color ?? GEM_LOOK[gem].color, clarity: GEM_LOOK[gem].clarity, rotation, dx: 0, dz: 0 });
 const sm = (shapes: (typeof SHAPES)[number][], widthMm: number, rotation = 0, gem: Gem = "diamond", cut: (typeof CUTS)[number] = "faceted") => ({ gem, cut, color: GEM_LOOK[gem].color, shapes, widthMm, rotation });
 
-/** starting points, modelled on classic pieces; every part stays editable */
-/** a coloured stone in one of its trade colour grades (see varieties.ts): Burmese ruby, Colombian emerald… */
 const graded = (gem: Gem, grade: string, cut: (typeof CUTS)[number], shape: (typeof SHAPES)[number], lengthMm: number, widthMm: number, rotation = 0) => {
   const v = varietiesOf(gem).find((x) => x.id === grade);
   if (!v) throw new Error(`no ${grade} grade for ${gem}`);
@@ -22,7 +17,6 @@ const graded = (gem: Gem, grade: string, cut: (typeof CUTS)[number], shape: (typ
 };
 const pearl = (shape: (typeof SHAPES)[number], lengthMm: number, widthMm: number) => col("pearl", "bead", shape, lengthMm, widthMm);
 
-/** the house collection these presets belong to, shown as a group in the menus */
 export const KOTHARI = "Kothari's signatures";
 
 export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[]; collection?: string }[] = [
@@ -116,7 +110,6 @@ export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[]; colle
       { kind: "stone", stone: dia("pear", 10, 7, 180), small: sm(["round"], 1), gapMm: 1 },
     ],
   },
-  /* ---- Kothari's signatures ---- */
   {
     name: "Kashi Kamal", collection: KOTHARI, blurb: "A pear emerald in a lotus of pear diamonds, with three pearl drops.",
     parts: [
@@ -208,11 +201,9 @@ export const DROP_PRESETS: { name: string; blurb: string; parts: PartIn[]; colle
   },
 ];
 
-/* ---------------- Art Deco layers around a centre stone ---------------- */
 const fr = (x: FrameIn) => x;
 const look = (g: Gem) => ({ gem: g, color: GEM_LOOK[g].color });
 
-/** starting layouts, modelled on Art Deco and cocktail rings */
 export const FRAME_PRESETS: { name: string; blurb: string; frames: FrameIn[]; center?: Partial<z.input<typeof CenterStoneSchema>>; collection?: string }[] = [
   { name: "Hexagon ruby Deco", blurb: "Round diamond, a ring of calibré rubies, milgrain, then a hexagon of pavé.", frames: [
     fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "princess", widthMm: 1.6, direction: "radial", outline: "round" }),
@@ -237,7 +228,6 @@ export const FRAME_PRESETS: { name: string; blurb: string; frames: FrameIn[]; ce
     fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, direction: "radial" }), fr({ outline: "cushion", widthMm: 1 }),
     fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, outline: "cushion" }), fr({ outline: "cushion", widthMm: 1 }), fr({ kind: "milgrain", outline: "cushion" }) ] },
   { name: "Marquise mosaic", blurb: "A marquise diamond in a cushion of pink sapphire cabochons and emerald marquise leaves.", frames: [
-    // packed edge to edge like the original: rows of pink cabochons with emerald leaves, no gold showing between
     fr({ kind: "milgrain", outline: "marquise", gapMm: 0.1 }),
     fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.4, direction: "radial", outline: "marquise", gapMm: 0, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 2 }),
     fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.4, direction: "radial", outline: "oval", gapMm: 0, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 3 }),
@@ -247,7 +237,6 @@ export const FRAME_PRESETS: { name: string; blurb: string; frames: FrameIn[]; ce
   { name: "Asscher in a pavé octagon", blurb: "A step-cut centre in two octagon rows of pavé.", frames: [
     fr({ outline: "octagon", widthMm: 1.1 }), fr({ kind: "milgrain", outline: "octagon" }), fr({ outline: "octagon", widthMm: 1.2 }), fr({ kind: "milgrain", outline: "octagon" }) ],
     center: { gem: "diamond", cut: "faceted", shape: "asscher", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
-  /* ---- Kothari's signatures ---- */
   { name: "Briolette halo", collection: KOTHARI, blurb: "A cushion emerald in a frame of baguettes, then a frill of briolette diamonds.", frames: [
     fr({ shape: "baguette", widthMm: 1.5, direction: "along", outline: "cushion" }), fr({ shape: "pear", cut: "briolette", widthMm: 2.4, direction: "radial", outline: "cushion" })],
     center: { ...graded("emerald", "colombian", "faceted", "cushion", 12, 11), label: "Colombian emerald" } },

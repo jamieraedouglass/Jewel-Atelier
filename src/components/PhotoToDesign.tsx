@@ -6,10 +6,15 @@ import { compressImage, uid } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 
 type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[] };
-type Props = { userId: string | null; design: Design; onReplace: (d: Design) => void };
+type Props = {
+  userId: string | null; design: Design; onReplace: (d: Design) => void;
+  capture?: () => Promise<Blob | null>;
+};
+const CHECKS = 2;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const dataUrl = (b: Blob) => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); });
 
-/** Upload a photo of a piece; the AI rebuilds it as an editable 3D design. */
-export default function PhotoToDesign({ userId, design, onReplace }: Props) {
+export default function PhotoToDesign({ userId, design, onReplace, capture }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<Blob[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -51,16 +56,28 @@ export default function PhotoToDesign({ userId, design, onReplace }: Props) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't recreate the piece.");
       setResult(json);
-      apply(json);
+      let built = apply(json, design);
+      for (let round = 1; capture && round <= CHECKS; round++) {
+        setBusy(`Comparing the 3D build with your photo (check ${round} of ${CHECKS})…`);
+        await wait(2500);
+        const shot = await capture();
+        if (!shot) break;
+        const render = await dataUrl(await compressImage(shot));
+        const r2 = await fetch("/api/from-photo/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notes || undefined, design: built, render, round }) });
+        const j2 = await r2.json();
+        if (!r2.ok) break;
+        setResult(j2);
+        built = apply(j2, built);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't recreate the piece.");
     } finally { setBusy(null); }
   }
 
-  function apply(r: Result) {
-    // one out-of-range value shouldn't throw away the rest of the recreation
-    const d = applyPatchLenient(chooseStyle(design, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch);
-    onReplace({ ...d, name: r.title });
+  function apply(r: Result, from: Design) {
+    const d = { ...applyPatchLenient(chooseStyle(from, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch), name: r.title };
+    onReplace(d);
+    return d;
   }
 
   return (
@@ -96,7 +113,7 @@ export default function PhotoToDesign({ userId, design, onReplace }: Props) {
             </>
           )}
           <p className="small muted" style={{ margin: 0 }}>It&apos;s now in the 3D view. Open the Design tab to change anything, or click a part of the paused piece.</p>
-          <button className="btn" type="button" onClick={() => apply(result)}>Start over from this photo</button>
+          <button className="btn" type="button" onClick={() => apply(result, design)}>Start over from this photo</button>
         </section>
       )}
     </>

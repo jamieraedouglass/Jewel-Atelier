@@ -1,14 +1,8 @@
 import * as THREE from "three";
 import { type Design, STEP_SHAPES } from "../design";
 
-/**
- * Stone outlines and geometry for every cut. Units are millimetres; stone "length" runs along Z.
- */
-
-export type Pt = [number, number]; // [x across the finger, z along the finger]
-export type OutlineFn = (t: number) => Pt; // t in [0,1), counter-clockwise, t=0 at +x
-
-/* ---------------- outlines ---------------- */
+export type Pt = [number, number];
+export type OutlineFn = (t: number) => Pt;
 
 export function outlineFn(shape: Design["center"]["shape"], L: number, W: number): OutlineFn {
   const a = W / 2, b = L / 2;
@@ -18,14 +12,13 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
       return (t) => [Math.cos(t * 2 * Math.PI) * r, Math.sin(t * 2 * Math.PI) * r];
     }
     case "cushion": {
-      const e = 2 / 2.8; // superellipse
+      const e = 2 / 2.8;
       return (t) => {
         const th = t * 2 * Math.PI, c = Math.cos(th), s = Math.sin(th);
         return [Math.sign(c) * Math.pow(Math.abs(c), e) * a, Math.sign(s) * Math.pow(Math.abs(s), e) * b];
       };
     }
     case "pear":
-      // point toward +z (the tip points down the finger)
       return (t) => {
         const th = t * 2 * Math.PI, s = Math.sin(th);
         const taper = Math.pow((1 - s) / 2, 0.45);
@@ -53,7 +46,6 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
     case "hexagon":
       return polygonFn([[a, -b * 0.5], [a, b * 0.5], [0, b], [-a, b * 0.5], [-a, -b * 0.5], [0, -b]]);
     case "trillion": {
-      // softly curved sides, point toward +Z
       const pts: Pt[] = [];
       const V: Pt[] = [[a, -b], [0, b], [-a, -b]];
       for (let i = 0; i < 3; i++) {
@@ -76,7 +68,6 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
       return polygonFn(pts);
     }
     case "heart":
-      // classic heart curve, point toward +Z, lobes toward −Z
       return (t) => {
         const u = 2 * Math.PI * (t - 0.25) + Math.PI;
         const hx = 16 * Math.pow(Math.sin(u), 3);
@@ -96,7 +87,6 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
   }
 }
 
-/** where claws go: on the corners of angular shapes, protecting points, evenly round curved shapes (degrees along the outline) */
 export function clawDegrees(shape: Design["center"]["shape"], L: number, W: number, style: Design["setting"]["style"]): number[] {
   const a = W / 2, b = L / 2;
   const anchors: Pt[] | null = (() => {
@@ -150,8 +140,6 @@ function polygonFn(poly: Pt[]): OutlineFn {
   };
 }
 
-/* ---------------- stones ---------------- */
-
 export function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   const n = 160, m = 48, pos: number[] = [], idx: number[] = [];
   const rows: { s: number; y: number }[] = [];
@@ -163,7 +151,7 @@ export function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   for (let r = 0; r < rows.length - 1; r++)
     for (let i = 0; i < n; i++) {
       const a = r * n + i, b = r * n + ((i + 1) % n), c = (r + 1) * n + i, d = (r + 1) * n + ((i + 1) % n);
-      idx.push(a, c, b, b, c, d); // outward-facing
+      idx.push(a, c, b, b, c, d);
     }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -172,13 +160,8 @@ export function cabochonGeo(fn: OutlineFn, dome: number, belly: number) {
   return g;
 }
 
-/**
- * A carved stone in the Mughal manner: a polished dome cut with flutes that radiate from the centre and deepen toward
- * a softly scalloped edge (fluted emeralds, carved aquamarines, jade). `flutes` is how many grooves run round it.
- */
 export function carvedGeo(fn: OutlineFn, dome: number, belly: number, flutes: number) {
   const n = Math.max(160, flutes * 12), m = 40, pos: number[] = [], idx: number[] = [];
-  // 1 on a ridge, 0 in a groove, going round the stone
   const ridge = (t: number) => 0.5 + 0.5 * Math.cos(2 * Math.PI * flutes * t);
   const rows: { s: number; y: number; top: boolean }[] = [];
   for (let j = m; j >= 1; j--) { const p = (j / m) * Math.PI / 2; rows.push({ s: Math.cos(p), y: -Math.sin(p) * belly, top: false }); }
@@ -186,8 +169,8 @@ export function carvedGeo(fn: OutlineFn, dome: number, belly: number, flutes: nu
   rows.forEach(({ s, y, top }) => {
     for (let i = 0; i < n; i++) {
       const t = i / n, [x, z] = fn(t), groove = 1 - ridge(t);
-      const edge = s * (1 - 0.04 * groove);                                   // the scalloped outline
-      const cut = top ? 1 - 0.22 * Math.pow(groove, 1.6) * Math.pow(s, 0.8) : 1; // grooves deepen toward the edge
+      const edge = s * (1 - 0.04 * groove);
+      const cut = top ? 1 - 0.22 * Math.pow(groove, 1.6) * Math.pow(s, 0.8) : 1;
       pos.push(x * edge, y * cut, z * edge);
     }
   });
@@ -205,7 +188,6 @@ export function carvedGeo(fn: OutlineFn, dome: number, belly: number, flutes: nu
 
 export type Tier = { s: number; y: number; twist?: number };
 
-/** Faceted stone from stacked outline tiers; flat-shaded so every facet catches light on its own. */
 export function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.Vector3[], center: THREE.Vector3, tiers: Tier[], tableY: number, culetY: number) {
   const rings = tiers.map((t) => ring(t.s, t.y, t.twist ?? 0));
   const pos: number[] = [];
@@ -240,7 +222,6 @@ export function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn
   return facetedGeo(ring, new THREE.Vector3(), tiers, crown, -pav);
 }
 
-/** side-stone outlines: flat edge at x=0 facing the centre stone, shape extends toward +x */
 function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] {
   if (kind === "half-moon") {
     const pts: Pt[] = [];
@@ -248,15 +229,13 @@ function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] 
     return pts;
   }
   if (kind === "trapezoid") return [[0, L / 2], [W, L * 0.27], [W, -L * 0.27], [0, -L / 2]];
-  if (kind === "baguette") return [[0, W / 2], [L, W * 0.38], [L, -W * 0.38], [0, -W / 2]]; // tapered, long axis outward
+  if (kind === "baguette") return [[0, W / 2], [L, W * 0.38], [L, -W * 0.38], [0, -W / 2]];
   if (kind === "oval") {
-    // long axis along the finger, like the centre stone's neighbours in an oval trilogy
     const pts: Pt[] = [];
     for (let i = 0; i < 24; i++) { const a = (i / 24) * 2 * Math.PI; pts.push([W / 2 + (Math.cos(a) * W) / 2, (Math.sin(a) * L) / 2]); }
     return pts;
   }
   if (kind === "pear") {
-    // tip pointing in toward the centre stone, round end outward
     const fn = outlineFn("pear", L, W), b = L / 2, pts: Pt[] = [];
     for (let i = 0; i < 24; i++) { const [x, z] = fn(i / 24); pts.push([b - z, x]); }
     return pts;
@@ -270,10 +249,9 @@ export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number
   const ol = sideOutline(kind, L, W);
   const span = kind === "baguette" || kind === "pear" ? L : W;
   const cx = kind === "round" || kind === "oval" ? W / 2 : kind === "pear" ? L * 0.55 : span * 0.42;
-  // rounds, ovals and pears are cut like any brilliant (crown ~16%, pavilion ~43% of the width); fitted shapes sit deeper in their rims
   const brilliant = kind === "round" || kind === "oval" || kind === "pear";
   const crown = Math.min(L, W) * (brilliant ? 0.16 : 0.3), pav = Math.min(L, W) * (brilliant ? 0.43 : 0.75);
-  const ccw = [...ol].reverse(); // facets must wind counter-clockwise to face outward
+  const ccw = [...ol].reverse();
   const ring = (s: number, y: number) => ccw.map(([x, z]) => new THREE.Vector3(cx + (x - cx) * s, y, z * s));
   const tiers: Tier[] = kind === "round" || kind === "oval" || kind === "pear"
     ? [{ s: 0.56, y: crown }, { s: 0.8, y: crown * 0.55 }, { s: 1, y: 0.04 }, { s: 1, y: -0.04 }, { s: 0.5, y: -pav * 0.6 }, { s: 0.15, y: -pav * 0.95 }]
@@ -300,4 +278,3 @@ export function roseCutGeo(R: number, H: number) {
   return g;
 }
 
-/* ---------------- metal ---------------- */

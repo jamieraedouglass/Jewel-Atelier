@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { CURRENCIES } from "./style/profile";
 
-/** where a design is: an idea, being made in the workshop, or made (and so in the inventory) */
 export const STATUSES = ["idea", "workshop", "made"] as const;
 export type Status = (typeof STATUSES)[number];
 export const STATUS_LABEL: Record<Status, string> = { idea: "Idea", workshop: "In the workshop", made: "Made" };
@@ -10,13 +9,9 @@ export const normalizeStatus = (s: unknown): Status => ((STATUSES as readonly un
 export const AVAILABILITY = ["in-stock", "reserved", "with-client", "sold"] as const;
 export const AVAILABILITY_LABEL: Record<(typeof AVAILABILITY)[number], string> = { "in-stock": "In stock", reserved: "Reserved", "with-client": "With a client", sold: "Sold" };
 
-/** the details kept for a made piece */
 export const InventorySchema = z.object({
-  /** the jeweller's own reference / SKU */
   ref: z.string().max(40).default(""),
-  /** finished metal weight, grams */
   weightG: z.number().positive().max(10000).nullable().default(null),
-  /** stone weight in total, carats */
   stonesCt: z.number().positive().max(10000).nullable().default(null),
   price: z.number().nonnegative().max(1e11).nullable().default(null),
   cost: z.number().nonnegative().max(1e11).nullable().default(null),
@@ -27,7 +22,6 @@ export const InventorySchema = z.object({
 });
 export type Inventory = z.output<typeof InventorySchema>;
 
-/** inventory details from anything; a bad field clears just that field */
 export function normalizeInventory(input: unknown): Inventory {
   const whole = InventorySchema.safeParse(input ?? {});
   if (whole.success) return whole.data;
@@ -39,7 +33,6 @@ export function normalizeInventory(input: unknown): Inventory {
 
 export type InventoryRow = { id: string; name: string; madeAt: string | null; inventory: Inventory; summary: string };
 
-/** totals for the inventory page: pieces, gold and stones, and value by currency (sold pieces counted apart) */
 export function inventoryTotals(rows: InventoryRow[]) {
   const value = new Map<string, { stock: number; sold: number }>();
   let weightG = 0, stonesCt = 0, inStock = 0, sold = 0;
@@ -60,7 +53,6 @@ const cell = (v: unknown) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-/** the inventory as a spreadsheet file (CSV) */
 export function inventoryCsv(rows: InventoryRow[]) {
   const head = ["Reference", "Name", "Made", "Availability", "Client", "Metal weight (g)", "Stones (ct)", "Cost", "Price", "Currency", "Description", "Notes"];
   const lines = rows.map(({ name, madeAt, inventory: i, summary }) => [
@@ -69,10 +61,6 @@ export function inventoryCsv(rows: InventoryRow[]) {
   return [head.join(","), ...lines].join("\n") + "\n";
 }
 
-/**
- * How much a design says about someone's taste: made pieces most, then pieces in the workshop, then ideas;
- * and recent work more than old (halving about every six months, never below a fifth).
- */
 export function tasteWeight(status: Status, updatedAt: string | null | undefined, now = Date.now()) {
   const base = status === "made" ? 3 : status === "workshop" ? 2 : 1;
   const ageDays = updatedAt ? Math.max(0, (now - new Date(updatedAt).getTime()) / 86_400_000) : 0;

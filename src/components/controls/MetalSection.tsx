@@ -3,7 +3,6 @@
 import { KARATS, METALS, isGold } from "@/lib/design";
 import { Chips, sectionStyle, type SectionProps } from "./fields";
 
-/** metal, and karat for gold */
 export default function MetalSection({ d, onChange }: SectionProps) {
   return (
     <section id="sec-metal" style={sectionStyle}>

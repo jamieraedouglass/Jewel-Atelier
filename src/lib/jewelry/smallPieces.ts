@@ -20,7 +20,7 @@ export function ankletPiece(d: Design, m: Mats): Piece {
     const u = wrap(front + (i - (n - 1) / 2) * (0.75 / n));
     const out = outwardAt(curve, u), p = curve.getPointAt(u);
     loops.push({ pos: p.clone().addScaledVector(out, 1.2), dia: 1 });
-    bells.push({ pos: p.clone().addScaledVector(out, 3.6), dia: 4.2, up: out.clone().negate() }); // slit facing away from the chain
+    bells.push({ pos: p.clone().addScaledVector(out, 3.6), dia: 4.2, up: out.clone().negate() });
     if (i % 3 === 1) dots.push({ pos: p.clone().add(v3(0, 0.8, 0)), dia: 2.2 });
   }
   group.add(ghungroo(m.metal, bells), balls(m.metal, loops));
@@ -35,7 +35,6 @@ export function headpiecePiece(d: Design, m: Mats): Piece {
   const c = d.center;
   const f = flower(d, m, c);
   group.add(f.group);
-  // the chain runs up the parting (−Z) to a hook
   const top = v3(0, 0, -f.radius - 70);
   group.add(chainAlong(new THREE.LineCurve3(v3(0, 0, -f.radius - 0.5), top), "fine", m));
   const hook = new THREE.Mesh(new THREE.TorusGeometry(3, 0.5, 10, 32, Math.PI * 1.5), m.metal);
@@ -70,7 +69,6 @@ export function nosePiece(d: Design, m: Mats): Piece {
   const hoop = new THREE.Mesh(new THREE.TorusGeometry(R, 0.55, 12, 160), m.metal);
   hoop.rotation.x = Math.PI / 2;
   group.add(hoop);
-  // pearls and stones along the lower front of the hoop
   const beads: Item[] = [], stones: Item[] = [];
   const pd = d.fringe.sizeMm, sd = Math.max(1.6, roundDiameter(d.accents.gem, d.accents.sizeCt));
   for (let a = Math.PI * 0.22, i = 0; a < Math.PI * 0.78; i++) {
@@ -80,7 +78,6 @@ export function nosePiece(d: Design, m: Mats): Piece {
   }
   group.add(balls(m.bead(d.fringe.gem, d.fringe.color), beads));
   group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, stones.map((s) => ({ ...s, pos: s.pos.clone().add(v3(0, 0.6, 0)) }))));
-  // a bead drop at the base and the chain sweeping up to the ear
   group.add(fringe({ ...d, fringe: { ...d.fringe, enabled: true } }, m, [{ pos: v3(0, 0, R + pd / 2), dir: v3(0, 0, 1) }], 2));
   const chain = new THREE.CatmullRomCurve3([v3(R * 0.7, 0, -R * 0.7), v3(R * 2, 0, -R * 1.4), v3(R * 3.4, 0, -R * 0.6), v3(R * 4.2, 0, -R * 1.8)]);
   group.add(chainAlong(chain, "fine", m));
@@ -124,7 +121,6 @@ export function handPiece(d: Design, m: Mats): Piece {
   const ringFlower = flower(d, m, { ...d.center, ...NO_CHARACTER, lengthMm: 4, widthMm: 4, domeMm: 0.6 }, 1);
   ringFlower.group.position.set(0, 0.9, 70 - 9);
   group.add(ringFlower.group);
-  // chains: one to the ring, three fanning to the bracelet
   group.add(chainAlong(new THREE.LineCurve3(v3(0, 0, f.radius), v3(0, 0, 70 - 9 - ringFlower.radius)), "fine", m));
   const wf = curve.getPointAt(front).add(wristOffset);
   for (const x of [-22, 0, 22]) {
@@ -134,15 +130,10 @@ export function handPiece(d: Design, m: Mats): Piece {
   return { group, focus: v3(), focusSize: f.radius * 6, upright: false };
 }
 
-/**
- * A tiara laid flat, rising toward −Z: a band of round diamonds, pointed arches of marquise-diamond leaves linking
- * graduated spires, a pear stone hanging in each arch, a pear crowning each spire, and the largest pear, in a diamond
- * halo, on the centre spire. Stones are the main stone (pear emeralds by default); leaves are the accents.
- */
 export function tiaraPiece(d: Design, m: Mats): Piece {
   const group = new THREE.Group();
   const c = d.center;
-  const n = Math.max(3, Math.min(13, d.options.count | 1)); // spires, always an odd number so one is in the middle
+  const n = Math.max(3, Math.min(13, d.options.count | 1));
   const R = 75, half = 1.05;
   const at = (t: number) => v3(Math.sin(t * half) * R, 0, (1 - Math.cos(t * half)) * R * 0.35);
   const band = new THREE.CatmullRomCurve3(Array.from({ length: 41 }, (_, i) => at(i / 20 - 1)));
@@ -152,7 +143,7 @@ export function tiaraPiece(d: Design, m: Mats): Piece {
   const span = 1.7;
   const spires = Array.from({ length: n }, (_, i) => {
     const t = (i / (n - 1)) * span - span / 2;
-    const k = 1 - Math.abs(t) / (span / 2); // 1 at the centre, 0 at the ends
+    const k = 1 - Math.abs(t) / (span / 2);
     const base = at(t);
     const tan = band.getTangentAt((t + 1) / 2);
     const up = v3(tan.z, 0, -tan.x).normalize();
@@ -161,7 +152,6 @@ export function tiaraPiece(d: Design, m: Mats): Piece {
   });
   const turnUp = (o: THREE.Object3D, up: THREE.Vector3, flip = false) => { o.rotation.y = Math.atan2(up.x, up.z) + (flip ? Math.PI : 0); };
   const leaves: Item[] = [];
-  // a line of marquise leaves following a curve
   const lineAlong = (cv: THREE.Curve<THREE.Vector3>) => {
     const L = cv.getLength(), count = Math.max(2, Math.floor(L / (leaf * 1.75)));
     for (let j = 0; j <= count; j++) {
@@ -169,7 +159,6 @@ export function tiaraPiece(d: Design, m: Mats): Piece {
       leaves.push({ pos: p.clone().add(v3(0, 0.3, 0)), dia: leaf, yaw: Math.atan2(tg.x, tg.z) });
     }
   };
-  // pointed arches between neighbouring spires, each with a pear hanging inside
   for (let i = 0; i < n - 1; i++) {
     const a = spires[i], b = spires[i + 1];
     const up = a.up.clone().add(b.up).normalize();
@@ -185,10 +174,9 @@ export function tiaraPiece(d: Design, m: Mats): Piece {
     const k = (a.k + b.k) / 2, scale = 0.32 + 0.12 * k;
     const drop = setStone({ ...c, rotation: 0 }, d.setting.style, m, scale);
     drop.position.copy(apex).addScaledVector(up, -(c.lengthMm * scale) / 2 - 1.2);
-    turnUp(drop, up); // tip up, toward the apex it hangs from
+    turnUp(drop, up);
     group.add(drop);
   }
-  // the spires: a stem of leaves, crowned with a pear pointing up; the centre one tallest, with the main stone in a halo
   for (const sp of spires) {
     const tip = sp.base.clone().addScaledVector(sp.up, sp.height);
     const stem = new THREE.LineCurve3(sp.base.clone(), tip);

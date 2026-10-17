@@ -7,10 +7,6 @@ import { CURRENCIES, CURRENCY_NAMES, formatMoney, type Currency, type PriceVersi
 type Piece = { id: string; name: string };
 const stoneKey = (o?: StoneOption) => (o ? `${o.gem}:${o.grade ?? ""}` : "");
 
-/**
- * Carl's prices for a link, all optional: a price for each piece as designed, and any other versions he wants to quote
- * (14k and 18k, ruby or emerald). Choices are limited to what the link lets the client change. Always in rupees.
- */
 export default function PriceEditor({ pieces, allow, value, onChange }: { pieces: Piece[]; allow: Allow; value: Pricing; onChange: (p: Pricing) => void }) {
   const setPiece = (id: string, versions: PriceVersion[]) => onChange({ ...value, pieces: { ...value.pieces, [id]: versions } });
   const draft = (id: string) => value.pieces[id] ?? [];
@@ -86,7 +82,6 @@ export default function PriceEditor({ pieces, allow, value, onChange }: { pieces
   );
 }
 
-/** what's ready to save: versions without an amount are left out */
 export const filledPricing = (p: Pricing): Pricing => ({
   currency: p.currency,
   pieces: Object.fromEntries(Object.entries(p.pieces).map(([id, vs]) => [id, vs.filter((v) => v.inr > 0)]).filter(([, vs]) => (vs as PriceVersion[]).length)),

@@ -9,7 +9,6 @@ import DropPartEditor, { KIND_LABEL, NEW_PART } from "./controls/DropPartEditor"
 
 type Props = { design: Design; onChange: (patch: DesignPatch) => void; focusIndex?: number | null };
 
-/** Build drops, chandeliers and drop pendants part by part, from the top down. */
 export default function DropComposer({ design: d, onChange, focusIndex }: Props) {
   const parts = d.drop.parts;
   const setParts = (next: DropPart[]) => onChange({ drop: { parts: next } } as DesignPatch);

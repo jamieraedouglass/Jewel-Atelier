@@ -1,6 +1,5 @@
 import type * as THREE from "three";
 
-/** A small least-recently-used cache: once full, adding a key drops the entry used longest ago (calling `onEvict`). */
 export class LRU<K, V> {
   private map = new Map<K, V>();
   constructor(private max: number, private onEvict?: (v: V, k: K) => void) {}
@@ -25,10 +24,6 @@ export class LRU<K, V> {
   clear() { this.map.clear(); }
 }
 
-/**
- * A cache of geometries shared between builds. Shared geometries are marked so disposing one built piece doesn't free
- * buffers the next piece is drawing with; they are disposed only when they fall out of the cache.
- */
 export function geometryCache(max: number) {
   const cache = new LRU<string, THREE.BufferGeometry>(max, (g) => g.dispose());
   return (key: string, make: () => THREE.BufferGeometry) => {
@@ -41,5 +36,4 @@ export function geometryCache(max: number) {
   };
 }
 
-/** true for a geometry owned by a shared cache (see geometryCache) */
 export const isShared = (g: THREE.BufferGeometry) => g.userData.shared === true;

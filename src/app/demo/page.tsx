@@ -3,7 +3,6 @@ import { BRAND } from "@/lib/brand";
 
 export const metadata = { title: `Demo · ${BRAND.name}` };
 
-/** A walk-through of the studio for the jeweller: what a client sees, what the studio sees, and the workshop sheet. */
 export default function DemoPage() {
   const cards = [
     { href: "/demo/client", title: "Try it: both sides at once", body: "Meher's screen, with your side live beside it. Play as her (change the stone, the size, the metal; ask the designer, ask the price) and watch what you'd see: her changes, the price she's shown, the carats and metal weight for the workshop. Then change your settings (what she may choose, your prices) and watch her screen follow." },

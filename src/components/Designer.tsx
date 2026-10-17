@@ -30,12 +30,10 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   const [tab, setTab] = useState<Tab>("design");
   const [view, setView] = useState<View>("hero");
   const [spin, setSpin] = useState(true);
-  // a new design starts on an empty stage until a piece is chosen (or anything is changed)
   const [started, setStarted] = useState(!blank);
-  // render quality is a per-viewer choice, remembered on this device
   const [quality, setQualityState] = useState<"high" | "standard">("high");
-  useEffect(() => { try { const q = localStorage.getItem("render-quality"); if (q === "standard" || q === "high") setQualityState(q); } catch { /* private mode */ } }, []);
-  const setQuality = (q: "high" | "standard") => { setQualityState(q); try { localStorage.setItem("render-quality", q); } catch { /* ignore */ } };
+  useEffect(() => { try { const q = localStorage.getItem("render-quality"); if (q === "standard" || q === "high") setQualityState(q); } catch {} }, []);
+  const setQuality = (q: "high" | "standard") => { setQualityState(q); try { localStorage.setItem("render-quality", q); } catch {} };
   const [statusMsg, setStatus] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [pick, setPick] = useState<Pick | null>(null);
@@ -48,14 +46,12 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   const pair = useEarPair(designRef, record);
   const saving = useSaving({ initialId, initialPublic, userId, designRef, canvas, dirty, setDirty, flash, setStatus });
 
-  /** a click on the paused piece: open the quick editor there, kept inside the view */
   function onPick(p: Pick) {
-    if (spinRef.current) return; // clicks edit only while the piece is paused
+    if (spinRef.current) return;
     if (p.ear && designRef.current.rightEar) pair.setEar(p.ear);
     const w = stageEl.current?.clientWidth ?? 800, h = stageEl.current?.clientHeight ?? 600;
     setPick({ ...p, x: Math.max(8, Math.min(p.x + 12, w - 296)), y: Math.max(8, Math.min(p.y - 20, h - 340)) });
   }
-  /** jump to a part's full settings in the side panel */
   function showSection(part: Pick["part"], index?: number) {
     setPick(null);
     setTab("design");
@@ -67,7 +63,6 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     }, 60);
   }
 
-  /* ---- real size and try-on ---- */
   const [measure, setMeasure] = useState<Measure | null>(null);
   const [tryOn, setTryOn] = useState<{ whole: Cutout; front: Cutout | null; right: Cutout | null } | null>(null);
   function openTryOn() {
@@ -75,12 +70,10 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     const loop = ["bracelet", "necklace", "anklet"].includes(d0.type);
     const whole = canvas.current?.cutout?.("whole");
     const front = loop ? canvas.current?.cutout?.("front", "left", 0.45) ?? null : null;
-    // earrings: either earring can be tried on (they differ when the pair isn't matching or is mirrored)
     const right = d0.type === "earrings" ? canvas.current?.cutout?.("whole", "right") ?? null : null;
     if (whole) { setSpin(false); setTryOn({ whole, front, right }); } else flash("Couldn't capture the piece. Try again in a moment.");
   }
 
-  /* ---- versions ---- */
   const [versions, setVersions] = useState<Version[] | null>(null);
   async function showVersions() {
     if (!saving.id) return;
@@ -88,7 +81,6 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     try { setVersions(await listVersions(saving.id)); } catch { flash("Couldn't load versions."); }
   }
 
-  // designs saved before pictures worked get one the first time they are opened
   useEffect(() => {
     if (!initialId || !userId || hasThumbnail) return;
     const t = setTimeout(() => void saving.saveThumbnail(initialId), 5000);
@@ -155,9 +147,8 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
             <PairBar unmatched={pair.unmatched} ear={pair.ear} mirrorPair={design.mirrorPair}
               onMatched={pair.setMatched} onEar={pair.setEar} onMirror={(mirrorPair) => pair.change({ mirrorPair })} />
           )}
-          {/* every tab stays mounted, so a conversation, an analysis or chosen photos survive switching tabs */}
           <div className="tab-pane" hidden={tab !== "design"}><DesignControls design={pair.editing} userId={userId} onChange={pair.change} onReplace={pair.replace} /></div>
-          <div className="tab-pane" hidden={tab !== "photo"}><PhotoToDesign userId={userId} design={pair.editing} onReplace={pair.replace} /></div>
+          <div className="tab-pane" hidden={tab !== "photo"}><PhotoToDesign userId={userId} design={pair.editing} onReplace={pair.replace} capture={async () => (await canvas.current?.hero?.()) ?? (await canvas.current?.snapshot()) ?? null} /></div>
           <div className="tab-pane" hidden={tab !== "stone"}><StoneUploader userId={userId} onApply={(stone) => { pair.change({ center: stone }); setTab("design"); }} /></div>
           <div className="tab-pane" hidden={tab !== "chat"}><DesignChat userId={userId} designId={saving.id} design={design} onApply={pair.change} /></div>
         </div>

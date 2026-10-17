@@ -5,7 +5,6 @@ import { useState } from "react";
 import { setDesignStatus } from "@/app/actions";
 import { STATUSES, STATUS_LABEL, type Status } from "@/lib/inventory";
 
-/** where this design is: an idea, in the workshop, or made (made pieces go into the inventory) */
 export default function StatusChips({ id, initial, onSaveFirst, flash }: { id: string | null; initial: Status; onSaveFirst: () => Promise<string | null>; flash: (msg: string) => void }) {
   const [status, setStatus] = useState(initial);
   async function pick(s: Status) {

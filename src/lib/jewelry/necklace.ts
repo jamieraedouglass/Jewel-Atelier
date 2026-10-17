@@ -13,14 +13,12 @@ export function necklacePiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
   const group = new THREE.Group();
   const L = o.lengthIn * 25.4;
-  // laid flat, a necklace falls into a soft U (a full line of stones more so), not a circle
   const pointy = st === "pendant" || st === "lariat" || st === "rani-haar" || st === "mangalsutra" ? 0.22 : st === "line" || st === "riviera" || st === "by-the-yard" ? 0.16 : 0.08;
   const { curve, front } = loopCurve(L, 0.85, pointy);
   const fp = curve.getPointAt(front);
   let focus = fp.clone(), focusSize = Math.max(c.lengthMm, c.widthMm) * 2.5;
   const accentDia = roundDiameter(d.accents.gem, d.accents.sizeCt);
   const hang = (obj: THREE.Object3D, at: THREE.Vector3, len: number) => { obj.position.copy(at).add(v3(0, 0, len)); group.add(obj); return obj.position.clone(); };
-  /** the chain everywhere but the front, where stones are set into it: rings at its two ends (±halfMm) and at `joins` */
   const inChain = (halfMm: number, joins: number[], ring: number) => {
     const total = curve.getLength();
     for (const x of [-halfMm, halfMm, ...joins]) group.add(jumpRing(m, ring, 0.14, curve.getPointAt(wrap(front + x / total)).add(v3(0, -0.1, 0))));
@@ -31,7 +29,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
   switch (st) {
     case "pendant": {
       if (o.hang === "in-chain") {
-        // the stone is a link of the chain, with a loop on each side where the chain begins
         const pend = new THREE.Group();
         pend.add(setStone(c, d.setting.style, m));
         let extra = 0;
@@ -60,7 +57,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const side = d.sides.kind === "none" ? 0.72 : Math.min(0.95, Math.max(0.4, Math.cbrt(d.sides.sizeCt / Math.max(0.05, (c.carat ?? 1)))));
       const R = c.widthMm / 2, r = R * side;
       if (o.hang === "below" || o.hang === "drop") {
-        // hung from a bail under the chain: the three stones in a row on a little bar, or one below another
         const bail = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.45, 12, 32, Math.PI * 1.2), m.metal);
         bail.position.copy(fp).add(v3(0, 0, 0.6)); bail.rotation.set(Math.PI / 2, 0, -Math.PI * 0.1);
         group.add(bail);
@@ -72,11 +68,9 @@ export function necklacePiece(d: Design, m: Mats): Piece {
             s.position.set(x, 0, L2 + (k === 1 ? 0 : -(L2 - l2)));
             pend.add(s);
           }
-          // a slim bar behind the stones' tops holds the row together and takes the bail
           pend.add(tube(m, [v3(-(R + r + 0.3), -0.5, 0.4), v3(0, -0.5, 0), v3(R + r + 0.3, -0.5, 0.4)], 0.35));
           pend.add(jumpRing(m, 0.7, 0.18, v3(0, -0.3, -0.7)));
         } else {
-          // smaller stones above, the main stone at the bottom, joined by little rings so they swing
           let z = 0;
           [side, side, 1].forEach((k, i) => {
             const half = L2 * k;
@@ -94,8 +88,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
         break;
       }
       if (o.hang === "in-chain") {
-        // set into the chain: the stones are links of it, side by side on the chain's own line, joined by little rings;
-        // the chain stops at a loop on each outer stone
         const ring = 0.55, gap = ring * 2 + 0.1;
         [-(R + gap + r), 0, R + gap + r].forEach((x, i) => {
           const s = setStone(c, d.setting.style, m, i === 1 ? 1 : side);
@@ -106,7 +98,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
         focus = fp.clone(); focusSize = 30;
         break;
       }
-      // sitting just under the chain: the stones in a gentle arc below its lowest point, the chain through loops behind
       const items: [number, number, number][] = [[-(R + r + 0.2), -0.7, side], [0, 0, 1], [R + r + 0.2, -0.7, side]];
       for (const [x, dz, k] of items) {
         const s = setStone(c, d.setting.style, m, k);
@@ -130,10 +121,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     case "line": {
-      // a full line of stones round the neck in your own pattern of shapes and sizes
-      // stones set edge to edge all the way round, with a box clasp at the back
       const kind = resolveClasp(st, o.clasp);
-      // hidden: the stones run unbroken round the neck; otherwise a gap at the back for the clasp
       const run = kind === "hidden" ? patternRun(d, m, curve, front, front + 1, { gap: 0.18, closed: true }) : patternRun(d, m, curve, front - 0.485, front + 0.485, { gap: 0.18 });
       group.add(run.group);
       const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.35, run.maxW * 0.05), 8, true), m.metal);
@@ -144,7 +132,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     case "by-the-yard": {
-      // bezel-set stones (rose-cut by default) joined by little gold rings, big and small in turn
       const loops = Math.max(1, Math.min(4, o.layers));
       const big = Math.max(c.widthMm, 2), small = big * 0.72, ringR = Math.max(0.7, big * 0.17);
       const stonesBig: Item[] = [], stonesSmall: Item[] = [], rings: Item[] = [];
@@ -171,7 +158,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     case "gold-collar": {
-      // a rigid collar: crossed X links with pavé between, or chevrons with rows of stones
       const span = 0.86, from = front - span / 2;
       const total = curve.getLength() * span, w = 8;
       const frameAt = (u: number) => { const p = curve.getPointAt(wrap(u)), t = curve.getTangentAt(wrap(u)), n = outwardAt(curve, u); return { p, t, n }; };
@@ -182,12 +168,10 @@ export function necklacePiece(d: Design, m: Mats): Piece {
           const u = from + ((i + 0.5) * seg) / curve.getLength();
           const { p, t, n: nn } = frameAt(u);
           for (const s1 of [-1, 1]) for (const lane of [-0.55, 0, 0.55]) {
-            // three grooved wires per bar of the X
             const a = p.clone().addScaledVector(t, -2.6).addScaledVector(nn, s1 * w * 0.42).addScaledVector(t, lane * 0.7);
             const b = p.clone().addScaledVector(t, 2.6).addScaledVector(nn, -s1 * w * 0.42).addScaledVector(t, lane * 0.7);
             group.add(tube(m, [a.clone().add(v3(0, 0.6, 0)), p.clone().addScaledVector(t, lane * 0.7).add(v3(0, 1.6 + s1 * 0.25, 0)), b.clone().add(v3(0, 0.6, 0))], 0.38));
           }
-          // pavé cluster in the gap after this X
           const q = frameAt(u + (seg / 2) / curve.getLength());
           const base = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 12), m.metal);
           base.scale.set(1, 0.45, 1); base.position.copy(q.p); group.add(base);
@@ -204,7 +188,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
           const tip = p.clone().add(v3(0, 1.4, 0)), l = p.clone().addScaledVector(nn, w / 2).addScaledVector(t, -2.2).add(v3(0, 0.6, 0)), r = p.clone().addScaledVector(nn, -w / 2).addScaledVector(t, -2.2).add(v3(0, 0.6, 0));
           group.add(tube(m, [l, tip, r], 0.62));
           if (i % 3 === 1) {
-            // a row of stones along this chevron, alternating gems row by row
             const row = Math.floor(i / 3) % 2 === 0 ? stones : alt;
             for (const end of [l, r]) for (let k = 1; k <= 3; k++) row.push({ pos: tip.clone().lerp(end, k / 4).add(v3(0, 0.55, 0)), dia: sd });
           }
@@ -277,7 +260,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     case "briolette-fringe": {
-      // rows of briolette drops, each row hanging a little lower, from lines of small diamonds across the front
       const rows = Math.max(1, Math.min(7, o.layers));
       const n = Math.max(5, o.count);
       const drop = { ...c, ...NO_CHARACTER, cut: "briolette" as const, rotation: 0 };
@@ -293,7 +275,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
           const s = setStone(drop, d.setting.style, m, 0.75 + 0.25 * k);
           s.position.copy(cv.getPointAt(u)).addScaledVector(out, line.maxW / 2 + 0.6 + (c.lengthMm * (0.75 + 0.25 * k)) / 2);
           s.quaternion.setFromUnitVectors(v3(0, 0, -1), out.clone().negate());
-          s.rotateY(Math.PI); // drilled tip up, toward the line it hangs from
+          s.rotateY(Math.PI);
           group.add(s);
         });
       }
@@ -334,7 +316,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const f = flower(d, m, c);
       focus = hang(f.group, lp, f.radius - 2);
       group.add(fringe(d, m, Array.from({ length: 7 }, (_, i) => { const a = Math.PI * (0.2 + 0.6 * (i / 6)); return { pos: focus.clone().add(v3(Math.cos(a) * f.radius, 0, Math.sin(a) * f.radius)), dir: v3(Math.cos(a), 0, Math.sin(a)) }; }), 2));
-      // side ornaments (where strands gather)
       for (const s of [-1, 1]) {
         const sp = curve.getPointAt(wrap(lf + s * 0.32));
         group.add(place(coin(m, 4), sp.clone().add(v3(0, 0.3, 0))));
@@ -373,12 +354,10 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     default: {
-      // pearl strand(s)
       const layers = Math.max(1, o.layers);
       for (let i = 0; i < layers; i++) {
         const { curve: cv, front: fr } = layeredLoop(L, i * 38, 0.85, 0.08);
         const kind = resolveClasp(st, o.clasp);
-        // hidden: the beads run all the way round; otherwise they stop either side of the clasp
         group.add(kind === "hidden"
           ? beadStrand(m, cv, d.fringe.gem, d.fringe.color, d.fringe.sizeMm, 0, fr, fr + 1)
           : beadStrand(m, cv, d.fringe.gem, d.fringe.color, d.fringe.sizeMm, 0, fr + 0.505, fr + 1.495));
@@ -387,7 +366,6 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       focusSize = d.fringe.sizeMm * 10;
     }
   }
-  // chain necklaces: a clasp on the chain at the back, when one is chosen
   if (CHAIN_STYLES_WITH_CLASP.has(st)) {
     const kind = resolveClasp(st, o.clasp);
     if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), 3.2));

@@ -1,6 +1,5 @@
 import type { Spec } from "@/lib/studio/spec";
 
-/** The workshop spec sheet, laid out to print on one page. */
 export default function SpecSheet({ spec, extra }: { spec: Spec; extra?: { label: string; lines: string[] }[] }) {
   const total = spec.stones.reduce((n, s) => n + (s.totalCt ?? 0), 0);
   return (

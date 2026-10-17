@@ -1,6 +1,5 @@
 import { DROP_PRESETS, FRAME_PRESETS, SHOWCASE, STYLES, TYPES, applyPatch, chooseStyle, defaultDesign, type Design, type DesignPatch } from "@/lib/design";
 
-/** every design worth building in a test: each style's defaults, each showcase piece, each drop and frame preset */
 export function allDesigns(): { name: string; design: Design }[] {
   const out: { name: string; design: Design }[] = [];
   for (const t of TYPES) for (const s of Object.keys(STYLES[t])) out.push({ name: `style ${t}/${s}`, design: chooseStyle(defaultDesign(), t, s) });
@@ -12,7 +11,6 @@ export function allDesigns(): { name: string; design: Design }[] {
     out.push({ name: `drop ${p.name}`, design: applyPatch(chooseStyle(defaultDesign(), "earrings", "pendant"), { drop: { parts: p.parts } } as DesignPatch) });
   for (const p of FRAME_PRESETS)
     out.push({ name: `frames ${p.name}`, design: applyPatch(chooseStyle(defaultDesign(), "ring", "deco"), { frames: p.frames, ...(p.center ? { center: p.center } : {}) } as DesignPatch) });
-  // options that change how a style is built
   for (const hang of ["in-chain", "below", "drop"] as const)
     out.push({ name: `option three-stone pendant hangs ${hang}`, design: applyPatch(chooseStyle(defaultDesign(), "necklace", "three-stone-pendant"), { options: { hang } }) });
   for (const clasp of ["jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const)

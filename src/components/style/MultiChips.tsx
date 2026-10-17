@@ -1,6 +1,5 @@
 "use client";
 
-/** a row of chips where any number can be on; `max` stops adding more */
 export default function MultiChips<T extends string>({ name, options, value, onChange, fmt, max = 99, swatch }: {
   name: string; options: readonly T[]; value: readonly T[]; onChange: (v: T[]) => void; fmt: (v: T) => string; max?: number; swatch?: (v: T) => string | undefined;
 }) {

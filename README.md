@@ -23,8 +23,8 @@ A private 3D jewellery design studio for jewellers. Upload a stone, build a piec
   - All nine navratna gems, plus 12 more.
   - Trade colour grades for emeralds, rubies, sapphires and spinels (Colombian vs Zambian emerald, Burmese pigeon's blood vs Thai ruby, Kashmir vs Ceylon sapphire…). Each sets the stone's colour, transparency and glow, so a Burmese-type ruby glows from within and a Thai-type one sits darker. A Glow slider fine-tunes any stone. These describe a look; the app never claims where a real stone came from.
 - **Indian sizing.** Ring sizes show US and Indian side by side. Bangles use Indian sizes 2-2 to 2-12. Necklace lengths are named, from hasli to opera.
-- **Custom motifs (new shapes).** Describe a shape ("peacock with emerald drops"), upload a sketch for Claude to trace, or import an SVG from Illustrator or CAD. The motif becomes a gold plate with stones, with millegrain or rope edges and optional enamel. Use it as a ring top, earrings, a pendant, or repeated along a necklace or bracelet. The design chat can draw motifs too. Motifs are flat plates with depth, not fully sculpted 3D forms.
-- **Upload a stone.** Add photos or a short phone video. Claude reads the gem, cut, shape, colour and size, and lists what a lab still has to confirm. One click puts it in the piece.
+- **Custom motifs (new shapes).** Describe a shape ("peacock with emerald drops"), upload a sketch to trace, or import an SVG from Illustrator or CAD. The motif becomes a gold plate with stones, with millegrain or rope edges and optional enamel. Use it as a ring top, earrings, a pendant, or repeated along a necklace or bracelet. The design chat can draw motifs too. Motifs are flat plates with depth, not fully sculpted 3D forms.
+- **Upload a stone.** Add photos or a short phone video. The gem, cut, shape, colour and size are read from them, with a list of what a lab still has to confirm. One click puts it in the piece.
 - **Ask the designer.** A chat panel that speaks Western and Indian fine jewellery. It sees the current piece and your style profile: inspiration photos, style icons and notes. It proposes changes you apply with one click.
 - **Download and WhatsApp.**
   - **Download image** saves a PNG render.
@@ -35,7 +35,7 @@ A private 3D jewellery design studio for jewellers. Upload a stone, build a piec
 - **Idea → in the workshop → made, and an inventory.** Mark each design's status; made pieces appear on the Inventory page with reference, date, metal and stone weight, cost, price, where the piece is (in stock, reserved, with a client, sold), totals and a CSV download. Each saved design keeps its chat with the designer.
 - **Daily AI limit.** Each person gets `AI_DAILY_LIMIT` stone analyses and chat messages per day (default 40), counted in the database.
 
-Stack: Next.js 14 (App Router) · TypeScript · React Three Fiber + drei · Supabase (auth, Postgres, storage) · Claude API.
+Stack: Next.js 14 (App Router) · TypeScript · React Three Fiber + drei · Supabase (auth, Postgres, storage) · Anthropic API.
 
 ## Setup
 
@@ -47,7 +47,7 @@ Stack: Next.js 14 (App Router) · TypeScript · React Three Fiber + drei · Supa
    - In SQL Editor, run `supabase/schema.sql`. This creates the tables, the security rules, the storage buckets and the daily-limit counter.
    - Copy the **service_role** key from Project Settings → API into `SUPABASE_SERVICE_ROLE_KEY`. The server uses it only to create name-based accounts.
    - In Authentication → Sign In / Providers, turn **off** "Allow new users to sign up". Accounts are then created only through the name sign-in, never by someone calling Supabase directly.
-3. **Get a Claude API key** at [console.anthropic.com](https://console.anthropic.com). Set a monthly spend limit there too.
+3. **Get an Anthropic API key** at [console.anthropic.com](https://console.anthropic.com). Set a monthly spend limit there too.
 4. **Create `.env.local`.**
    ```bash
    cp .env.example .env.local
@@ -82,7 +82,7 @@ The app keeps working before they are run; the features that need them say so.
 | `src/components/RingCanvas.tsx` → `src/components/canvas/` | The 3D view: studio lighting, ray-traced stones, framing, picking parts, true-size cutouts. `canvas/types.ts` holds the shared types without pulling in three.js. |
 | `src/components/DesignControls.tsx` → `src/components/controls/` | Controls, one section per file. Only the sections the current style uses are shown. |
 | `src/components/Designer.tsx` → `src/components/designer/` | The editor page: undo history, earring pairs, saving and sharing, versions. |
-| `src/lib/claude.ts` → `src/lib/claude/` | The Claude calls: stone analysis, the design chat, motifs, recreate-from-photo. Every route requires sign-in and counts against the daily limit (charged only once the uploads are readable). |
+| `src/lib/ai.ts` → `src/lib/ai/` | The AI calls: stone analysis, the design chat, motifs, recreate-from-photo. Every route requires sign-in and counts against the daily limit (charged only once the uploads are readable). |
 | `src/app/login/actions.ts` | Name sign-in. Each name maps to a hidden email, and a password derived from `NAME_LOGIN_SECRET`. |
 | `src/lib/motifModel.ts`, `src/components/MotifPanel.tsx`, `src/app/api/motif` | Custom motifs: SVG path → extruded plate, plus the AI drawing and tracing endpoint. |
 | `supabase/schema.sql` | Tables, row-level security, buckets, the `use_ai_call` limit function. |
@@ -102,6 +102,8 @@ npm run check     # type check, lint and tests together
 ```
 
 `tests/snapshot.test.ts` builds every style, showcase piece and preset and records a fingerprint of its geometry (mesh and vertex counts, size, and a hash of every vertex). A refactor must leave them all unchanged; when a visual change is intended, update them with `npx vitest -u` and review the diff. `npm run check:render` (see `scripts/render-check.cjs`) still takes real screenshots in a browser.
+
+`npm run check:recreate -- photo.jpg` runs a photo through "From a photo" on your computer (rebuild, then compare with the photo and correct, twice) against `npm run dev`, without signing in, and saves each round next to the photo in `recreate-check/index.html`. It needs `ANTHROPIC_API_KEY` in `.env.local`; the test endpoint it uses only exists under `next dev`.
 
 ## Honest limits
 

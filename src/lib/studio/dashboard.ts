@@ -1,13 +1,9 @@
 import { linkState } from "./links";
 
-/** The studio dashboard's numbers and sentences, from links and their events (shared by the real studio and the demo). */
-
 export type DashLink = { id: string; client_name: string; design_ids: string[]; created_at: string; last_opened_at: string | null; expires_at: string | null; revoked: boolean };
 export type DashEvent = { id: number | string; link_id: string; design_id: string | null; kind: string; detail: Record<string, unknown>; at: string };
 
-/** what a client sends the jeweller's way: a message, or a price question the assistant passed on */
 const FOR_YOU = new Set(["asked-jeweller", "asked-price"]);
-/** waiting on the jeweller: a message, or a price question nobody could answer (one shown his price already has it) */
 const forYou = (e: Pick<DashEvent, "kind" | "detail">) => FOR_YOU.has(e.kind) && !(e.kind === "asked-price" && typeof e.detail.shownInr === "number");
 
 export function eventText(e: Pick<DashEvent, "kind" | "detail">, pieceName: string | null): string {

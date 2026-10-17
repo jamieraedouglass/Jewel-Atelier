@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CenterStoneSchema, DROP_PRESETS, DropPartSchema, FRAME_PRESETS, FrameSchema, SHOWCASE, applyPatch, chooseStyle, defaultDesign } from "@/lib/design";
 
-/** a preset or showcase that fails validation is silently ignored by applyPatch, so check each one really parses */
 describe("presets", () => {
   for (const p of DROP_PRESETS) it(`drop preset "${p.name}" parses`, () => {
     for (const part of p.parts) expect(DropPartSchema.safeParse(part).error?.issues).toBeUndefined();

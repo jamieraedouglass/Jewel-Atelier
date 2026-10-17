@@ -200,7 +200,6 @@ describe("proportions", () => {
     expect(stoneRatio(long)).toBeCloseTo(1.7, 1);
     expect(long.lengthMm).toBeGreaterThan(classic.lengthMm);
     expect(long.widthMm).toBeLessThan(classic.widthMm);
-    // same weight: depth follows width, so length × width² stays put, and a long cut faces up larger, as in the trade
     const vol = (d: { lengthMm: number; widthMm: number }) => d.lengthMm * d.widthMm ** 2;
     expect(vol(long) / vol(classic)).toBeCloseTo(1, 1);
     expect(long.lengthMm * long.widthMm).toBeGreaterThan(classic.lengthMm * classic.widthMm);
@@ -241,7 +240,7 @@ describe("accent stones on/off", () => {
     const on = applyPatch(chooseStyle(defaultDesign(), "ring", "halo"), { band: { pave: "shoulders" } });
     const off = applyPatch(on, { accents: { enabled: false } });
     expect(count(on, "accents")).toBeGreaterThan(count(off, "accents"));
-    expect(count(off, "accents")).toBeGreaterThan(0); // the band's own stones stay
+    expect(count(off, "accents")).toBeGreaterThan(0);
     expect(count(off, "center")).toBe(count(on, "center"));
     expect(describeDesign(off)).not.toContain("accents");
   });
@@ -259,7 +258,6 @@ describe("showcase categories", async () => {
   it("puts every showcase piece in at least one category, and keeps each list short", () => {
     const seen = new Set(SHOWCASE_CATEGORIES.flatMap((c) => showcaseIn(c.id).map((x) => x.index)));
     expect(seen.size).toBe(SHOWCASE.length);
-    // single-type lists stay short; mixed lists (Kothari's, More) are grouped by type in the menu
     for (const c of SHOWCASE_CATEGORIES) if (c.id !== "kothari" && c.id !== "more") expect(showcaseIn(c.id).length, c.id).toBeLessThanOrEqual(25);
   });
   it("opens on the piece's own type", () => {
@@ -271,7 +269,6 @@ describe("showcase categories", async () => {
 describe("half-flower and gallery options", async () => {
   const { buildPiece } = await import("@/lib/jewelryModel");
   const ring = chooseStyle(defaultDesign(), "ring", "half-flower");
-  /** where the half flower sits, relative to the centre stone */
   const flowerCentre = (d: ReturnType<typeof defaultDesign>) => {
     const p = buildPiece(d); p.group.updateMatrixWorld(true);
     let flower: THREE.Object3D | undefined;
