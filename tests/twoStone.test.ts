@@ -38,3 +38,14 @@ describe("toi-et-moi", () => {
   });
 });
 void THREE;
+
+describe("a halo round each stone in a line", () => {
+  it("follows the stone's own shape", async () => {
+    const { haloRing } = await import("@/lib/jewelry/ringHeads");
+    const zs = (shape: "oval" | "heart") => { const out: { pos: THREE.Vector3 }[] = []; haloRing(new THREE.Vector3(), new THREE.Quaternion(), 4, 4, out as never, shape); return out.map((o) => o.pos.z); };
+    const span = (z: number[]) => [Math.min(...z), Math.max(...z)];
+    const [oLo, oHi] = span(zs("oval")), [hLo, hHi] = span(zs("heart"));
+    expect(Math.abs(oLo + oHi)).toBeLessThan(0.05); // an oval's halo is symmetric end to end
+    expect(Math.abs(hLo + hHi)).toBeGreaterThan(0.1); // a heart's isn't: point at one end, lobes at the other
+  });
+});

@@ -24,7 +24,7 @@ export function asRightEar(r: Design): Record<string, unknown> {
   return rest as Record<string, unknown>;
 }
 
-/** Parse anything (DB row, Claude output) into a complete, valid design. */
+/** Parse anything (DB row, AI output) into a complete, valid design. */
 export function normalizeDesign(input: unknown): Design {
   const r = DesignSchema.safeParse(input ?? {});
   // anything that can't actually be made is corrected (see buildRules)
@@ -34,7 +34,7 @@ export function normalizeDesign(input: unknown): Design {
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 export type DesignPatch = DeepPartial<Design>;
 
-/** Merge a partial change (from a control or from Claude) into a design. */
+/** Merge a partial change (from a control or from the AI) into a design. */
 export function applyPatch(design: Design, patch: DesignPatch): Design {
   const merged: Record<string, unknown> = { ...design };
   for (const [k, v] of Object.entries(patch)) {
@@ -69,7 +69,7 @@ export function chooseStyle(design: Design, type: PieceType, style?: string): De
 
 /**
  * applyPatch, but one bad value doesn't throw away the rest: if the whole patch doesn't validate, each top-level field is
- * tried on its own, and drop parts one by one. Used for changes proposed by Claude, which can stray out of range.
+ * tried on its own, and drop parts one by one. Used for changes proposed by the AI, which can stray out of range.
  */
 export function applyPatchLenient(design: Design, patch: DesignPatch): Design {
   const whole = applyPatch(design, patch);

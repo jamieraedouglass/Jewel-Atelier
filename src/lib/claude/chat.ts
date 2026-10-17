@@ -87,6 +87,7 @@ export const designPatchSchema = {
         hoopDiameterMm: { type: "number" }, hoopShape: { type: "string", enum: ["round", "oval", "paperclip"] }, linkStyle: { type: "string", enum: ["x", "chevron"], description: "gold collar links" }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
+        decoDome: { type: "number", description: "deco style: 0 a flat Art Deco plaque, 0.5–1 a domed (bombé) cocktail ring whose layers curve down and out" },
       },
     },
   },

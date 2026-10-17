@@ -32,7 +32,7 @@ export type RunOpts = {
   /** pick a gem for the stone at position i (stripes of two gems); default: the accent gem */
   gemAt?: (i: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"] } | null;
   /** called for every stone placed (e.g. to add a halo round each one) */
-  onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number) => void;
+  onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, shape: CenterStone["shape"]) => void;
 };
 
 /**
@@ -95,7 +95,7 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
       // two stones side by side across the line
       for (const k of [-1, 1]) push({ pos: pos.clone().addScaledVector(X, k * dia * 0.26), dia: dia * 0.48, quat });
     } else push({ pos, dia, quat });
-    opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape]);
+    opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape], shape);
     at += f + gap + spare;
   });
   const g = new THREE.Group();

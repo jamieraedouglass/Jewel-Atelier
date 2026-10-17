@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[] };
 type Props = { userId: string | null; design: Design; onReplace: (d: Design) => void };
 
-/** Upload a photo of a piece; Claude rebuilds it as an editable 3D design. */
+/** Upload a photo of a piece; the AI rebuilds it as an editable 3D design. */
 export default function PhotoToDesign({ userId, design, onReplace }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<Blob[]>([]);
@@ -68,7 +68,7 @@ export default function PhotoToDesign({ userId, design, onReplace }: Props) {
       <section style={{ display: "grid", gap: 12 }}>
         <h3>Recreate a piece from a photo</h3>
         <p className="muted small" style={{ margin: 0 }}>
-          A photo of something your jeweller has made, a screenshot or a sketch. Claude rebuilds it in 3D with real parts, so you can then change any stone, size, metal or layout.
+          A photo of something your jeweller has made, a screenshot or a sketch. It&apos;s rebuilt in 3D with real parts, so you can then change any stone, size, metal or layout.
         </p>
         <div className="dropzone" role="button" tabIndex={0} onClick={() => input.current?.click()}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}

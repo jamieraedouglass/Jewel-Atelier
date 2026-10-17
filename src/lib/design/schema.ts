@@ -6,7 +6,7 @@ import { DIAMOND_GRADE_IDS, PHENOMENA } from "./character";
 
 /**
  * A design (any piece of jewellery) is one plain JSON object. It is what the 3D model renders,
- * what gets saved to the database, what Claude reads, and what Claude proposes changes to.
+ * what gets saved to the database, what the AI reads, and what it proposes changes to.
  * Every field has a default, so partial updates are always safe.
  */
 
@@ -289,6 +289,8 @@ export const DesignSchema = z
         flowerPlace: z.enum(["finger", "band"]).default("finger"),
         /** two-stone ring: the stones set a little apart, or touching (kissing at their edges) */
         pairSpacing: z.enum(["apart", "touching"]).default("apart"),
+        /** Deco / layered rings: 0 a flat plaque, up to 1 a high bombé cocktail dome (the layers curve down and tilt out) */
+        decoDome: z.number().min(0).max(1).default(0),
         /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         /** hoops: which face of the wire the stones sit on — the narrow front edge, the wide outer side, or inside */
