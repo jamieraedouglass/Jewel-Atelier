@@ -43,7 +43,7 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
       const res = await fetch("/api/motif", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: brief || undefined, imagePath, pieceType: `${design.type} (${design.style})` }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't draw that.");
-      // keep the size the motif has now (it may have changed while Claude was drawing): send only the drawing
+      // keep the size the motif has now (it may have changed while the AI was drawing): send only the drawing
       const { widthMm: _w, thicknessMm: _t, ...drawing } = json.motif;
       void _w; void _t;
       onChange({ motif: drawing, ...(json.enamel ? { enamel: { enabled: true } } : {}) });

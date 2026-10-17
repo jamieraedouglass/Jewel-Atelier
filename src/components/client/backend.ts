@@ -34,7 +34,7 @@ export function linkBackend(token: string): ClientBackend {
 
 /**
  * The demo: everything runs in the browser, with the same rules as a real link. The chat answers from a small script
- * (the real one asks Claude) so the demo works with no account, database or API key.
+ * (the real one asks the AI) so the demo works with no account, database or API key.
  */
 export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void, pricing?: Pricing, rate: number | null = null,
   onSave?: (designId: string, d: Design) => void): ClientBackend {

@@ -6,7 +6,7 @@ import { DIAMOND_GRADE_IDS, PHENOMENA } from "./character";
 
 /**
  * A design (any piece of jewellery) is one plain JSON object. It is what the 3D model renders,
- * what gets saved to the database, what Claude reads, and what Claude proposes changes to.
+ * what gets saved to the database, what the AI reads, and what it proposes changes to.
  * Every field has a default, so partial updates are always safe.
  */
 

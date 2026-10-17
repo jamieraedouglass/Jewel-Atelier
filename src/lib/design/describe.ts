@@ -4,7 +4,7 @@ import { type CenterStone, type Design } from "./schema";
 import { indianRingSize, label, metalName } from "./measures";
 import { phenomenonText } from "./character";
 
-/** Plain-language descriptions of a design, for captions, sharing and Claude. */
+/** Plain-language descriptions of a design, for captions, sharing and the AI. */
 
 const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCase());
 

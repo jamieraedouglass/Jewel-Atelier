@@ -6,7 +6,7 @@ import { normalizePrefs, summarizeTaste, type StylePrefs, type Taste } from "./p
 export type StyleProfile = {
   icons: string[]; notes: string; image_paths: string[]; prefs: StylePrefs;
   applied: string[]; dismissed: string[];
-  /** Claude's written read of the inspiration photos, and which photos it was made from */
+  /** the AI's written read of the inspiration photos, and which photos it was made from */
   photoRead: string; photoReadKey: string;
 };
 
