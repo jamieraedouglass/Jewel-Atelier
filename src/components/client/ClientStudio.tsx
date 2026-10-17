@@ -18,25 +18,16 @@ const RingCanvas = dynamic(() => import("../RingCanvas"), { ssr: false, loading:
 
 type Props = {
   studioName: string; clientName: string; note: string; allow: Allow; pieces: ClientPieceData[];
-  /** the jeweller's prices, if he gave any, and today's rate from rupees to the currency the client sees */
   pricing?: Pricing; rate?: number | null;
-  /** a real link (by its token), or the demo, which runs entirely in the browser */
   mode: { kind: "link"; token: string } | { kind: "demo" };
-  /** demo only: show what the jeweller would see */
   onDemoEvent?: (line: string) => void;
-  /** demo only: each piece as the client saves it */
   onDemoSave?: (designId: string, d: Design) => void;
-  /** demo only: each change as she makes it, before it saves */
   onDemoChange?: (designId: string, d: Design) => void;
 };
 type Panel = "adjust" | "chat" | "jeweller";
 const LOOPS = new Set(["necklace", "bracelet", "anklet"]);
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * What a client sees on a link from the jeweller: the pieces as tabs, each in 3D, adjustable only as the jeweller
- * allowed, with side-by-side comparing, trying the whole set on, the designer chat, and a line to the jeweller.
- */
 export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent, onDemoSave, onDemoChange }: Props) {
   const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave]);
   const [active, setActive] = useState(0);
@@ -53,13 +44,10 @@ export default function ClientStudio({ studioName, clientName, note, allow, piec
   const piece = pieces[active];
   const design = versions[piece.designId];
 
-  // adjustments save on their own, a moment after the last change
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  // a change still waiting to save when the screen closes (or the demo restarts it) is saved then, not lost
   const waiting = useRef<Record<string, Design>>({});
   const saver = useRef(backend);
   saver.current = backend;
-  // (the demo already has it: it hears each change as it happens)
   const realLink = mode.kind === "link";
   useEffect(() => () => {
     Object.values(timers.current).forEach(clearTimeout);
@@ -81,7 +69,6 @@ export default function ClientStudio({ studioName, clientName, note, allow, piec
     }, 700);
   }
 
-  /** a true-size picture of each piece, taken one after another in the same 3D view, for trying the set on */
   async function captureSet(all: boolean) {
     const handle = () => canvas.current;
     const shot = (d: Design) => (LOOPS.has(d.type) ? handle()?.cutout?.("front", "left", 0.45) : handle()?.cutout?.("whole")) ?? null;

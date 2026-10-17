@@ -4,19 +4,14 @@ import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { type Item, balls } from "./elements";
 
-/** Loops (necklaces, bracelets, anklets) and placing things along them. */
-
-/** 1 = the loop as it lies on a table; less = flattened front to back, as a bracelet or necklace looks when worn */
 let loopFlatten = 1;
 
-/** run `build` with every loop flattened by `flatten` (clamped to 0.1–1), restoring the flat-lay loop afterwards */
 export function withLoopFlatten<T>(flatten: number, build: () => T): T {
   const prev = loopFlatten;
   loopFlatten = Math.max(0.1, Math.min(1, flatten));
   try { return build(); } finally { loopFlatten = prev; }
 }
 
-/** a closed loop of the given length; aspect widens it, point makes a soft V at the front (+Z) */
 export function loopCurve(lengthMm: number, aspect: number, point: number) {
   const make = (k: number) => {
     const pts: THREE.Vector3[] = [];
@@ -36,7 +31,6 @@ export function loopCurve(lengthMm: number, aspect: number, point: number) {
   for (let i = 0; i < 400; i++) { const p = curve.getPointAt(i / 400); if (p.z > bz) { bz = p.z; front = i / 400; } }
   return { curve, front };
 }
-/** a longer loop shifted so its back (clasp) lines up with the base loop's back: layered strands fall progressively lower */
 export function layeredLoop(baseLen: number, extra: number, aspect: number, point: number) {
   const base = loopCurve(baseLen, aspect, point);
   const lay = loopCurve(baseLen + extra, aspect, point);
@@ -52,7 +46,6 @@ export const wrap = (u: number) => ((u % 1) + 1) % 1;
 export const outwardAt = (curve: THREE.Curve<THREE.Vector3>, u: number) => new THREE.Vector3().crossVectors(Y, curve.getTangentAt(wrap(u))).normalize();
 export const yawAt = (curve: THREE.Curve<THREE.Vector3>, u: number) => { const t = curve.getTangentAt(wrap(u)); return Math.atan2(t.x, t.z) + Math.PI / 2; };
 
-/** evenly spaced params centred on `front`, spanning `spread` of the loop */
 export const spreadParams = (front: number, count: number, spread: number) =>
   Array.from({ length: count }, (_, i) => wrap(front + (count === 1 ? 0 : (i / (count - 1) - 0.5) * spread)));
 
@@ -63,7 +56,6 @@ export function place(obj: THREE.Object3D, pos: THREE.Vector3, yaw = 0, up?: THR
   return obj;
 }
 
-/** a strand of beads along a loop, optionally with a gold bead every nth */
 export function beadStrand(m: Mats, curve: THREE.Curve<THREE.Vector3>, gem: Gem, color: string, dia: number, goldEvery = 0, from = 0, to = 1) {
   const len = curve.getLength() * (to - from);
   const n = Math.floor(len / (dia * 1.04));

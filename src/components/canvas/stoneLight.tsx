@@ -5,19 +5,12 @@ import { type Piece } from "@/lib/jewelryModel";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { addLightTent } from "./lightTent";
 
-/**
- * Diamonds read as grey when their mirror facets reflect a dark studio. A real stone is lit by a bright room and
- * bounces light around inside, so the stone facets (and only those; metal keeps the dark light box) reflect a bright room.
- */
 const roomEnvs = new WeakMap<THREE.WebGLRenderer, THREE.Texture>();
-/** after the browser restores a lost 3D context, rendered textures are empty: draw the room again */
 export const forgetRoomEnv = (gl: THREE.WebGLRenderer) => roomEnvs.delete(gl);
-/** the bright room, rendered once per renderer: a texture drawn in one WebGL context is empty in any other */
 function roomEnvFor(gl: THREE.WebGLRenderer) {
   let env = roomEnvs.get(gl);
   if (!env) {
     const pm = new THREE.PMREMGenerator(gl);
-    // a bright room with a light tent overhead, so stones seen from above light up with a brilliant's pattern
     const room = new RoomEnvironment();
     addLightTent(room, 6);
     env = pm.fromScene(room, 0.005).texture;
@@ -27,7 +20,6 @@ function roomEnvFor(gl: THREE.WebGLRenderer) {
   return env;
 }
 
-/** point stone facets at the bright room (see StoneLight); used for the on-screen piece and for try-on copies */
 export function roomLight(gl: THREE.WebGLRenderer, group: THREE.Object3D) {
   const roomEnv = roomEnvFor(gl);
   group.traverse((o) => {

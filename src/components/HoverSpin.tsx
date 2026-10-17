@@ -7,10 +7,8 @@ import LiveThumb from "./LiveThumb";
 
 const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false });
 
-/** the card spinning now; starting another stops it, so the gallery never holds more than one live 3D view */
 let stopActive: (() => void) | null = null;
 
-/** A gallery picture that turns into the spinning 3D piece while you hover over it. */
 export default function HoverSpin({ design, id, userId, thumb }: { design: Design; id: string; userId: string; thumb: string | null }) {
   const [live, setLive] = useState(false);
   const start = () => {

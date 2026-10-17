@@ -6,8 +6,6 @@ import { DROP_PRESETS, FRAME_PRESETS, KOTHARI } from "./presets";
 import { type DesignPatch, applyPatch, chooseStyle } from "./edit";
 import { estimateDims } from "./measures";
 
-/* ---------------- showcase starting points ---------------- */
-
 const diamond = (shape: CenterStone["shape"], ct: number, name: string, cut: CenterStone["cut"] = "faceted"): Partial<CenterStone> => ({
   gem: "diamond", cut, shape, carat: ct, ...estimateDims("diamond", cut, shape, ct), color: "#f4f6fb", clarity: 0.95, label: name, photoPath: null,
 });
@@ -15,19 +13,15 @@ const gem = (g: Gem, cut: CenterStone["cut"], shape: CenterStone["shape"], ct: n
   gem: g, cut, shape, carat: ct, ...estimateDims(g, cut, shape, ct), ...GEM_LOOK[g], label: name, photoPath: null,
 });
 
-/** a trade colour grade's look (see varieties.ts) */
 const graded = (g: Gem, id: string) => {
   const v = varietiesOf(g).find((x) => x.id === id);
   if (!v) throw new Error(`no ${id} grade for ${g}`);
   return varietyLook(v);
 };
 
-/** the rainbow sapphire runs Kothari's sets in lines: pink through violet and blue to yellow and orange */
 const RAINBOW_OMBRE = ["#f2a6c4", "#e58fb8", "#c99be0", "#a7a9e8", "#c7d3ee", "#f4eec0", "#f2d66a", "#f2b23a", "#ec8a2c", "#f2b23a", "#f2d66a", "#f4eec0", "#c7d3ee", "#a7a9e8", "#c99be0", "#e58fb8"];
-/** a coloured stone then two diamonds, through the rainbow (matches a pattern of one stone and two small rounds) */
 const RAINBOW_WITH_DIAMONDS = ["#e2581c", "#f08a1e", "#f2b81e", "#d8c63a", "#8fb87a", "#6f8fb8", "#8a6fc0", "#d06aa0"].flatMap((c) => [c, "#f4f6fb", "#f4f6fb"]);
 
-/** a preset's parts or frames by name, so the showcase doesn't depend on the order of the preset lists */
 const dropOf = (name: string) => { const p = DROP_PRESETS.find((x) => x.name === name); if (!p) throw new Error(`no drop preset ${name}`); return { parts: p.parts }; };
 const framesOf = (name: string) => { const p = FRAME_PRESETS.find((x) => x.name === name); if (!p) throw new Error(`no frame preset ${name}`); return p; };
 const graded3 = (g: Gem, id: string, cut: CenterStone["cut"], shape: CenterStone["shape"], ct: number, name: string) => ({ ...gem(g, cut, shape, ct, name), ...graded(g, id) });
@@ -69,7 +63,6 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Gold flower posy studs", type: "earrings", style: "flowers", patch: { metal: "yellow-gold", purity: { karat: 22 } } },
   { name: "Burmese ruby halo ring", type: "ring", style: "halo", patch: { metal: "platinum", center: { ...gem("ruby", "faceted", "oval", 2, "Burmese (pigeon's blood) ruby"), ...graded("ruby", "burmese") } } },
   { name: "Colombian emerald solitaire", type: "ring", style: "solitaire", patch: { metal: "yellow-gold", center: { ...gem("emerald", "faceted", "emerald", 2.5, "Colombian emerald"), ...graded("emerald", "colombian") } } },
-  /* ---- Kothari's signatures: designs the house returns to again and again ---- */
   { name: "Half-flowered Burmese ruby ring", collection: KOTHARI, type: "ring", style: "half-flower", patch: { metal: "yellow-gold", center: graded3("ruby", "burmese", "faceted", "cushion", 5, "Burmese ruby (pigeon's blood)"), options: { count: 5 } } },
   { name: "Half-flowered emerald ring", collection: KOTHARI, type: "ring", style: "half-flower", patch: { metal: "platinum", center: graded3("emerald", "colombian", "faceted", "emerald", 6, "Colombian emerald"), options: { count: 5 } } },
   { name: "Emerald with a briolette halo", collection: KOTHARI, type: "ring", style: "deco", patch: { metal: "yellow-gold", center: { ...framesOf("Briolette halo").center, carat: null, rotation: 0, none: false }, frames: framesOf("Briolette halo").frames } as DesignPatch },
@@ -104,10 +97,6 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
 
 export type ShowcasePiece = (typeof SHOWCASE)[number];
 
-/**
- * A showcase piece as a fresh design: switch to its type and style (with that style's defaults), then apply its own patch.
- * Starts clean so nothing from the piece on screen (its stones, colours, band) leaks in; keeps the wearer's sizes from `current`.
- */
 export function showcaseDesign(entry: ShowcasePiece, current?: Design): Design {
   const fresh = current
     ? applyPatch(defaultDesign(), { ringSize: current.ringSize, options: { wristCm: current.options.wristCm, bangleSize: current.options.bangleSize } })
@@ -115,7 +104,6 @@ export function showcaseDesign(entry: ShowcasePiece, current?: Design): Design {
   return { ...applyPatch(chooseStyle(fresh, entry.type, entry.style), entry.patch), name: entry.name };
 }
 
-/** the showcase in short lists: Kothari's signatures, then by piece type, with the smaller types together under More */
 export const SHOWCASE_CATEGORIES = [
   { id: "kothari", label: "Kothari's", has: (s: ShowcasePiece) => s.collection === KOTHARI },
   { id: "ring", label: "Rings", has: (s: ShowcasePiece) => s.type === "ring" },
@@ -126,12 +114,10 @@ export const SHOWCASE_CATEGORIES = [
 ] as const;
 export type ShowcaseCategory = (typeof SHOWCASE_CATEGORIES)[number]["id"];
 
-/** the showcase pieces in a category, with each one's index in SHOWCASE */
 export const showcaseIn = (category: ShowcaseCategory) => {
   const cat = SHOWCASE_CATEGORIES.find((c) => c.id === category) ?? SHOWCASE_CATEGORIES[0];
   return SHOWCASE.map((entry, index) => ({ entry, index })).filter(({ entry }) => cat.has(entry));
 };
 
-/** the category to open on for a design: its own piece type, or More */
 export const categoryFor = (type: PieceType): ShowcaseCategory =>
   (SHOWCASE_CATEGORIES.find((c) => c.id === type)?.id ?? "more") as ShowcaseCategory;

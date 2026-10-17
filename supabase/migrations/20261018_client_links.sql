@@ -1,15 +1,11 @@
--- Client links: the studio sends designs to clients as unguessable links. Clients don't sign in, so these tables are
--- only reached through the server (service role), which checks the link's token every time. Row-level security is on
--- with no policies, so nobody can read them directly with the public key.
-
 create table if not exists public.client_links (
   id              uuid primary key default gen_random_uuid(),
-  token           text not null unique,                      -- the secret in the link (32 random bytes)
-  owner           uuid not null references auth.users(id) on delete cascade, -- the jeweller who sent it
+  token           text not null unique,
+  owner           uuid not null references auth.users(id) on delete cascade,
   client_name     text not null default '',
-  note            text not null default '',                  -- a message shown to the client
-  design_ids      uuid[] not null,                           -- the pieces, in tab order
-  allow           jsonb not null default '{}'::jsonb,        -- what the client may change (src/lib/studio/links.ts)
+  note            text not null default '',
+  design_ids      uuid[] not null,
+  allow           jsonb not null default '{}'::jsonb,
   ai_daily_limit  int not null default 20,
   expires_at      timestamptz,
   revoked         boolean not null default false,
@@ -18,7 +14,6 @@ create table if not exists public.client_links (
 );
 create index if not exists client_links_owner_idx on public.client_links(owner, created_at desc);
 
--- each client's own copy of each piece, and their conversation about it
 create table if not exists public.client_versions (
   link_id    uuid not null references public.client_links(id) on delete cascade,
   design_id  uuid not null references public.designs(id) on delete cascade,
@@ -28,7 +23,6 @@ create table if not exists public.client_versions (
   primary key (link_id, design_id)
 );
 
--- what happened on each link: opened, changed, tried on, compared, asked the designer, asked the jeweller
 create table if not exists public.link_events (
   id        bigint generated always as identity primary key,
   link_id   uuid not null references public.client_links(id) on delete cascade,
@@ -51,7 +45,6 @@ alter table public.client_versions enable row level security;
 alter table public.link_events     enable row level security;
 alter table public.link_ai_usage   enable row level security;
 
--- one AI call on a link, within its daily allowance (server only)
 create or replace function public.use_link_ai_call(lid uuid, daily_limit int)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare used int;

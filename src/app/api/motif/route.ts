@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { callTool, createMotifTool, MOTIF_SYSTEM, storageImages, toMotif } from "@/lib/claude";
+import { callTool, createMotifTool, MOTIF_SYSTEM, storageImages, toMotif } from "@/lib/ai";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -22,10 +22,8 @@ export async function POST(req: Request) {
   if (!body.success || (!body.data.prompt && !body.data.imagePath)) return NextResponse.json({ error: "Describe the motif or upload a sketch." }, { status: 400 });
   const { prompt, imagePath, pieceType } = body.data;
   if (imagePath && !imagePath.startsWith(`${user.id}/`)) return NextResponse.json({ error: "That file isn't yours." }, { status: 403 });
-  // read the sketch first, so a bad upload doesn't use up one of today's AI requests
   const images = imagePath ? await storageImages(supabase, "stones", [imagePath]) : [];
   if (imagePath && !images.length) return NextResponse.json({ error: "Couldn't read the uploaded sketch." }, { status: 400 });
-  // a failed or unusable reply gives the call back
   const charge = await chargeAiCall(supabase, user.id);
   if ("error" in charge) return NextResponse.json({ error: charge.error }, { status: 429 });
   const profile = await profileText(supabase, user.id);

@@ -1,13 +1,3 @@
-/**
- * Render check: opens every showcase piece in a real browser, takes a picture of each, and flags
- * pages that crash, pieces that don't draw (an empty or flat frame) and stones that come out black.
- *
- *   npm run build && npm start            (in one terminal)
- *   npm run check:render                  (in another; BASE=https://your-site to check a live site)
- *
- * Pictures and a contact sheet land in render-check/ (open render-check/index.html).
- * Needs Playwright: `npx playwright install chromium` once, or set CHROMIUM to an existing browser.
- */
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
@@ -26,7 +16,6 @@ const OUT = path.join(process.cwd(), "render-check");
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${BASE}/design?type=ring`);
   await page.waitForTimeout(8000);
-  // the showcase is split into categories (Kothari's, Rings, …): walk each one, each piece once
   const categories = await page.$$eval('[aria-label="Showcase category"] button', (bs) => bs.map((b) => b.textContent));
   const pieces = [];
   for (const cat of categories) {
@@ -44,7 +33,6 @@ const OUT = path.join(process.cwd(), "render-check");
     const file = `${String(i).padStart(2, "0")}.png`;
     const box = await page.locator("canvas").first().boundingBox();
     await page.screenshot({ path: path.join(OUT, file), clip: box, timeout: 120000 });
-    // measure the frame in the page itself: how much varies from the background, and how much is near-black
     const stats = await page.evaluate(async (src) => {
       const img = new Image(); img.src = src; await img.decode();
       const c = document.createElement("canvas"); c.width = 200; c.height = Math.round((200 * img.height) / img.width);

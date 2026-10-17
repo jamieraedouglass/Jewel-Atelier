@@ -2,10 +2,8 @@
 
 import { type Design, type DesignPatch, type Gem, gemLabel, label } from "@/lib/design";
 
-/** what every controls section receives */
 export type SectionProps = { d: Design; onChange: (patch: DesignPatch) => void };
 
-/** a row of toggle buttons, one pressed */
 export function Chips<T extends string | number>({ options, value, onPick, name, fmt }: { options: readonly T[]; value: T; onPick: (v: T) => void; name: string; fmt?: (v: T) => string }) {
   return (
     <div className="chips" role="group" aria-label={name}>
@@ -21,7 +19,6 @@ export function Chips<T extends string | number>({ options, value, onPick, name,
 export function Range({ id, label: text, value, min, max, step, onChange, format }: {
   id: string; label: string; value: number; min: number; max: number; step: number; onChange: (n: number) => void; format?: (n: number) => string;
 }) {
-  // sliders step in binary floating point (0.1 × 42 = 4.199999…): show and send the value to the step's precision
   const places = Math.max(0, Math.min(4, Math.ceil(-Math.log10(step) + 1e-9)));
   const tidy = (n: number) => Number(n.toFixed(places));
   value = tidy(value);
@@ -53,12 +50,10 @@ export function GemSelect({ id, value, options, onPick }: { id: string; value: G
 export const colorInputStyle = { width: "100%", height: 36, border: 0, background: "none" } as const;
 export const sectionStyle = { display: "grid", gap: 12 } as const;
 
-/** a slider showing its value and unit */
 export function Num({ id, text, value, min, max, step, unit = "mm", onChange }: { id: string; text: string; value: number; min: number; max: number; step: number; unit?: string; onChange: (n: number) => void }) {
   return <Range id={id} label={text} value={value} min={min} max={max} step={step} format={(n) => `${n}${unit && ` ${unit}`}`} onChange={onChange} />;
 }
 
-/** a labelled drop-down */
 export function Pick<T extends string>({ id, text, value, options, fmt, onPick }: { id: string; text: string; value: T; options: readonly T[]; fmt?: (v: T) => string; onPick: (v: T) => void }) {
   return (
     <label className="field" htmlFor={id}><span>{text}</span>
@@ -69,7 +64,6 @@ export function Pick<T extends string>({ id, text, value, options, fmt, onPick }
   );
 }
 
-/** plain-words direction presets for pears, hearts, marquises and briolettes */
 export function Dir({ value, options, onPick }: { value: number; options: [number, string][]; onPick: (deg: number) => void }) {
   return (
     <div className="chips" role="group" aria-label="Which way the stones point">
@@ -78,7 +72,6 @@ export function Dir({ value, options, onPick }: { value: number; options: [numbe
   );
 }
 
-/** a checkbox with its label beside it (no id needed) */
 export function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -88,10 +81,6 @@ export function Check({ checked, onChange, children }: { checked: boolean; onCha
   );
 }
 
-/**
- * <option>s for a list of named entries, grouped by their collection (Kothari's signatures, …); entries without one
- * come first. Each option's value is the entry's index in the original list.
- */
 export function GroupedOptions<T extends { name: string; collection?: string }>({ items, text = (x) => x.name }: { items: readonly T[]; text?: (x: T) => string }) {
   const groups = new Map<string, { item: T; i: number }[]>();
   items.forEach((item, i) => { const k = item.collection ?? ""; groups.set(k, [...(groups.get(k) ?? []), { item, i }]); });

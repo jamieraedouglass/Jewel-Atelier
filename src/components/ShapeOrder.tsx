@@ -6,20 +6,16 @@ type Shape = (typeof SHAPES)[number];
 type Props = {
   shapes: Shape[];
   turns: number[];
-  /** optional: a pair of stones side by side at a spot (twin baguettes) */
   twins?: boolean[];
-  /** optional: each stone's size, as a multiple of the base size */
   sizes?: number[];
   max: number;
   onChange: (shapes: Shape[], turns: number[], twins?: boolean[], sizes?: number[]) => void;
-  /** show "+ shape" as chips (true) or a compact select */
   chips?: boolean;
 };
 
 const STEPS = [0, 45, 90, 135, 180, -135, -90, -45];
 const next = (t: number) => STEPS[(STEPS.indexOf(STEPS.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a))) + 1) % STEPS.length];
 
-/** a little arrow showing which way a stone points */
 function Arrow({ deg }: { deg: number }) {
   return (
     <svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true" style={{ transform: `rotate(${deg}deg)`, verticalAlign: "-1px" }}>
@@ -28,10 +24,6 @@ function Arrow({ deg }: { deg: number }) {
   );
 }
 
-/**
- * The repeating order of stone shapes, each with its own direction:
- * tap the arrow to turn that stone (0°, 45°, 90°…), tap × to remove it.
- */
 const SIZE_STEPS = [1, 1.5, 2, 2.5, 3, 0.5, 0.75];
 const nextSize = (v: number) => SIZE_STEPS[(SIZE_STEPS.indexOf(SIZE_STEPS.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a))) + 1) % SIZE_STEPS.length];
 

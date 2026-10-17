@@ -11,7 +11,6 @@ import { linkDetail } from "@/lib/studio/server";
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Client link · ${BRAND.name}`, robots: { index: false } };
 
-/** one client link: what they changed on each piece, what they asked, and the link's controls */
 export default async function LinkPage({ params }: { params: { id: string } }) {
   await requireStudioAdmin();
   const detail = await linkDetail(params.id);

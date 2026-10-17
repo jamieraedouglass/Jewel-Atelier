@@ -3,11 +3,6 @@ import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { Motif } from "./design";
 
-/**
- * Turns a motif (SVG path + stone positions) into a flat gold plate lying in the XZ plane, top face at y = 0.
- * SVG y runs down the page; here it runs toward +Z, so the bottom of a drawing hangs toward the viewer.
- */
-
 export type MotifShapes = { shapes: THREE.Shape[]; scale: number; toLocal: (x: number, y: number) => THREE.Vector3; size: { w: number; h: number } };
 
 const shapeCache = new LRU<string, MotifShapes | null>(50);
@@ -22,7 +17,6 @@ export function motifShapes(m: Motif): MotifShapes | null {
     const data = new SVGLoader().parse(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${vw} ${vh}"><path d="${m.path}"/></svg>`);
     const shapes = data.paths.flatMap((p) => SVGLoader.createShapes(p));
     if (shapes.length) {
-      // scale so the drawing's wider side equals widthMm, centred on the view box
       const scale = m.widthMm / Math.max(vw, vh);
       const cx = minX + vw / 2, cy = minY + vh / 2;
       const toLocal = (x: number, y: number) => new THREE.Vector3((x - cx) * scale, 0, (y - cy) * scale);
@@ -41,13 +35,11 @@ export function motifShapes(m: Motif): MotifShapes | null {
   return result;
 }
 
-/** extrude the plate; optional inset layer (enamel) and an edge finish */
 export function motifPlate(m: Motif, metal: THREE.Material, enamel: THREE.Material | null): THREE.Group {
   const g = new THREE.Group();
   g.userData.part = "motif";
   const ms = motifShapes(m);
   if (!ms) {
-    // fall back to a simple disc so the piece still renders
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(m.widthMm / 2, m.widthMm / 2, m.thicknessMm, 48), metal);
     disc.position.y = -m.thicknessMm / 2;
     g.add(disc);
@@ -55,12 +47,11 @@ export function motifPlate(m: Motif, metal: THREE.Material, enamel: THREE.Materi
   }
   const bevel = Math.min(0.35, m.thicknessMm * 0.25);
   const geo = new THREE.ExtrudeGeometry(ms.shapes, { depth: m.thicknessMm - bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.8, bevelSegments: 3, curveSegments: 24 });
-  geo.rotateX(Math.PI / 2); // shape Y → +Z, depth goes down
+  geo.rotateX(Math.PI / 2);
   geo.translate(0, -bevel, 0);
   g.add(new THREE.Mesh(geo, metal));
 
   if (enamel) {
-    // enamel inlay: the same shape shrunk toward its centre, sitting just above the gold
     const box = new THREE.Box2();
     ms.shapes.forEach((s) => s.getPoints(24).forEach((p) => box.expandByPoint(p)));
     const c = box.getCenter(new THREE.Vector2());
@@ -95,7 +86,6 @@ export function motifPlate(m: Motif, metal: THREE.Material, enamel: THREE.Materi
   return g;
 }
 
-/** a small preview of a motif as an SVG string for the controls panel */
 export function motifPreviewSvg(m: Motif, stroke = "#d9c38a") {
   const [x, y, w, h] = m.viewBox;
   const pad = Math.max(w, h) * 0.06;

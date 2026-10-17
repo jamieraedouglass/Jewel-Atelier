@@ -27,7 +27,6 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     const pitch = W0 + (o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.5 : 0.5);
     let maxW = W0;
     const kind = resolveClasp(st, o.clasp);
-    // hidden (the usual for tennis): stones all the way round; otherwise a gap at the back for the clasp
     const gapU = kind === "hidden" ? 0 : claspGap(curve, W0 + (rows - 1) * pitch) / 2;
     for (let r = 0; r < rows; r++) {
       const off = (r - (rows - 1) / 2) * pitch;
@@ -53,7 +52,6 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     band.scale.y = 1.3;
     group.add(band);
     if (o.pave) group.add(patternRun(d, m, arc, 0.02, 0.32, { offset: () => v3(0, thick * 1.25, 0), maxW: thick * 1.5, gap: 0.2 }).group);
-    // a stone at each end, lying along the bangle
     for (const u of [0, 1]) {
       const p = arc.getPointAt(u), t = arc.getTangentAt(u).multiplyScalar(u === 0 ? -1 : 1);
       const s = setStone(c, d.setting.style, m, Math.min(1, 14 / Math.max(c.lengthMm, c.widthMm)));
@@ -112,14 +110,12 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     }
     focusSize = 40;
   } else {
-    // station bracelet / anklet
     group.add(chainAlong(curve, o.chain, m));
     for (let i = 0; i < o.count; i++) {
       const u = wrap(front + i / o.count);
       group.add(place(setStone(c, d.setting.style, m), curve.getPointAt(u).add(v3(0, 0.2, 0)), yawAt(curve, u)));
     }
   }
-  // chain and bead bracelets: a clasp at the back, when one is chosen
   if (st === "station" || st === "charm" || st === "beaded") {
     const kind = resolveClasp(st, o.clasp);
     if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), st === "beaded" ? Math.max(3, d.fringe.sizeMm) : 3.2));

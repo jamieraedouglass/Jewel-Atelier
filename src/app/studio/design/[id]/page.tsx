@@ -10,7 +10,6 @@ import { designById, listAccounts } from "@/lib/studio/server";
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Design · ${BRAND.name}`, robots: { index: false } };
 
-/** any account's design, read-only, for the studio's master accounts */
 export default async function StudioDesignPage({ params }: { params: { id: string } }) {
   await requireStudioAdmin();
   const row = await designById(params.id);

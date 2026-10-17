@@ -12,7 +12,6 @@ export default async function SendPage({ searchParams }: { searchParams: { desig
   await requireStudioAdmin();
   const wanted = (searchParams.designs ?? "").split(",").filter(Boolean);
   const [recent, accounts] = await Promise.all([allDesigns(), listAccounts()]);
-  // a piece chosen from elsewhere is always on the list, however old
   const missing = wanted.filter((id) => !recent.some((d) => d.id === id));
   const designs = [...(missing.length ? await designRowsByIds(missing) : []), ...recent];
   const owner = (id: string) => accounts.find((a) => a.id === id)?.name ?? "";

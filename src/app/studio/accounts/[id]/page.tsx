@@ -9,7 +9,6 @@ import { allDesigns, listAccounts } from "@/lib/studio/server";
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Account · ${BRAND.name}`, robots: { index: false } };
 
-/** everything one account has designed, for the studio's master accounts */
 export default async function AccountPage({ params }: { params: { id: string } }) {
   await requireStudioAdmin();
   const account = (await listAccounts()).find((a) => a.id === params.id);

@@ -9,10 +9,6 @@ import { halo, outlineCurve, patternMaxW, patternRun } from "./patterns";
 import { decoFrames, flowerCluster, halfFlower, swirlArms } from "./ringHeads";
 import { handPolished } from "../polish";
 
-/**
- * How far a stone reaches sideways (along x) from its centre once turned by `deg`: towards +x (side 1) or −x (side −1).
- * Measured from its real outline, so a pear or a marquise at an angle can sit right against its neighbour.
- */
 function edgeX(shape: CenterStone["shape"], L: number, W: number, deg: number, side: 1 | -1): number {
   const fn = outlineFn(shape, L, W), r = THREE.MathUtils.degToRad(deg), cos = Math.cos(r), sin = Math.sin(r);
   let most = 0;
@@ -34,7 +30,6 @@ export function ringPiece(d: Design): Piece {
     return { group, focus: v3(0, Ro, 0), focusSize: 18, upright: true };
   }
   if (st === "wide-band") {
-    // a broad band; rows of stones all the way round, on the edges (gold between) or across the whole width
     const group = new THREE.Group();
     const RIN = ringInnerDiameter(d.ringSize) / 2;
     const bw = Math.max(d.band.widthMm, 3);
@@ -60,7 +55,6 @@ export function ringPiece(d: Design): Piece {
     return { group, focus: v3(0, Ro, 0), focusSize: Math.max(18, bw * 2.4), upright: true };
   }
   if (d.center.none) {
-    // a plain band
     const group = new THREE.Group();
     const RIN = ringInnerDiameter(d.ringSize) / 2;
     const sh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), m.metal);
@@ -72,11 +66,9 @@ export function ringPiece(d: Design): Piece {
   const base = st === "three-stone" || st === "halo" ? d : { ...d, sides: { ...d.sides, kind: "none" as const } };
   const group = buildRing(base);
   if (st === "two-stone" && d.extraStones[0]) {
-    // toi-et-moi: shift the main stone's head aside and set the partner stone beside it
     const e = d.extraStones[0];
     const head: THREE.Group | undefined = group.userData.head;
     const reach = (L: number, W: number, deg: number) => { const r = THREE.MathUtils.degToRad(deg); return (Math.abs(Math.cos(r)) * W + Math.abs(Math.sin(r)) * L) / 2; };
-    // apart: each stone clears the middle by 0.4 mm (judged from its box); touching: by its real edge at its angle, so they kiss
     const touching = d.options.pairSpacing === "touching";
     const a = touching ? edgeX(d.center.shape, d.center.lengthMm, d.center.widthMm, d.center.rotation, 1) + 0.05 : reach(d.center.lengthMm, d.center.widthMm, d.center.rotation) + 0.4;
     const b = touching ? edgeX(e.shape, e.lengthMm, e.widthMm, e.rotation, -1) + 0.05 : reach(e.lengthMm, e.widthMm, e.rotation) + 0.4;
@@ -89,12 +81,10 @@ export function ringPiece(d: Design): Piece {
     partner.userData.part = "extra";
     group.add(partner);
     if (d.options.halo) {
-      // a surround round each stone (baguettes, pavé, any shape in the accent pattern)
       const hm = halo(d, mm, d.center); hm.group.position.set(-a, gy0, 0); hm.group.rotation.y = THREE.MathUtils.degToRad(d.center.rotation); group.add(hm.group);
       const pc = { ...d.center, ...NO_CHARACTER, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false };
       const hp = halo(d, mm, pc); hp.group.position.set(b + e.dx, gy0, e.dz); hp.group.rotation.y = THREE.MathUtils.degToRad(e.rotation); group.add(hp.group);
     }
-    // a bridge under both stones into the shank
     group.add(tube(mm, [v3(-a, gy0 - 1.6, 0), v3(0, gy0 - 2.4, 0), v3(b + e.dx, gy0 - 1.6, e.dz)], 0.6));
     applyProfile(group, d, gy0);
     bandPave(group, d, mm);
@@ -128,7 +118,6 @@ export function ringPiece(d: Design): Piece {
     at(patternRun(d, m, outlineCurve(c, 0.35 + dia / 2, -0.6), 0, 1, { closed: true, gap: 0.15 }).group);
   }
   if (st === "navratna") {
-    // traditional order around the ruby (sun): diamond, pearl, coral, hessonite, blue sapphire, cat's eye, yellow sapphire, emerald
     const ring: [Gem, string][] = [["diamond", "#f4f6fb"], ["pearl", "#f3ede2"], ["coral", "#e2553a"], ["hessonite", "#c8641c"], ["sapphire", "#0c2394"], ["cats-eye", "#b9a24a"], ["yellow-sapphire", "#f2c230"], ["emerald", "#0b7a4b"]];
     const R = Math.max(c.lengthMm, c.widthMm) / 2;
     const dia = Math.max(2.4, R * 0.95);
@@ -144,32 +133,20 @@ export function ringPiece(d: Design): Piece {
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
 }
 
-/**
- * How the design meets the band. raised: up on its setting (as built). low: brought down close to the band.
- * set-in: the band widens and deepens across the top and the design is lowered into it, girdle level with the metal.
- */
-/**
- * Stones running down the band from the head: on the shoulders, half way round, or all the way (an eternity shank).
- * They sit in the band's top surface, following its real thickness and width, in 1–4 rows.
- */
 function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const b = d.band;
   if (b.pave === "none") return;
   const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
   const RIN = ringInnerDiameter(d.ringSize) / 2;
   const top = shank?.userData.top as { topW: number; topT: number; spread: number } | undefined;
-  // where the head ends, so the stones start just past it
   const box = new THREE.Box3();
   group.updateWorldMatrix(true, true);
   group.children.forEach((o) => { if (o !== shank) box.expandByObject(o); });
-  // the head meets the band only where its posts come down (about 3 mm either side), however wide the top is;
-  // a design set into the band covers the band as far as the widened top reaches
   const hx = box.isEmpty() ? 0 : top ? top.spread : 3.2;
   const start = hx ? Math.asin(Math.min(0.9, (hx + 0.6) / (RIN + 2.3))) : 0;
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
   const rows = b.paveRows;
   const W = b.paveMm;
-  // a vine: elongated stones (marquise leaves) angled alternately left and right along the band
   const ang = b.paveAngle;
   const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [] } };
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
@@ -181,13 +158,12 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
         const th = a0 + ((a1 - a0) * i) / N;
         const { r: R, w } = surf(th);
         const z = rows === 1 ? 0 : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1)));
-        // set down into the metal: the table sits about level with the band's surface
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
       const g = patternRun(pd, m, curve, 0, 1, { maxW: W, gap: 0.2, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
       g.userData.part = "accents";
-      g.userData.keep = true; // band stones have their own on/off (band.pave)
+      g.userData.keep = true;
       group.add(g);
     }
   }
@@ -199,7 +175,6 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
   if (!shank) return;
   const RIN = ringInnerDiameter(d.ringSize) / 2;
-  // stones already curving in the band stay where they are
   const rest = group.children.filter((o) => o !== shank && !o.userData.onBand);
   const box = new THREE.Box3();
   group.updateWorldMatrix(true, true);
@@ -210,12 +185,9 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const belly = c.cut === "cabochon" ? Math.min(c.widthMm * 0.14, 2) : c.cut === "faceted" ? c.widthMm * 0.43 : Math.max(0.4, c.domeMm);
   let drop: number;
   if (prof === "flush") {
-    // centre stone level with the band: its girdle sits just at the band's surface, the band deep and wide enough
-    // under it to hold the whole stone, so nothing stands up off the band
     const topT = Math.min(7, Math.max(2.6, belly + 0.7));
     const c0 = d.center;
     const prevTop = shank.userData.top as { topW: number; topT: number; spread: number } | undefined;
-    // only as wide as the stone needs right under it (a tapered cathedral), not a platform
     const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm * 0.92, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.3, prevTop?.spread ?? 0), round: !prevTop };
     shank.geometry.dispose();
     shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
@@ -225,10 +197,9 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     return;
   }
   if (prof === "set-in") {
-    // the girdle ends up just above the band's top surface; the pavilion may open into the finger hole (an open gallery)
     const target = RIN + Math.max(2.9, belly * 0.75 + 0.6);
     const topT = target - 0.3 - RIN;
-    if (shank.userData.top) { drop = gy - target; rest.forEach((o) => (o.position.y -= drop)); return; } // band already built for stones in it
+    if (shank.userData.top) { drop = gy - target; rest.forEach((o) => (o.position.y -= drop)); return; }
     shank.geometry.dispose();
     shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape);
     shank.userData.top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };

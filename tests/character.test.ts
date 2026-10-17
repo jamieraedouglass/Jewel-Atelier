@@ -32,7 +32,7 @@ describe("a stone's character", () => {
     expect(characterNotes(d.center)).toContain("6-ray star");
   });
   it("only shows a star on a cabochon", async () => {
-    expect((await find(applyPatch(ring(), { center: { phenomenon: "star" } }))).star).toBe(0); // faceted
+    expect((await find(applyPatch(ring(), { center: { phenomenon: "star" } }))).star).toBe(0);
   });
   it("draws more inclusions the more included the stone", async () => {
     const few = (await find(applyPatch(ring(), { center: { inclusions: 0.2 } }))).specks;
@@ -44,7 +44,6 @@ describe("a stone's character", () => {
   });
   it("keeps a faintly yellow diamond a diamond, with its warmth", async () => {
     for (const g of DIAMOND_GRADES.slice(0, 4)) expect(isColorless("diamond", g.color), g.id).toBe(true);
-    // a pendant's stone carries its tint to the traced pass (a ring's takes it from the stone's own colour)
     const pendant = normalizeDesign({ ...defaultDesign(), type: "necklace", style: "pendant", center: { ...defaultDesign().center, gem: "diamond", cut: "faceted" } });
     expect((await find(applyPatch(pendant, { center: { color: diamondGrade("D-F")!.color } }))).tints).toEqual([]);
     expect((await find(applyPatch(pendant, { center: { color: diamondGrade("K-M")!.color, colorGrade: "K-M" } }))).tints).toEqual([diamondGrade("K-M")!.color]);

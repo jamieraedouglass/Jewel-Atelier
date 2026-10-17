@@ -6,7 +6,6 @@ import type { Taste } from "@/lib/style/profile";
 
 const line = (pairs: [string, number][]) => pairs.map(([k, n]) => `${k} (${n})`).join(", ");
 
-/** what their saved designs say about their taste, with a button to start the preferences from it */
 export default function TasteCard({ taste, onAdopt }: { taste: Taste | null; onAdopt: () => void }) {
   if (!taste || taste.designs < 2) {
     return <p className="small muted" style={{ margin: 0 }}>Save a few designs and the designer will also learn from what you make.</p>;

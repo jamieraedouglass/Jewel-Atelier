@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { extendLink, setLinkRevoked } from "@/app/studio/actions";
 
-/** copy, open, turn off or extend a client link */
 export default function LinkControls({ id, url, revoked, clientName }: { id: string; url: string; revoked: boolean; clientName: string }) {
   const [status, setStatus] = useState<string | null>(null);
   const run = async (p: Promise<{ error?: string }>, ok: string) => { const r = await p.catch(() => ({ error: "Couldn't do that just now." })); setStatus(r.error ?? ok); };

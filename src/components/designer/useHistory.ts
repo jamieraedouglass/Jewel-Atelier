@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Design } from "@/lib/design";
 
-/** fields where the browser's own undo should win over the design's: anything you type into */
 const TYPED_INPUTS = new Set(["text", "number", "search", "email", "url", "tel", "password"]);
 export const ownsUndo = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
@@ -12,10 +11,6 @@ export const ownsUndo = (t: EventTarget | null) => {
   return el.tagName === "INPUT" && TYPED_INPUTS.has((el as HTMLInputElement).type);
 };
 
-/**
- * The design on screen with undo and redo. Quick runs of changes (dragging a slider) count as one step.
- * `designRef` always holds the latest design, for handlers that run after an await.
- */
 export function useHistory(initial: Design, onChanged: () => void) {
   const [design, setDesign] = useState(initial);
   const designRef = useRef(design);

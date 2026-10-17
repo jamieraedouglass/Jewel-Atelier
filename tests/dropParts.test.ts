@@ -1,21 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { DropPartSchema, copyDropPart, moveDropPart, removeDropPart, updateDropPart, type DropPart } from "@/lib/design";
 
-/** a list of parts; `from` -1 = hangs from the part just above */
 const parts = (...from: number[]): DropPart[] => from.map((f, i) => DropPartSchema.parse({ from: f, gapMm: i }));
 const froms = (list: DropPart[]) => list.map((p) => p.from);
 const ids = (list: DropPart[]) => list.map((p) => p.gapMm);
 
 describe("drop parts", () => {
   it("moving a part keeps references pointing at the same parts", () => {
-    // part 3 hangs from part 0; swap parts 0 and 1
     const next = moveDropPart(parts(-1, -1, -1, 0), 0, 1);
     expect(ids(next)).toEqual([1, 0, 2, 3]);
     expect(froms(next)).toEqual([-1, -1, -1, 1]);
   });
 
   it("moving a part above the part it hangs from resets it", () => {
-    // part 2 hangs from part 1; moving part 2 up past part 1 would make it hang from a part below it
     const next = moveDropPart(parts(-1, -1, 1), 2, -1);
     expect(froms(next)[1]).toBe(-1);
   });

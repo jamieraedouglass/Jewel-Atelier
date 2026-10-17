@@ -6,12 +6,10 @@ import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type Se
 import ColourGrade from "./ColourGrade";
 
 type Accents = Design["accents"];
-/** shapes that look the same turned any way, so a direction would change nothing */
 const SAME_EVERY_WAY = new Set(["round", "old-mine"]);
 type Pattern = Pick<Accents, "shapes" | "turns" | "twins" | "sizes">;
 const pattern = (shapes: Accents["shapes"], turns: number[] = [], twins: boolean[] = [], sizes: number[] = []): Pattern => ({ shapes, turns, twins, sizes });
 
-/** one-click patterns; each sets shapes, turns, twins and sizes together so nothing carries over from the last pattern */
 const QUICK_PATTERNS: [string, Pattern][] = [
   ["Oval–round", pattern(["oval", "round"])],
   ["Emerald–round–round", pattern(["emerald", "round", "round"])],
@@ -25,7 +23,6 @@ const QUICK_PATTERNS: [string, Pattern][] = [
   ["Round + twin baguettes", pattern(["round", "baguette"], [0, 0], [false, true])],
 ];
 
-/** colour runs for multi-colour lines, e.g. a rainbow sapphire tennis bracelet */
 const RAINBOW = ["#d8371f", "#ee6a1c", "#f2a81c", "#efd21f", "#9cc63a", "#2e9e54", "#1f8a9a", "#2456b8", "#4433a6", "#7a3fa6", "#c23c8f", "#e2558a"];
 const COLOR_PRESETS: [string, string[]][] = [
   ["Rainbow", RAINBOW],
@@ -37,10 +34,8 @@ const COLOR_PRESETS: [string, string[]][] = [
   ["Sapphire & diamond", ["#0c2394", "#f4f6fb"]],
 ];
 
-/** the largest accent stone a style allows: lines of shaped stones go up to 6 ct, pavé and halos to 1.5 ct */
 export const accentMaxCt = (usesShapes: boolean) => (usesShapes ? 6 : 1.5);
 
-/** small stones: halos, pavé, lines, and the repeating pattern along them */
 export default function AccentsSection({ d, onChange, usesShapes }: SectionProps & { usesShapes: boolean }) {
   const a = d.accents;
   const setAccents = (p: Partial<Accents>) => onChange({ accents: p } as DesignPatch);

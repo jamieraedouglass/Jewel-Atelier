@@ -8,7 +8,6 @@ import type { ClientBackend } from "./backend";
 
 const STARTERS = ["Would this suit everyday wear?", "What stone would make it feel more bridal?", "Is this size right for my hand?", "What would this cost?"];
 
-/** The designer chat on a client link: suggestions arrive as finished pieces the client can apply in one tap. */
 export default function ClientChat({ designId, base, design, history, backend, onApply, onHistory }: {
   designId: string; base: Design; design: Design; history: ChatMessage[]; backend: ClientBackend;
   onApply: (d: Design) => void; onHistory: (h: ChatMessage[]) => void;
@@ -25,7 +24,6 @@ export default function ClientChat({ designId, base, design, history, backend, o
     const next: ChatMessage[] = [...history, { role: "user", content }];
     onHistory(next); setDraft(""); setBusy(true); setError(null);
     try {
-      // a suggestion here is a whole design: describe it by what it changes from the jeweller's piece
       const r = await backend.chat(designId, design, chatForApi(next, 40, (p) => describeChanges(base, normalizeDesign(p.patch)).join("; ") || "as designed"), next);
       onHistory([...next, { role: "assistant", content: r.reply || "…", proposals: r.proposals.map((p) => ({ title: p.title, why: p.why, patch: p.design as unknown as Record<string, unknown> })) }]);
     } catch (e) {
@@ -44,7 +42,6 @@ export default function ClientChat({ designId, base, design, history, backend, o
         <div key={i} style={{ display: "grid", gap: 8 }}>
           <div className={`msg ${m.role}`}>{m.role === "assistant" ? plainReply(m.content) : m.content}</div>
           {m.proposals?.map((p, j) => {
-            // what trying it would change from the piece as it is now
             const changes = describeChanges(design, p.patch as unknown as Design);
             return (
               <div key={j} className="proposal" style={p.state === "dismissed" ? { opacity: 0.55 } : undefined}>

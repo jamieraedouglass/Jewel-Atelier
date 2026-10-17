@@ -3,13 +3,8 @@
 import { useRef, useState } from "react";
 import { applyPatchLenient as applyPatch, asRightEar, rightEarDesign, type Design, type DesignPatch } from "@/lib/design";
 
-/** the pair's own settings always apply to both earrings */
 const PAIR_KEYS = new Set(["metal", "purity", "name", "rightEar", "mirrorPair"]);
 
-/**
- * Earrings are a matching pair, or each earring is designed on its own. While the right earring is selected,
- * changes go to it (except the pair's shared settings); everything else edits the design as a whole.
- */
 export function useEarPair(designRef: React.MutableRefObject<Design>, record: (next: Design, group: boolean) => void) {
   const [ear, setEar] = useState<"left" | "right">("left");
   const earRef = useRef(ear);
@@ -18,7 +13,6 @@ export function useEarPair(designRef: React.MutableRefObject<Design>, record: (n
   const unmatched = design.type === "earrings" && !!design.rightEar;
   const onRight = () => designRef.current.type === "earrings" && !!designRef.current.rightEar && earRef.current === "right";
 
-  /** apply a patch from the controls, the quick editor or the chat to whichever earring is being edited */
   const change = (patch: DesignPatch) => {
     const cur = designRef.current;
     if (!onRight() || patch.type) return record(applyPatch(cur, patch), true);
@@ -27,7 +21,6 @@ export function useEarPair(designRef: React.MutableRefObject<Design>, record: (n
     const base = Object.keys(pairPart).length ? applyPatch(cur, pairPart as DesignPatch) : cur;
     record({ ...base, rightEar: asRightEar(applyPatch(rightEarDesign(base), earPart as DesignPatch)) }, true);
   };
-  /** replace what's being edited: the right earring when it is selected, otherwise the whole design */
   const replace = (d: Design) => {
     const cur = designRef.current;
     if (onRight() && d.type === "earrings") return record({ ...cur, rightEar: asRightEar(d) }, false);

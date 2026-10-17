@@ -63,8 +63,8 @@ describe("a stone's character", () => {
       if (m.isMesh && (m.material as THREE.ShaderMaterial).isShaderMaterial) stars++;
       if (o.userData.inclusions) specks++;
     });
-    expect(stars).toBe(1); // the centre only
+    expect(stars).toBe(1);
     expect(specks).toBeGreaterThan(0);
-    expect(specks).toBeLessThanOrEqual(2); // one stone's crystals and feathers
+    expect(specks).toBeLessThanOrEqual(2);
   });
 });

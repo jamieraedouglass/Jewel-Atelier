@@ -6,13 +6,11 @@ import { Chips, Range } from "../controls/fields";
 
 type Props = { base: Design; design: Design; allow: Allow; onChange: (d: Design) => void };
 
-/** The adjustments the jeweller allowed on this piece, in plain words. */
 export default function AdjustPanel({ base, design: d, allow, onChange }: Props) {
   const set = (p: DesignPatch) => onChange(applyPatch(d, p));
   const c = d.center, b = base.center;
   const stoneChoices: { key: string; label: string; color: string; pick: () => void }[] = [
     { key: "own", label: b.label || label(b.gem), color: b.color, pick: () => set({ center: { gem: b.gem, color: b.color, clarity: b.clarity, glow: b.glow, label: b.label, colorGrade: b.colorGrade, inclusions: b.inclusions, phenomenon: b.phenomenon } }) },
-    // the piece's own stone is listed once, even when it is also one of the options
     ...allow.stones.filter((o) => !(o.gem === b.gem && optionLook(o).color.toLowerCase() === b.color.toLowerCase())).map((o: StoneOption) => {
       const look = optionLook(o);
       return { key: `${o.gem}-${o.grade ?? ""}`, label: optionName(o), color: look.color, pick: () => set({ center: { gem: o.gem, color: look.color, clarity: look.clarity, glow: look.glow, label: look.label, ...FRESH_STONE } }) };

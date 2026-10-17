@@ -7,11 +7,6 @@ import { createClient, hasSupabase } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safeNext";
 import { emailForName, slugify } from "@/lib/names";
 
-/**
- * Name-only sign-in. Each name maps to one account: the server derives a hidden email and password
- * from the name, so nobody types a password. Optional STUDIO_CODE keeps strangers out.
- */
-
 function secretFor(slug: string) {
   const secret = process.env.NAME_LOGIN_SECRET;
   if (!secret || secret.length < 16) throw new Error("NAME_LOGIN_SECRET is missing. Add it under Vercel → Settings → Environment Variables (or .env.local when running locally), then redeploy.");
@@ -42,7 +37,6 @@ export async function signInWithName(_: { error?: string } | null, form: FormDat
   const supabase = createClient();
   let { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    // first visit with this name: create the account, then sign in
     try {
       const admin = createAdminClient();
       const created = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { display_name: name } });

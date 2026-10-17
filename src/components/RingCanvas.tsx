@@ -17,20 +17,16 @@ import { Refraction, forgetStudioCube } from "./canvas/Refraction";
 import { CameraRig, ClickPicker, Model } from "./canvas/sceneParts";
 import { Backdrop, StudioLights } from "./canvas/studio";
 
-/** `handle` is a plain prop, not a ref: next/dynamic does not forward refs, so a ref would silently stay null. */
 type Props = {
   design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>;
   onPick?: (p: Pick) => void; onMiss?: () => void; onMeasure?: (m: Measure) => void;
-  /** fast rendering for small previews */
   lite?: boolean;
-  /** "high": ray-traced diamonds and the finishing pass; "standard": the faster look */
   quality?: "high" | "standard";
 };
 
 export default function RingCanvas({ design, view = "hero", autoRotate = true, className, handle, onPick, onMiss, onMeasure, lite, quality = "high" }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
   const canvasEl = useRef<HTMLCanvasElement | null>(null);
-  // bumped when the browser restores a lost 3D context: the piece is rebuilt so every stone gets fresh lighting
   const [restored, setRestored] = useState(0);
   const piece = useMemo(() => buildPiece(design), [design, restored]); // eslint-disable-line react-hooks/exhaustive-deps
   const floor = useMemo(() => {
@@ -48,7 +44,6 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
     return () => { handle.current = null; };
   }, [handle]);
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // gallery thumbnails and very small views keep the fast stone look; "standard" quality (chosen by the viewer) does too
   const lowPower = !!lite || quality === "standard";
   return (
     <Canvas
@@ -58,7 +53,6 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
       onCreated={({ gl }) => {
         canvasEl.current = gl.domElement;
-        // a lost and restored context (GPU switch, sleep) leaves the rendered light maps empty: stones would go black
         gl.domElement.addEventListener("webglcontextrestored", () => { forgetRoomEnv(gl); forgetStudioCube(gl); setRestored((n) => n + 1); });
       }}
     >
@@ -73,8 +67,6 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       <ContactShadows position={[0, floor.y, 0]} opacity={0.55} scale={floor.scale} blur={2.6} far={piece.upright ? 14 : 8} resolution={1024} />
       <OrbitControls ref={controls} makeDefault enableDamping enablePan={false} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.7} />
       {!lowPower && (
-        // the finishing pass: soft contact shading where stones meet metal, a little glow on the brightest facet
-        // flashes (the sparkle you see in person), anti-aliasing, then the same neutral tone mapping as before
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={2.2} intensity={1.6} distanceFalloff={0.6} color="#000000" quality="medium" />
           <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.1} intensity={0.35} radius={0.5} />

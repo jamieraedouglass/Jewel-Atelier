@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readPhotos, storageImages } from "@/lib/claude";
+import { readPhotos, storageImages } from "@/lib/ai";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -8,10 +8,6 @@ import { loadStyleProfile, photoKey } from "@/lib/style/load";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/**
- * Read the inspiration photos once into a few sentences, so the design chat can send that instead of the images every
- * time. Free when the read already matches the photos; a failed read gives the AI call back.
- */
 export async function POST() {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });

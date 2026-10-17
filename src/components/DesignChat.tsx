@@ -15,10 +15,6 @@ const STARTERS = [
   "What should I tell the karigar about construction and weight?",
 ];
 
-/**
- * The design consultant. A saved design keeps its conversation (and what was applied or turned down) between visits;
- * applying or turning down a suggestion also teaches the style profile.
- */
 export default function DesignChat({ userId, designId, design, onApply }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -28,15 +24,13 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, busy]);
 
-  // a saved design's conversation: loaded once per design; a new design's chat is kept once it is first saved
   const loadedFor = useRef<string | null>(null);
   const [ready, setReady] = useState(!designId);
   useEffect(() => {
     if (!userId || !designId || loadedFor.current === designId) return;
     const first = loadedFor.current === null;
     loadedFor.current = designId;
-    if (!first || messages.length) { setReady(true); return; } // just saved for the first time: keep what is on screen
-    // if loading fails, don't save either: that would overwrite the conversation we couldn't read
+    if (!first || messages.length) { setReady(true); return; }
     loadChat(designId).then((m) => { setMessages((cur) => (cur.length ? cur : m)); setReady(true); }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [designId, userId]);

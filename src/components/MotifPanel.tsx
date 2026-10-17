@@ -12,7 +12,6 @@ type Props = { design: Design; userId: string | null; onChange: (patch: DesignPa
 
 const IDEAS = ["Paisley with a ruby eye and a diamond border", "Peacock with a spread tail of emerald drops", "Lotus with five petals and a polki centre", "Art Deco fan with baguette rays", "Mughal arch with jaali cut-outs"];
 
-/** Read an .svg file: join every <path d>, and work out the drawing's box. No AI involved. */
 function parseSvgFile(text: string): Pick<Motif, "path" | "viewBox"> {
   const doc = new DOMParser().parseFromString(text, "image/svg+xml");
   const ds = Array.from(doc.querySelectorAll("path")).map((p) => p.getAttribute("d") ?? "").filter(Boolean);
@@ -43,7 +42,6 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
       const res = await fetch("/api/motif", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: brief || undefined, imagePath, pieceType: `${design.type} (${design.style})` }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't draw that.");
-      // keep the size the motif has now (it may have changed while the AI was drawing): send only the drawing
       const { widthMm: _w, thicknessMm: _t, ...drawing } = json.motif;
       void _w; void _t;
       onChange({ motif: drawing, ...(json.enamel ? { enamel: { enabled: true } } : {}) });
@@ -77,7 +75,6 @@ export default function MotifPanel({ design, userId, onChange }: Props) {
     setError(null);
     try {
       const { path, viewBox } = parseSvgFile(await f.text());
-      // keep stones only if the old ones fit the new drawing's box; otherwise start bare
       setMotif({ name: f.name.replace(/\.svg$/i, ""), path, viewBox, stones: [] });
       setNotes("Imported as drawn. Ask the designer to place stones on it, or leave it as plain gold.");
     } catch (e) {

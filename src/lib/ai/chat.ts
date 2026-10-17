@@ -1,16 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ALL_STYLES, BANGLE_SIZES, BAND_FINISHES, CHAIN_STYLES, CUTS, DROP_ARRANGE, DROP_KINDS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS, STYLES, TYPES, TYPE_LABEL, GEM_VARIETIES } from "../design";
 
-/** The design consultant chat: what it knows and the changes it can propose. */
-
-/** "ring: three-stone, solitaire, …; earrings: …" so Claude knows which styles belong to which type */
 export const STYLE_GUIDE = TYPES.map((t) => `${t} (${TYPE_LABEL[t]}): ${Object.entries(STYLES[t]).map(([k, s]) => `${k} — ${s.blurb}`).join("; ")}`).join("\n");
 
 const gemProp = { type: "string", enum: [...GEMS] };
 const hexProp = { type: "string", description: "#rrggbb" };
 const glowProp = { type: "number", minimum: 0, maximum: 1, description: "0–1, how lit-from-within the stone looks (see COLOUR GRADES)" };
 
-/** the trade colour grades, so Claude can offer "a Burmese-type ruby" as colour, clarity and glow */
 const GRADE_GUIDE = Object.entries(GEM_VARIETIES).map(([gem, vs]) =>
   `${gem}: ${(vs ?? []).map((v) => `${v.name} ${v.color} clarity ${v.clarity} glow ${v.glow} (${v.blurb})`).join("; ")}`).join("\n");
 export const designPatchSchema = {
@@ -127,4 +123,3 @@ Never claim a stone's origin or treatment without a lab report.
 COLOUR GRADES. The same gem looks different by deposit. When someone asks for, say, a Colombian emerald or a Burmese ruby, set the stone's color, clarity and glow from this table (these describe a look; never claim where a real stone came from):
 ${GRADE_GUIDE}`;
 
-/* ---------- custom motifs ---------- */

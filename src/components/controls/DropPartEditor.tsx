@@ -7,7 +7,6 @@ import { Chips, Dir, Num, Pick, colorInputStyle } from "./fields";
 export const KIND_LABEL: Record<DropPart["kind"], string> = { stone: "Stone / cluster", strands: "Strands & fringe", frame: "Open frame", bow: "Bow" };
 const ARRANGE_LABEL: Record<DropPart["arrange"], string> = { around: "All round", above: "Fan on top", below: "Fan below", sides: "Spray to the sides" };
 
-/** what a new part of each kind starts as */
 export const NEW_PART: Record<DropPart["kind"], Partial<DropPart>> = {
   stone: { kind: "stone", gapMm: 0.8 },
   strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
@@ -20,7 +19,6 @@ type Props = {
   set: (x: Partial<DropPart>) => void; onMove: (by: -1 | 1) => void; onCopy: () => void; onRemove: () => void;
 };
 
-/** the editor for one part of a drop: its position, its stone, its strands or petals, and its pavé */
 export default function DropPartEditor({ p, i, count, above, focused, set, onMove, onCopy, onRemove }: Props) {
   const setStone = (x: Partial<DropPart["stone"]>) => set({ stone: { ...p.stone, ...x } });
   const setSmall = (x: Partial<DropPart["small"]>) => set({ small: { ...p.small, ...x } });

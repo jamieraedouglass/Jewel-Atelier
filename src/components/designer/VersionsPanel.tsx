@@ -4,7 +4,6 @@ import { describeDesign, normalizeDesign, type Design } from "@/lib/design";
 
 export type Version = { id: string; name: string; created_at: string; data: unknown };
 
-/** earlier saves of this design; bringing one back replaces the whole design (both earrings), as an undoable step */
 export default function VersionsPanel({ versions, onRestore, onClose }: { versions: Version[]; onRestore: (d: Design) => void; onClose: () => void }) {
   return (
     <section style={{ display: "grid", gap: 8 }}>

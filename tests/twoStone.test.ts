@@ -4,7 +4,6 @@ import { applyPatch, chooseStyle, defaultDesign, noAccentsYet, type Design } fro
 
 const toiEtMoi = () => chooseStyle(defaultDesign(), "ring", "two-stone");
 
-/** how far apart the two stones' centres sit */
 async function spread(d: Design) {
   const { buildPiece } = await import("@/lib/jewelryModel");
   const g = buildPiece(d).group;
@@ -20,7 +19,6 @@ describe("toi-et-moi", () => {
     const apart = await spread(d);
     const touching = await spread(applyPatch(d, { options: { pairSpacing: "touching" } }));
     expect(touching).toBeLessThan(apart);
-    // touching: the two stones' edges meet, with only a hair between them
     const reachA = d.center.widthMm / 2, reachB = d.extraStones[0].widthMm / 2;
     expect(touching).toBeGreaterThan(reachA + reachB - 0.5);
   });
@@ -45,7 +43,7 @@ describe("a halo round each stone in a line", () => {
     const zs = (shape: "oval" | "heart") => { const out: { pos: THREE.Vector3 }[] = []; haloRing(new THREE.Vector3(), new THREE.Quaternion(), 4, 4, out as never, shape); return out.map((o) => o.pos.z); };
     const span = (z: number[]) => [Math.min(...z), Math.max(...z)];
     const [oLo, oHi] = span(zs("oval")), [hLo, hHi] = span(zs("heart"));
-    expect(Math.abs(oLo + oHi)).toBeLessThan(0.05); // an oval's halo is symmetric end to end
-    expect(Math.abs(hLo + hHi)).toBeGreaterThan(0.1); // a heart's isn't: point at one end, lobes at the other
+    expect(Math.abs(oLo + oHi)).toBeLessThan(0.05);
+    expect(Math.abs(hLo + hHi)).toBeGreaterThan(0.1);
   });
 });

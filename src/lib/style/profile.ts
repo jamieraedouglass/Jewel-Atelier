@@ -4,11 +4,6 @@ import {
   type Design, type DesignPatch, type Gem, type PieceType,
 } from "../design";
 
-/**
- * A person's style profile, in a form the design consultant can rely on: who they design for, the looks they love,
- * metals, gems, shapes, scale, occasions, budget and sizes. Every field is optional; empty means "no preference".
- */
-
 export const AESTHETICS = [
   "classic", "art-deco", "minimal", "statement", "bridal", "heritage", "polki-kundan", "contemporary", "floral", "geometric", "colourful",
 ] as const;
@@ -42,15 +37,10 @@ export const StylePrefsSchema = z.object({
     wristCm: z.number().min(13).max(24).nullable().default(null),
     necklaceIn: z.number().min(12).max(40).nullable().default(null),
   }).default({}),
-  /** things to stay away from, in their words */
   avoid: z.string().max(800).default(""),
 });
 export type StylePrefs = z.output<typeof StylePrefsSchema>;
 
-/**
- * Anything (a database row, an old profile without prefs, a half-typed form) as complete preferences. Each field is
- * checked on its own, so one bad value (a ring size of 2) clears just that field, not the whole profile.
- */
 export function normalizePrefs(input: unknown): StylePrefs {
   const whole = StylePrefsSchema.safeParse(input ?? {});
   if (whole.success) return whole.data;
@@ -59,7 +49,6 @@ export function normalizePrefs(input: unknown): StylePrefs {
   for (const [key, field] of Object.entries(StylePrefsSchema.shape)) {
     const value = raw[key];
     if (key === "sizes" || key === "budget") {
-      // nested: keep each valid part
       const inner = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
       const shape = (field as unknown as z.ZodDefault<z.ZodObject<z.ZodRawShape>>)._def.innerType.shape;
       out[key] = Object.fromEntries(Object.entries(shape).flatMap(([k, f]) => { const r = f.safeParse(inner[k]); return r.success ? [[k, r.data]] : []; }));
@@ -71,11 +60,8 @@ export function normalizePrefs(input: unknown): StylePrefs {
   return StylePrefsSchema.parse(out);
 }
 
-/* ---------------- what their saved designs say ---------------- */
-
 export type Taste = {
   designs: number;
-  /** of those, how many have been made */
   made: number;
   types: [PieceType, number][];
   styles: [string, number][];
@@ -87,7 +73,6 @@ export type Taste = {
   wristCm: number | null;
 };
 
-/** a tally that ranks by weight (made and recent work count more) but reports plain counts */
 class Tally<K> {
   private m = new Map<K, { w: number; n: number }>();
   add(k: K, w: number, n = 1) { const e = this.m.get(k) ?? { w: 0, n: 0 }; e.w += w; e.n += n; this.m.set(k, e); }
@@ -102,10 +87,6 @@ const mostCommon = (xs: { v: number; w: number }[]) => {
   return t.top(1)[0][0];
 };
 
-/**
- * A summary of someone's taste from the designs they have saved: what they make, in what, with which stones.
- * `weights` (one per design, see tasteWeight) let made and recent pieces count for more than old ideas.
- */
 export function summarizeTaste(designs: Design[], weights?: number[], made = 0): Taste {
   const types = new Tally<PieceType>(), styles = new Tally<string>(), metals = new Tally<string>();
   const gems = new Tally<string>(), shapes = new Tally<string>(), grades = new Tally<string>();
@@ -115,10 +96,9 @@ export function summarizeTaste(designs: Design[], weights?: number[], made = 0):
     types.add(d.type, w);
     styles.add(`${TYPE_LABEL[d.type]}: ${STYLES[d.type][d.style]?.label ?? d.style}`, w);
     metals.add(isGold(d.metal) ? `${d.purity.karat}k ${label(d.metal).toLowerCase()}` : label(d.metal).toLowerCase(), w);
-    // pieces built part by part (drops, chandeliers) carry their stones in the parts, not in a main stone
     if (uses(d, "drop")) for (const part of d.drop.parts) if (part.showStone || part.kind === "stone") gems.add(part.stone.gem, w);
     if (uses(d, "center") && !d.center.none) {
-      gems.add(d.center.gem, w * 2, 2); // the main stone says more than the accents
+      gems.add(d.center.gem, w * 2, 2);
       if (d.center.shape !== "round") shapes.add(d.center.shape, w);
       const g = matchingVariety(d.center.gem, d.center);
       if (g) grades.add(`${g.name} ${gemLabel(d.center.gem).toLowerCase()}`, w);
@@ -134,7 +114,6 @@ export function summarizeTaste(designs: Design[], weights?: number[], made = 0):
   };
 }
 
-/** preferences to start from, read off their saved designs (only what clearly stands out) */
 export function prefsFromTaste(t: Taste, current: StylePrefs): StylePrefs {
   if (t.designs < 2) return current;
   const often = (pairs: [string, number][], share = 0.25) => pairs.filter(([, n]) => n / t.designs >= share).map(([k]) => k);
@@ -156,24 +135,16 @@ export function prefsFromTaste(t: Taste, current: StylePrefs): StylePrefs {
   });
 }
 
-/* ---------------- what the design consultant reads ---------------- */
-
 const list = (xs: readonly string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}` : xs[0] ?? "");
 const metalWords = (m: (typeof METALS)[number]) => label(m).toLowerCase();
 const counted = (pairs: [string, number][]) => list(pairs.map(([k, n]) => `${k} (${n})`));
 
 export type ProfileInput = {
   prefs: StylePrefs; icons: string[]; notes: string; taste?: Taste | null; applied?: string[]; dismissed?: string[];
-  /** inspiration photos sent as images with the profile */
   photos?: number;
-  /** or, instead of the images, a written read of them */
   photoRead?: string;
 };
 
-/**
- * The profile as the consultant reads it: plain sentences, firm preferences first, then what their own designs show.
- * Returns an empty string when there is nothing to go on.
- */
 export function describeProfile({ prefs: p, icons, notes, taste, applied = [], dismissed = [], photos = 0, photoRead = "" }: ProfileInput): string {
   const lines: string[] = [];
   if (p.designingFor === "clients") lines.push("They are a jeweller designing for clients: suggest options a client could choose between, and say who each suits.");
@@ -214,7 +185,6 @@ export function describeProfile({ prefs: p, icons, notes, taste, applied = [], d
   return lines.length ? ["STYLE PROFILE", ...lines].join("\n") : "";
 }
 
-/** where a new design starts for this person: their first metal, karat and sizes (nothing they haven't set) */
 export function designDefaultsFrom(p: StylePrefs): DesignPatch {
   const patch: DesignPatch = {};
   if (p.metals.length) patch.metal = p.metals[0];
@@ -227,7 +197,6 @@ export function designDefaultsFrom(p: StylePrefs): DesignPatch {
   return patch;
 }
 
-/** how much of the profile is filled in, 0–1, for a gentle nudge on the page */
 export function profileCompleteness(p: StylePrefs, icons: string[], notes: string, photos: number) {
   const parts = [p.aesthetics.length, p.metals.length, p.loveGems.length, p.shapes.length, p.scale, p.occasions.length, p.sizes.ringUs ?? p.sizes.wristCm, icons.length || notes.trim(), photos];
   return parts.filter(Boolean).length / parts.length;

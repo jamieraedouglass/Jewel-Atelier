@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 
 const Body = z.object({ designId: z.string().uuid(), design: z.unknown() });
 
-/** a client saves their adjusted piece; only what the link allows is kept */
 export async function POST(req: Request, { params }: { params: { token: string } }) {
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "Bad request." }, { status: 400 });

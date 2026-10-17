@@ -8,7 +8,6 @@ import { type RunOpts, bell, flower, halo, patternAt, patternMaxW, patternRun } 
 import { decoFrames, flowerCluster } from "./ringHeads";
 import { dropStack, hook } from "./drops";
 
-/** one stud: the main stone (with optional halo) and any extra stones stacked below it, joined underneath */
 function stud(d: Design, m: Mats, mirror: boolean) {
   const g = new THREE.Group();
   const flip = mirror ? -1 : 1;
@@ -18,7 +17,6 @@ function stud(d: Design, m: Mats, mirror: boolean) {
   if (d.options.halo) main.add(halo(d, m, c).group);
   main.rotation.y = THREE.MathUtils.degToRad(c.rotation * flip);
   g.add(main);
-  // extent of a stone along Z once it is turned
   const reach = (L: number, W: number, deg: number) => { const r = THREE.MathUtils.degToRad(deg); return (Math.abs(Math.cos(r)) * L + Math.abs(Math.sin(r)) * W) / 2; };
   let z = reach(c.lengthMm, c.widthMm, c.rotation) + (d.options.halo ? roundDiameter(d.accents.gem, d.accents.sizeCt) + 0.8 : 0);
   let prev = new THREE.Vector3();
@@ -31,7 +29,6 @@ function stud(d: Design, m: Mats, mirror: boolean) {
     s.position.copy(pos);
     s.userData.part = "extra";
     g.add(s);
-    // a hidden gold bridge between neighbouring stones
     g.add(tube(m, [prev.clone().setY(-1.1), pos.clone().setY(-1.1)], 0.45));
     prev = pos;
     z = pos.z + half;
@@ -39,19 +36,14 @@ function stud(d: Design, m: Mats, mirror: boolean) {
   return g;
 }
 
-/**
- * Hoops and huggies stand upright like a real pair: an oval-section wire opening at the top with a hinged post,
- * stones set into the front face, and (hoops) an optional charm hanging from the bottom. Front faces +Z.
- */
 function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   const g = new THREE.Group();
   const R = (huggie ? Math.min(d.options.hoopDiameterMm, 16) : d.options.hoopDiameterMm) / 2;
   const stoneW = d.options.pave ? patternMaxW(d, huggie ? 3.6 : 2.8) : 0;
   const sideSet = d.options.pave && d.options.hoopFace !== "front";
-  const T = sideSet ? (huggie ? 2.4 : 1.4) : Math.max(huggie ? 2.6 : 1.5, stoneW + (huggie ? 0.8 : 0.6)); // width seen from the front
-  const D = sideSet ? Math.max(huggie ? 3 : 1.8, stoneW + 0.6) : huggie ? Math.max(3, T * 1.1) : Math.max(1.6, T * 0.9); // depth, front to back
+  const T = sideSet ? (huggie ? 2.4 : 1.4) : Math.max(huggie ? 2.6 : 1.5, stoneW + (huggie ? 0.8 : 0.6));
+  const D = sideSet ? Math.max(huggie ? 3 : 1.8, stoneW + 0.6) : huggie ? Math.max(3, T * 1.1) : Math.max(1.6, T * 0.9);
   const gapA = Math.max(0.12, 1.4 / R);
-  // round; a tall oval; or a long paperclip (a rounded rectangle), hanging from the top
   const hs = d.options.hoopShape;
   const rx = hs === "round" ? R : hs === "oval" ? R * 0.72 : R * 0.5, ry = hs === "round" ? R : hs === "oval" ? R * 1.25 : R * 1.45;
   const ex = hs === "paperclip" ? 0.45 : 1;
@@ -63,7 +55,6 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   const wire = new THREE.Mesh(new THREE.TubeGeometry(arc, 240, T / 2, 20, false), m.metal);
   wire.scale.z = D / T;
   g.add(wire);
-  // rounded ends, the post across the opening and the hinge knuckle
   const endA = arc.getPointAt(0), endB = arc.getPointAt(1);
   for (const e of [endA, endB]) { const cap = new THREE.Mesh(new THREE.SphereGeometry(T / 2, 16, 12), m.metal); cap.scale.z = D / T; cap.position.copy(e); g.add(cap); }
   g.add(tube(m, [endB.clone(), endB.clone().lerp(endA, 0.5).add(v3(0, 0.25, 0)), endA.clone()], Math.min(0.42, T * 0.2)));
@@ -73,8 +64,6 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
   if (d.options.pave) {
     const span = { front: [0.14, 0.86], half: [0.25, 0.75], full: [0.03, 0.97] }[d.options.paveCoverage];
     const face = d.options.hoopFace;
-    // front: the narrow face you see head-on; outer/inner: the wide sides of the wire
-    // outward normal of the hoop in its own plane (works for ovals and paperclips too)
     const radial = (u: number) => { const t = arc.getTangentAt(u); return v3(t.y, -t.x, 0).normalize(); };
     const opts: RunOpts = face === "front"
       ? { up: () => v3(0, 0, 1), offset: () => v3(0, 0, D / 2 - 0.05), maxW: T - 0.4, gap: 0.12 }
@@ -84,7 +73,6 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
     g.add(patternRun(d, m, arc, span[0], span[1], opts).group);
   }
   if (!huggie && d.fringe.enabled) {
-    // a crescent of seed pearls (or beads) clustered over the front of the hoop, fullest at the bottom
     const beads: Item[] = [];
     const D0 = d.fringe.sizeMm;
     let seed = 7;
@@ -114,8 +102,8 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
     const charm = setStone(c, d.setting.style, m);
     const holder = new THREE.Group();
     holder.add(charm);
-    if (c.shape === "pear" || c.shape === "heart") charm.rotateY(Math.PI); // narrow end up
-    holder.rotation.x = Math.PI / 2; // face forward, length hanging down
+    if (c.shape === "pear" || c.shape === "heart") charm.rotateY(Math.PI);
+    holder.rotation.x = Math.PI / 2;
     const turn = new THREE.Group();
     turn.rotation.y = THREE.MathUtils.degToRad(d.options.charmTurn);
     turn.position.set(0, low - 1.8 - c.lengthMm / 2, 0);
@@ -156,7 +144,6 @@ export function earringPiece(d: Design, m: Mats): Piece {
   return { group, focus, focusSize: Math.max(L.focusSize, rd ? R.focusSize : 0), upright: false };
 }
 
-/** one earring, centred where it was built (the pair is laid out by earringPiece) */
 function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group; focus: THREE.Vector3; focusSize: number } {
   const c = d.center, o = d.options, st = d.style;
   const one = new THREE.Group();
@@ -222,13 +209,11 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
     geo.rotateX(Math.PI / 2); geo.translate(0, -0.3, zc);
     one.add(new THREE.Mesh(geo, m.metal));
     if (d.enamel.enabled) { const e = new THREE.Mesh(geo.clone().translate(0, -0.6, 0).scale(1.02, 1, 1), m.enamel); one.add(e); }
-    // two arcs of stones following the crescent
     for (const k of [0.92, 0.76]) {
       const rr = R * k - (k < 0.8 ? R * 0.05 : 0);
       const arcC = new THREE.CatmullRomCurve3(Array.from({ length: 48 }, (_, i) => { const a = 0.12 + (i / 47) * (Math.PI - 0.24); return v3(Math.cos(a) * rr, 0.4, zc + Math.sin(a) * rr); }));
       one.add(patternRun(d, m, arcC, 0, 1, { maxW: R * 0.12, gap: 0.25 }).group);
     }
-    // centre stone sits in the crescent's hollow
     const cs = setStone(c, d.setting.style, m, Math.min(1, (R * 0.5) / Math.max(c.lengthMm, c.widthMm)));
     if (c.shape === "pear") cs.rotation.y = Math.PI;
     cs.position.set(0, 0.2, zc + R * 0.18);
@@ -243,7 +228,6 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
   } else if (st === "climber") {
     const n = Math.max(3, o.count);
     const curveC = new THREE.CatmullRomCurve3(Array.from({ length: 24 }, (_, i) => { const t = i / 23; return v3(Math.sin(t * 1.3) * 10, 0, -t * 22); }));
-    // graduated widths; elongated shapes take up their length along the climb, so space by real footprint
     const orient = d.accents.orientation;
     const spec = Array.from({ length: n }, (_, i) => {
       const shape = d.accents.shapes[i % d.accents.shapes.length];
@@ -265,7 +249,6 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
     one.add(tube(m, items.map((it) => it.pos.clone().setY(-0.5)), 0.35));
     focus = v3(4, 0, -11); focusSize = 30;
   } else {
-    // tassel
     one.add(setStone(c, d.setting.style, m, Math.min(1, 6 / Math.max(c.lengthMm, c.widthMm))));
     const capZ = Math.min(c.lengthMm, 6) / 2 + 2.5;
     const cap = new THREE.Mesh(new THREE.ConeGeometry(2.6, 4, 32, 1, true), m.metal);

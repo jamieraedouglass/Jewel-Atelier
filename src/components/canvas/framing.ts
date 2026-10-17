@@ -5,13 +5,11 @@ import { type Measure, type View } from "./types";
 
 export const FOV = 28;
 
-/** Where the camera sits for each view, framed to the piece's size. */
 export function framing(piece: Piece, view: View) {
   const box = new THREE.Box3().setFromObject(piece.group);
   const sphere = box.getBoundingSphere(new THREE.Sphere());
   const fit = (r: number) => (r / Math.sin(THREE.MathUtils.degToRad(FOV / 2))) * 1.25;
   if (piece.upright) {
-    // rings stand up, so look at them like a product shot
     const t = sphere.center.clone().add(new THREE.Vector3(0, sphere.radius * 0.18, 0));
     if (view === "top") return { pos: t.clone().add(new THREE.Vector3(0.01, fit(sphere.radius) * 1.05, 6)), target: piece.focus.clone() };
     if (view === "detail") return { pos: t.clone().add(new THREE.Vector3(4, 10, fit(sphere.radius) * 1.05)), target: t };
@@ -25,8 +23,6 @@ export function framing(piece: Piece, view: View) {
   return { pos: sphere.center.clone().add(new THREE.Vector3(0.1, 0.8, 0.62).normalize().multiplyScalar(fit(sphere.radius))), target: sphere.center.clone() };
 }
 
-
-/** the part worth measuring: one earring of a pair, a ring's head, otherwise the whole piece */
 export function subjectOf(piece: Piece, design: Design, ear: "left" | "right" = "left"): { obj: THREE.Object3D; hide: THREE.Object3D[]; what: string } {
   const g = piece.group;
   if (design.type === "earrings" && g.children.length >= 2) {
@@ -41,7 +37,6 @@ export function measurePiece(piece: Piece, design: Design): Measure {
   obj.updateWorldMatrix(true, true);
   const b = new THREE.Box3();
   if (design.type === "ring") {
-    // a ring's top: the stones and what holds them, not the band
     obj.traverse((o) => { if (["center", "sides", "extra", "accents", "motif"].includes(o.userData.part)) b.expandByObject(o); });
   }
   if (b.isEmpty()) b.setFromObject(obj);

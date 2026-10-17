@@ -1,14 +1,8 @@
 import { GEMS, METALS, gemLabel, label, type Gem } from "../design";
 import type { StylePrefs } from "./profile";
 
-/**
- * A check on the designer's suggestions before anyone sees them: a suggestion that would put an avoided gem in the
- * piece is dropped (the instructions say never to, this makes sure), and one in a metal they don't wear is flagged.
- */
-
 const GEM_KEYS = new Set(["gem", "paveGem"]);
 
-/** every gem a suggested change would put in the piece, wherever it sits (main stone, accents, parts, frames…) */
 export function gemsIn(patch: unknown): Gem[] {
   const found = new Set<Gem>();
   const walk = (v: unknown, key = "") => {
@@ -35,7 +29,6 @@ export function screenProposals(proposals: Proposal[], prefs: StylePrefs) {
   return { kept, dropped };
 }
 
-/** a line for the reply when suggestions were held back */
 export const droppedNote = (dropped: { title: string; gems: Gem[] }[]) =>
   dropped.length
     ? `(I left out ${dropped.length === 1 ? "a suggestion" : `${dropped.length} suggestions`} using ${[...new Set(dropped.flatMap((d) => d.gems))].map((g) => gemLabel(g).toLowerCase()).join(", ")}, which your profile says to avoid.)`

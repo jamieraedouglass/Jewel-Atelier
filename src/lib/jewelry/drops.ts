@@ -7,18 +7,14 @@ import { setStoneRaw, tube } from "./stones";
 import { ASPECT, backingPlate, chainAlong, jumpRing } from "./elements";
 import { outlineCurve, patternRun } from "./patterns";
 
-/* ================= drops, chandeliers and drop pendants, part by part ================= */
-
 const PAVE_CUTS = new Set(["faceted", "polki", "rose-cut"]);
 const briolRatio = (shape: CenterStone["shape"], cut: CenterStone["cut"]) => (cut === "briolette" ? 2 : ASPECT[shape]);
 
-/** the accent settings swapped for a drop part's own small stones, so halos and pavé reuse the pattern engine */
 function paveDesign(d: Design, p: DropPart): Design {
   const cut = PAVE_CUTS.has(p.small.cut) ? (p.small.cut as "faceted" | "polki" | "rose-cut") : "faceted";
   return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [], colors: [] } };
 }
 function partStone(d: Design, p: DropPart): CenterStone {
-  // a faceted stone needs a real crown or its facets all mirror the same light and it reads flat grey
   const domeMm = p.stone.cut === "faceted" ? Math.max(p.stone.domeMm, Math.min(p.stone.widthMm, p.stone.lengthMm) * 0.15) : p.stone.domeMm;
   return { ...d.center, ...NO_CHARACTER, ...p.stone, domeMm, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
 }
@@ -33,7 +29,6 @@ const setFor = (d: Design, c: CenterStone) => (c.cut === "cabochon" ? "bezel" : 
 
 type Built = { g: THREE.Group; top?: number; hang?: number };
 
-/** one stone with an optional halo and petals or leaves */
 function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
   const g = new THREE.Group();
   const cs = partStone(d, p);
@@ -67,7 +62,6 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
     const rot = THREE.MathUtils.degToRad(p.small.rotation);
     angles.forEach((phi, i) => {
       const dir = v3(Math.cos(phi), 0, Math.sin(phi));
-      // the stone's edge in this direction (an ellipse, turned with the stone)
       const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
       const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
       const slot = i % p.small.shapes.length, shape = p.small.shapes[slot];
@@ -84,7 +78,6 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
   return { g };
 }
 
-/** a bar with strands of stones hanging from it */
 function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
   const g = new THREE.Group();
   const n = Math.max(1, p.count);
@@ -93,7 +86,6 @@ function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
   if (n > 1) {
     const bar = new THREE.CatmullRomCurve3(Array.from({ length: 25 }, (_, i) => { const x = (i / 24 - 0.5) * spread; return v3(x, -0.3, barZ(x)); }));
     g.add(new THREE.Mesh(new THREE.TubeGeometry(bar, 60, 0.28, 8, false), m.metal));
-    // the two wires from the hanging point to the bar's ends
     g.add(tube(m, [v3(0, -0.3, -1.6), v3(-spread / 2, -0.3, 0)], 0.22), tube(m, [v3(0, -0.3, -1.6), v3(spread / 2, -0.3, 0)], 0.22));
     if (p.barStones) {
       const pd = paveDesign(d, p);
@@ -117,7 +109,6 @@ function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
       const s = setStoneRaw(sc, setFor(d, sc), m);
       const turn = THREE.MathUtils.degToRad(p.small.rotation + (p.small.turns[slot] ?? 0));
       s.rotation.y = turn;
-      // a turned stone takes up less (or more) room down the strand
       const tall = Math.abs(Math.cos(turn)) * sc.lengthMm + Math.abs(Math.sin(turn)) * sc.widthMm;
       s.position.set(x, 0, z + tall / 2);
       g.add(s);
@@ -130,7 +121,6 @@ function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {
   return { g, hang };
 }
 
-/** an open gold outline, plain or pavé, with an optional stone inside */
 function dropFramePart(d: Design, m: Mats, p: DropPart): Built {
   const g = new THREE.Group();
   const cs = partStone(d, p);
@@ -142,7 +132,6 @@ function dropFramePart(d: Design, m: Mats, p: DropPart): Built {
   if (p.halo) g.add(patternRun(paveDesign(d, p), m, curve, 0, 1, { closed: true, gap: 0.14, maxW: p.haloMm, offset: () => v3(0, r * 0.55, 0) }).group);
   if (p.showStone) {
     g.add(setStoneRaw(cs, setFor(d, cs), m));
-    // four little bars hold the stone in the frame
     const fn = outlineFn(cs.shape, cs.lengthMm, cs.widthMm);
     for (const u of [0, 0.25, 0.5, 0.75]) { const [x, z] = fn(u); const len = Math.hypot(x, z) || 1; g.add(tube(m, [v3(x, -0.4, z), v3(x * (1 + (p.spreadMm + r) / len), -0.4, z * (1 + (p.spreadMm + r) / len))], 0.22)); }
   }
@@ -150,7 +139,6 @@ function dropFramePart(d: Design, m: Mats, p: DropPart): Built {
   return { g };
 }
 
-/** a ribbon bow set with small stones; the knot can hold a stone */
 function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
   const g = new THREE.Group();
   const w = Math.max(8, p.spreadMm), h = w * 0.55;
@@ -184,17 +172,14 @@ function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
   return { g, top, hang: h * 0.2 };
 }
 
-/** stack every part from the top down; the first part's top is at z = 0 */
 export function dropStack(d: Design, m: Mats) {
   const group = new THREE.Group();
-  // where each part landed: its x, its top and hanging point (z), and half its width
   const placed: { x: number; top: number; hang: number; half: number }[] = [];
   const link = (p: DropPart, ax: number, az: number, bx: number, bz: number) => {
     const A = v3(ax, -0.3, az), B = v3(bx, -0.3, bz), len = A.distanceTo(B);
     if (p.link === "ring" && len < 3 && Math.abs(ax - bx) < 0.5) group.add(jumpRing(m, Math.max(0.7, len / 2 + 0.55), 0.2, A.clone().lerp(B, 0.5)));
     else if (p.link === "direct") group.add(tube(m, [A.clone().setY(-0.7).add(v3(0, 0, -0.6)), B.clone().setY(-0.7).add(v3(0, 0, 0.6))], 0.35));
     else {
-      // longer or slanted joins: a jump ring at each end and fine chain between
       group.add(jumpRing(m, 0.6, 0.17, A), jumpRing(m, 0.6, 0.17, B));
       if (len > 1.2) group.add(chainAlong(new THREE.LineCurve3(A, B), "fine", m));
     }
@@ -212,21 +197,18 @@ export function dropStack(d: Design, m: Mats) {
     const parentIdx = i === 0 ? -1 : p.from >= 0 && p.from < i ? p.from : i - 1;
     const par = parentIdx >= 0 ? placed[parentIdx] : null;
     const tilt = THREE.MathUtils.degToRad(p.tilt);
-    // place one copy: dir = 1 for the part, -1 for its mirrored twin
     const put = (g: THREE.Group, dir: 1 | -1) => {
       let x = 0, z0 = 0;
       if (par && p.anchor === "beside") {
         const s = (p.side === "right" ? 1 : -1) * dir;
         x = par.x + s * (par.half + p.gapMm + half) + p.offsetX * dir;
         z0 = par.top + p.offsetZ;
-        // a hidden bar joins neighbours behind the stones
         group.add(tube(m, [v3(par.x, -0.9, z0 + (hang - top) / 2), v3(x, -0.9, z0 + (hang - top) / 2)], 0.35));
       } else if (par) {
         x = par.x + p.offsetX * dir;
         z0 = par.hang + p.gapMm + p.offsetZ;
         link(p, par.x, par.hang, x, z0);
       } else { x = p.offsetX; z0 = p.offsetZ; }
-      // tilt about the part's own top, where it hangs from
       const pivot = new THREE.Group();
       pivot.position.set(x, 0, z0);
       pivot.rotation.y = -tilt * dir;
@@ -243,7 +225,6 @@ export function dropStack(d: Design, m: Mats) {
   return { group, top: placed[0]?.top ?? 0, bottom: all.isEmpty() ? 0 : all.max.z };
 }
 
-/** a french hook above an earring's top */
 export function hook(m: Mats, top: number) {
   const pts = [v3(0, -0.2, top + 0.6), v3(0, -0.2, top - 4), v3(-1.2, -0.2, top - 9), v3(-4.5, -0.2, top - 11), v3(-7.5, -0.2, top - 9), v3(-8.4, -0.2, top - 4), v3(-8.2, -0.2, top + 1)];
   const g = new THREE.Group();

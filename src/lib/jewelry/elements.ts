@@ -6,8 +6,6 @@ import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { cutGeometry, isColorless } from "./stones";
 
-/* ================= repeated elements (instanced) ================= */
-
 export type Item = { pos: THREE.Vector3; dia: number; up?: THREE.Vector3; yaw?: number; quat?: THREE.Quaternion };
 
 export function orient(o: THREE.Object3D, it: Item) {
@@ -18,7 +16,6 @@ export function orient(o: THREE.Object3D, it: Item) {
   o.updateMatrix();
 }
 
-/** a setting rim that follows the stone's own outline (heart, pear, marquise...), unit width, length = aspect */
 const rimGeometry = geometryCache(200);
 function shapedRim(shape: CenterStone["shape"], asp: number, r: number) {
   return rimGeometry(`${shape}|${asp}|${r}`, () => {
@@ -28,7 +25,6 @@ function shapedRim(shape: CenterStone["shape"], asp: number, r: number) {
   });
 }
 
-/** four little claws on the stone's own outline: corners for step shapes, the point and lobes for hearts and pears */
 function prongAt(shape: CenterStone["shape"], asp: number, k: number): [number, number] {
   const degs = clawDegrees(shape, asp, 1, "four-claw");
   const fn = outlineFn(shape, asp, 1);
@@ -37,17 +33,14 @@ function prongAt(shape: CenterStone["shape"], asp: number, k: number): [number, 
   return [x * 1.02, z * 1.02];
 }
 
-/** small round stones in cups; beads become spheres */
 export const ASPECT = SHAPE_RATIO;
 
-/** `dia` on each item is the stone's width; shaped stones are longer along their local Z by the shape's aspect */
 export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round") {
   const g = new THREE.Group();
   g.userData.part = "accents";
   if (!items.length) return g;
   const o = new THREE.Object3D();
   if (cutIn === "cabochon" || cutIn === "carved") {
-    // little domed stones (sapphire petals, turquoise, emerald leaves) in a thin gold rim
     const asp0 = ASPECT[shape];
     const meshes = [
       new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.45 }, 1), items.length),
@@ -58,14 +51,12 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
     return g;
   }
   if (cutIn === "bead") {
-    // strands and fringes of polished beads: emerald, ruby, sapphire beads (pearls and corals too)
     const im = new THREE.InstancedMesh(cutGeometry("bead", shape, ASPECT[shape], 1, 0.5), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: "bead", color, clarity: 0.45 }, 1), items.length);
     items.forEach((it, i) => { orient(o, it); im.setMatrixAt(i, o.matrix); });
     g.add(im);
     return g;
   }
   if (cutIn === "briolette" && !BEAD_GEMS.has(gem)) {
-    // drops faceted all round, pointing along each stone's length (a briolette halo or fringe)
     const geo = cutGeometry("briolette", shape, ASPECT[shape], 1, 0.5);
     const colorless = isColorless(gem, color);
     const tint = colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
@@ -109,7 +100,6 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   return g;
 }
 
-/** instanced spheres (beads, gold balls, enamel dots) */
 export function balls(mat: THREE.Material, items: Item[], squash = 1) {
   const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 18, 12).scale(1, squash, 1), mat, Math.max(1, items.length));
   const o = new THREE.Object3D();
@@ -118,13 +108,8 @@ export function balls(mat: THREE.Material, items: Item[], squash = 1) {
   return im;
 }
 
-/**
- * Ghungroo: small hollow bells, each with a slit across its underside (local −Y, opened along X) and a pellet inside,
- * instanced like balls (unit diameter, oriented by each item's `up`, which points from the slit to the top).
- */
 export function ghungroo(mat: THREE.Material, items: Item[]) {
   const shell = new THREE.SphereGeometry(0.5, 56, 36).toNonIndexed();
-  // cut the slit: drop the triangles across the bottom, in a narrow band
   const pos = shell.getAttribute("position") as THREE.BufferAttribute, keep: number[] = [];
   for (let t = 0; t < pos.count; t += 3) {
     let cx = 0, cy = 0;
@@ -133,7 +118,6 @@ export function ghungroo(mat: THREE.Material, items: Item[]) {
   }
   const bellGeo = new THREE.BufferGeometry();
   bellGeo.setAttribute("position", new THREE.Float32BufferAttribute(keep, 3));
-  // smooth: on a sphere each point's normal is simply its direction from the centre
   const nrm: number[] = [];
   for (let i = 0; i < keep.length; i += 3) { const v = new THREE.Vector3(keep[i], keep[i + 1], keep[i + 2]).normalize(); nrm.push(v.x, v.y, v.z); }
   bellGeo.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
@@ -154,7 +138,6 @@ export function ghungroo(mat: THREE.Material, items: Item[]) {
   return g;
 }
 
-/** hanging fringe: from each anchor, a tiny gold link and a drop bead (pearl by default), along `dir` */
 export function fringe(d: Design, m: Mats, anchors: { pos: THREE.Vector3; dir: THREE.Vector3 }[], beadsPer = 1) {
   const g = new THREE.Group();
   g.userData.part = "fringe";
@@ -178,7 +161,6 @@ export function fringe(d: Design, m: Mats, anchors: { pos: THREE.Vector3; dir: T
 
 const LINK = { cable: { len: 2.6, wire: 0.42 }, fine: { len: 1.5, wire: 0.22 }, box: { len: 1.8, wire: 0.38 }, rope: { len: 1.6, wire: 0.55 } };
 
-/** chain links along a curve, alternating 90°, between curve params from..to (to may exceed 1 to wrap) */
 export function chainAlong(curve: THREE.Curve<THREE.Vector3>, style: keyof typeof LINK, m: Mats, from = 0, to = 1) {
   const { len, wire } = LINK[style];
   const total = curve.getLength() * (to - from);
@@ -204,7 +186,6 @@ export function jumpRing(m: Mats, r: number, wire: number, pos: THREE.Vector3) {
   return ring;
 }
 
-/** stones evenly spaced around an outline, offset outward, e.g. a halo */
 export function aroundOutline(fn: OutlineFn, gap: number, dia: number, spacing: number, y = -0.25): Item[] {
   const N = 480, raw = Array.from({ length: N }, (_, i) => fn(i / N));
   const off = ([x, z]: [number, number]) => { const r = Math.hypot(x, z) || 1; const k = (r + gap + dia / 2) / r; return v3(x * k, y, z * k); };
@@ -219,7 +200,6 @@ export function aroundOutline(fn: OutlineFn, gap: number, dia: number, spacing: 
   return out;
 }
 
-/** a flat plate under a cluster or halo; satin by default, as a broad polished plate flares white under studio lights */
 export function backingPlate(m: Mats, fn: OutlineFn, scale: number, y: number, depth: number, mat?: THREE.Material) {
   const pts = Array.from({ length: 96 }, (_, i) => { const [x, z] = fn(i / 96); return new THREE.Vector2(x * scale, z * scale); });
   const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 2, curveSegments: 8 });

@@ -5,7 +5,7 @@ import { studioSummary } from "@/lib/studio/dashboard";
 import { DEMO_NAMES, demoStudio } from "@/lib/studio/demo";
 
 export const metadata = { title: `Studio demo · ${BRAND.name}` };
-export const dynamic = "force-dynamic"; // sample activity is dated relative to now
+export const dynamic = "force-dynamic";
 
 export default function DemoStudioPage() {
   const { links, events, accounts } = demoStudio();

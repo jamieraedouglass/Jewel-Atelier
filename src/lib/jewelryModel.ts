@@ -12,22 +12,14 @@ import { ankletPiece, armletPiece, handPiece, headpiecePiece, nosePiece } from "
 import { mensPiece } from "./jewelry/mens";
 export type { Piece } from "./jewelry/common";
 
-/**
- * Builds any piece from a Design.
- * Rings stand upright (see ringModel.ts). Everything else is laid flat like a jeweller's flat-lay photo:
- * stones face +Y and gravity points to +Z, so drops, fringes and pendants hang toward the viewer.
- * Each piece type's builder lives in src/lib/jewelry/.
- */
 export function buildPiece(d: Design): Piece {
   const p = buildWhole(d);
   if (accentsOff(d)) withoutAccents(p.group);
   return p;
 }
 
-/** take the accent stones out of a built piece, leaving the main stone and the metal */
 function withoutAccents(group: THREE.Object3D) {
   const gone: THREE.Object3D[] = [];
-  // a kept group (the half-flower's petals, band stones, Deco layers) is part of the design: leave it and all inside it
   const walk = (o: THREE.Object3D) => {
     if (o.userData.keep) return;
     if (o.userData.part === "accents") { gone.push(o); return; }
@@ -54,7 +46,6 @@ function buildWhole(d: Design): Piece {
   }
 }
 
-/** build with the loop flattened (worn look): stones keep their shape and spacing, only the loop's path changes */
 export function buildWornPiece(d: Design, flatten: number): Piece {
   return withLoopFlatten(flatten, () => buildPiece(d));
 }

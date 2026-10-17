@@ -8,7 +8,6 @@ import { type RingCanvasHandle } from "./types";
 import { FOV, framing, subjectOf } from "./framing";
 import { roomLight } from "./stoneLight";
 
-/** Lets the outside ask for a true-to-scale cutout: one frame drawn with a flat (orthographic) camera on a clear background. */
 export function Grabber({ piece, design, handle }: { piece: Piece; design: Design; handle?: React.MutableRefObject<RingCanvasHandle | null> }) {
   const { gl, scene } = useThree();
   const latest = useRef({ piece, design });
@@ -28,7 +27,6 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
     });
     handle.current.cutout = (mode = "whole", ear = "left", flatten = 1) => {
       const { piece: shown, design } = latest.current;
-      // worn: rebuild the piece with its loop flattened, so the stones keep their own shape (only the path changes)
       const worn = mode === "front" && flatten < 0.999 && !shown.upright ? buildWornPiece(design, flatten) : null;
       const piece = worn ?? shown;
       if (worn) { roomLight(gl, worn.group); shown.group.visible = false; scene.add(worn.group); }
@@ -39,7 +37,6 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
       const box = new THREE.Box3().setFromObject(obj);
       hide.forEach((h) => (h.visible = true));
       if (box.isEmpty()) return done(null);
-      // worn on a wrist, ankle or neck you only see the front of the loop: keep the front half
       let clip: THREE.Plane | null = null;
       if (mode === "front" && !piece.upright) {
         const cz = (box.min.z + box.max.z) / 2;
@@ -47,7 +44,6 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
         box.min.z = cz;
       }
       const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
-      // looking down on flat pieces (and rings, stone up); upright hoops are seen from the front
       const front = piece.upright && design.type !== "ring";
       const spanX = size.x, spanY = front ? size.y : size.z, depth = front ? size.z : size.y;
       const el = gl.domElement, cw = el.width, ch = el.height;
@@ -59,12 +55,9 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
       else { cam.position.set(c.x, c.y + depth + 100, c.z); cam.up.set(0, 0, -1); }
       cam.lookAt(c);
       cam.updateProjectionMatrix();
-      // hide everything but the piece (shadow, floor) and the background for this one frame
       const hidden: THREE.Object3D[] = [];
       scene.children.forEach((o) => { if (o !== piece.group && o.visible && !(o as THREE.Light).isLight) { o.visible = false; hidden.push(o); } });
       hide.forEach((h) => { h.visible = false; hidden.push(h); });
-      // two frames: one in front of a warm neutral (so clear and coloured stones look as they do on skin, with full
-      // colour), one on a transparent background to find the piece's outline; the first gives colour, the second alpha
       const bg = scene.background, clear = gl.getClearAlpha(), prevColor = gl.getClearColor(new THREE.Color()), auto = gl.autoClear, target = gl.getRenderTarget();
       const prevClip = gl.clippingPlanes;
       const mmPerPx = fw / cw;
@@ -83,8 +76,6 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
         cx2.drawImage(el, (cw - wPx) / 2, (ch - hPx) / 2, wPx, hPx, 0, 0, wPx, hPx);
         return cx2.getImageData(0, 0, wPx, hPx);
       };
-      // seen straight down, every facet mirrors the overhead softbox and coloured stones bleach to pastel:
-      // for this frame, calm the facet mirrors so the stones keep their body colour
       const calmed: [THREE.MeshPhysicalMaterial, number][] = [];
       piece.group.traverse((o) => {
         const mt = (o as THREE.Mesh).material as THREE.MeshPhysicalMaterial | undefined;
@@ -99,7 +90,6 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
       const px = colour.data, mk = mask.data;
       for (let i = 0; i < px.length; i += 4) {
         px[i + 3] = Math.min(255, mk[i + 3] * 5);
-        // a touch more colour and contrast, as a photo of the real piece would have under a lamp
         const r = px[i], g = px[i + 1], b = px[i + 2], l = 0.3 * r + 0.59 * g + 0.11 * b;
         const sat = 1.45, con = 1.12;
         px[i] = Math.max(0, Math.min(255, ((l + (r - l) * sat) - 128) * con + 128));

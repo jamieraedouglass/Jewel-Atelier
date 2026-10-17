@@ -6,11 +6,6 @@ import { priceReply } from "./clientChat";
 import { priceFor, type Pricing } from "./pricing";
 import type { DashEvent, DashLink } from "./dashboard";
 
-/**
- * The demo to show the studio: a sample client link and a dashboard with sample activity, built from the house's
- * signature pieces. Nothing here touches a database.
- */
-
 const piece = (id: string, name: string) => {
   const entry = SHOWCASE.find((s) => s.name === name);
   if (!entry) throw new Error(`no showcase piece ${name}`);
@@ -35,7 +30,6 @@ export const DEMO_ALLOW = normalizeAllow({
   chat: true,
 });
 
-/** sample prices (rupees): the ruby ring as designed, in 22k, and with a Colombian emerald; the others as designed */
 export const DEMO_PRICING: Pricing = {
   currency: "INR",
   pieces: {
@@ -50,14 +44,12 @@ export const DEMO_CLIENT = {
   note: "Meher, as we discussed: the two half-flowered rings to choose between, and the Kashi Kamal earrings to go with them. Try them on, play with the stone and size, and tell me what you think. Carl",
 };
 
-/** Meher's own copy of the ruby ring: 22k, a size smaller, the stone 10% larger */
 export const MEHER_RUBY: Design = (() => {
   const base = DEMO_PIECES[0].base;
   const r1 = (n: number) => Math.round(n * 10) / 10;
   return applyPatch(base, { purity: { karat: 22 }, ringSize: 6, center: { lengthMm: r1(base.center.lengthMm * 1.1), widthMm: r1(base.center.widthMm * 1.1), carat: null } });
 })();
 
-/** what Meher asked the design assistant, piece by piece (the kind of answers it gives: no prices, nothing made up) */
 const MEHER_CHATS: Record<string, ChatMessage[]> = {
   [DEMO_PIECES[1].designId]: [
     { role: "user", content: "Would the emerald one be too green for everyday?" },
@@ -73,7 +65,6 @@ const MEHER_CHATS: Record<string, ChatMessage[]> = {
   ],
 };
 
-/** sample activity, dated relative to now so the dashboard always looks current */
 export function demoStudio(now = Date.now()) {
   const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
   const [r1, r2, e1] = DEMO_PIECES.map((p) => p.designId);
@@ -109,7 +100,6 @@ export function demoStudio(now = Date.now()) {
   return { links, events, accounts };
 }
 
-/** one sample link as the jeweller would see it (the demo's version of the studio's link page) */
 export function demoLinkDetail(id: string, now = Date.now()) {
   const { links, events } = demoStudio(now);
   const link = links.find((l) => l.id === id);

@@ -3,7 +3,6 @@
 import { SIDE_KINDS, HUG_REASON, canHug } from "@/lib/design";
 import { Chips, Range, Toggle, sectionStyle, type SectionProps } from "./fields";
 
-/** side stones beside a ring's centre stone, and the gallery's rose-cuts */
 export default function SidesSection({ d, onChange }: SectionProps) {
   const s = d.sides, ring = d.type === "ring", on = s.kind !== "none";
   return (

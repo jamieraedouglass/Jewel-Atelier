@@ -8,7 +8,6 @@ const CLASP_LABEL: Record<ClaspChoice, string> = {
 };
 import { Chips, Range, Toggle, sectionStyle, type SectionProps } from "./fields";
 
-/** the controls this section can show; it is hidden when the style uses none of them */
 export const CONSTRUCTION_USES: Use[] = ["setting", "halo", "accentTop", "pave", "hoop", "length", "chain", "count", "layers", "wrist", "links", "hang", "clasp"];
 
 const lengthName = (n: number) => NECKLACE_LENGTHS.reduce((a, b) => (Math.abs(b.in - n) < Math.abs(a.in - n) ? b : a)).name;
@@ -22,7 +21,6 @@ const countLabel = (style: string) =>
 const countMax = (style: string) => (style === "half-flower" ? 9 : style === "swirl" ? 5 : style === "flowers" || style === "posy" ? 12 : 80);
 const layersLabel = (style: string) => (style === "tennis" || style === "wide-band" ? "Rows" : style === "by-the-yard" ? "Times round the neck" : "Rows / strands");
 
-/** setting, halo, pavé, hoop shape, length, chain, counts, rows and wrist or bangle size */
 export default function ConstructionSection({ d, onChange, has }: SectionProps & { has: (u: Use) => boolean }) {
   const o = d.options;
   const setOpt = (p: Partial<Design["options"]>) => onChange({ options: p });

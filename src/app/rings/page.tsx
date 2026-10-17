@@ -17,7 +17,7 @@ export default async function MyRings({ searchParams }: { searchParams: { status
   if (!user) redirect("/login?next=/rings");
   const list = (cols: string) => supabase.from("designs").select(cols).eq("owner", user.id).order("updated_at", { ascending: false });
   let res = await list("id, name, data, thumbnail_path, updated_at, status");
-  if (res.error) res = await list("id, name, data, thumbnail_path, updated_at"); // before the status column exists
+  if (res.error) res = await list("id, name, data, thumbnail_path, updated_at");
   const all = (res.data ?? []) as unknown as { id: string; name: string; data: unknown; thumbnail_path: string | null; updated_at: string; status?: string }[];
   const filter = (STATUSES as readonly string[]).includes(searchParams.status ?? "") ? (searchParams.status as Status) : null;
   const rows = filter ? all.filter((r) => normalizeStatus(r.status) === filter) : all;
@@ -40,7 +40,6 @@ export default async function MyRings({ searchParams }: { searchParams: { status
       ) : (
         <div className="grid">
           {rows.map((r) => {
-            // an out-of-date picture is redrawn (see thumbs.ts), so every card shows the same lighting and backdrop
             const thumb = isCurrentThumb(r.thumbnail_path) ? supabase.storage.from("thumbnails").getPublicUrl(r.thumbnail_path!).data.publicUrl : null;
             return (
               <div key={r.id} className="card">
@@ -64,7 +63,6 @@ export default async function MyRings({ searchParams }: { searchParams: { status
           })}
         </div>
       )}
-      {/* draws the cards that have no picture yet, one at a time, in a single shared 3D canvas */}
       <ThumbStudio />
     </main>
   );

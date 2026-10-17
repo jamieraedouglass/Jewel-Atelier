@@ -5,7 +5,6 @@ import { GemSelect, Range, Toggle, sectionStyle, type SectionProps } from "./fie
 
 const FRINGE_GEMS: Gem[] = ["pearl", "coral", "emerald", "ruby", "onyx", "turquoise", "garnet", "amethyst"];
 
-/** hanging beads, or the pearl cluster over a hoop */
 export default function FringeSection({ d, onChange }: SectionProps) {
   return (
     <section id="sec-fringe" style={sectionStyle}>

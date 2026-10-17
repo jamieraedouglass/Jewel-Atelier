@@ -10,7 +10,6 @@ const TITLE: Record<Pick["part"], string> = {
 
 type Props = { pick: Pick; design: Design; onChange: (p: DesignPatch) => void; onMore: (part: Pick["part"], index?: number) => void; onClose: () => void };
 
-/** A small editor that opens where you clicked on the paused 3D piece. */
 export default function QuickEdit({ pick, design: d, onChange, onMore, onClose }: Props) {
   const chip = (on: boolean, text: string, act: () => void) => (
     <button key={text} type="button" className="chip" aria-pressed={on} onClick={act}>{text}</button>

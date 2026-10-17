@@ -12,16 +12,10 @@ import PriceEditor, { filledPricing } from "../studio/PriceEditor";
 import ClientStudio from "./ClientStudio";
 
 type Side = "see" | "settings";
-/** one object for the whole visit: a new one each render would rebuild the demo's backend and forget what it had logged */
 const DEMO_MODE = { kind: "demo" } as const;
 const BASES = Object.fromEntries(DEMO_PIECES.map((p) => [p.designId, p.base]));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/**
- * The demo to play with: Meher's screen, and beside it the jeweller's side, live. What she changes shows up on his side
- * as it would for real (changes, price, carats, metal weight, activity); what he changes (her options, his prices)
- * shows up on her screen straight away. Nothing is saved.
- */
 export default function DemoClient({ studioName }: { studioName: string }) {
   const [allow, setAllow] = useState<Allow>(DEMO_ALLOW);
   const [pricing, setPricing] = useState<Pricing>(DEMO_PRICING);
@@ -29,9 +23,7 @@ export default function DemoClient({ studioName }: { studioName: string }) {
   const [log, setLog] = useState<string[]>([`${DEMO_CLIENT.name} opened the link`]);
   const [side, setSide] = useState<Side>("see");
   const [open, setOpen] = useState(true);
-  // her screen starts again (keeping her changes, within the new rules) when the jeweller changes what she may do
   const [round, setRound] = useState(0);
-  // Meher's pieces as they are this moment, including a change not saved yet (her screen restarts from these)
   const latest = useRef(versions);
 
   const onDemoEvent = useCallback((line: string) => setLog((cur) => [`${DEMO_CLIENT.name}: ${line}`, ...cur].slice(0, 30)), []);
@@ -43,13 +35,11 @@ export default function DemoClient({ studioName }: { studioName: string }) {
 
   function changeAllow(next: Allow) {
     setAllow(next);
-    // keep her changes (the latest, even one not saved yet), within what she may now do
     const kept = Object.fromEntries(DEMO_PIECES.map((p) => [p.designId, clampToAllowed(p.base, latest.current[p.designId], next)]));
     latest.current = kept;
     setVersions(kept);
     setRound((n) => n + 1);
   }
-
 
   return (
     <div className={`demo-split${open ? "" : " closed"}`}>
@@ -108,7 +98,6 @@ export default function DemoClient({ studioName }: { studioName: string }) {
   );
 }
 
-/** one piece as the jeweller sees it: what she changed, the price she sees, and what it means for the workshop */
 function PieceStatus({ id, name, base, version, pricing }: { id: string; name: string; base: Design; version: Design; pricing: Pricing }) {
   const changes = describeChanges(base, version);
   const priced = priceFor(base, version, pricing.pieces[id]);

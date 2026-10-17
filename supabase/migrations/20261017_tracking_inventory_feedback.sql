@@ -1,6 +1,3 @@
--- Where each design is (idea → in the workshop → made), the inventory details of made pieces, suggestions turned down,
--- a written read of the inspiration photos (so the chat needn't send them every time), and each design's chat.
-
 alter table public.designs add column if not exists status    text not null default 'idea' check (status in ('idea', 'workshop', 'made'));
 alter table public.designs add column if not exists made_at   timestamptz;
 alter table public.designs add column if not exists inventory jsonb not null default '{}'::jsonb;

@@ -1,8 +1,3 @@
--- Tidying from Supabase's own advisor:
--- 1. Visitors who aren't signed in can't call the daily AI counter (it only ever counted for a signed-in user anyway).
--- 2. Row rules ask "who is signed in?" once per query instead of once per row (same rules, faster as tables grow).
--- 3. Indexes for links between tables that had none.
-
 revoke execute on function public.use_ai_call(integer) from anon, public;
 grant execute on function public.use_ai_call(integer) to authenticated, service_role;
 

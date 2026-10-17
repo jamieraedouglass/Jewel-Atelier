@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { MotifSchema } from "../design";
 
-/** Drawing custom motifs from a brief or a sketch. */
-
 export const createMotifTool: Anthropic.Tool = {
   name: "create_motif",
   description: "Draw a flat jewellery motif (a gold plate shape) with stone positions. The app extrudes it in gold and sets the stones.",
@@ -37,7 +35,6 @@ paisley (kairi), peacock (mor), lotus (kamal), mango, elephant, temple and Mugha
 Draw like a CAD designer: confident curves, balanced proportions, no stray points, no self-intersections. When tracing a sketch or photo,
 follow its silhouette and the placement of stones you can see, simplifying wobbles. Always call create_motif exactly once.`;
 
-/** Claude's tool output → a validated motif, or null */
 export function toMotif(input: unknown) {
   const raw = input as { name?: string; path?: string; stones?: unknown[]; edge?: string; enamel?: boolean; notes?: string };
   const parsed = MotifSchema.safeParse({
@@ -47,4 +44,3 @@ export function toMotif(input: unknown) {
   return parsed.success ? { motif: parsed.data, enamel: !!raw?.enamel, notes: raw?.notes ?? "" } : null;
 }
 
-/* ---------- recreate a whole piece from a photo ---------- */

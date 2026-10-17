@@ -6,7 +6,6 @@ import type { Allow } from "@/lib/studio/links";
 import type { Pricing } from "@/lib/studio/pricing";
 import PriceEditor, { filledPricing } from "./PriceEditor";
 
-/** a sent link's prices, editable: the client sees the new prices next time they look */
 export default function LinkPricing({ id, pieces, allow, initial }: { id: string; pieces: { id: string; name: string }[]; allow: Allow; initial: Pricing }) {
   const [value, setValue] = useState<Pricing>(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");

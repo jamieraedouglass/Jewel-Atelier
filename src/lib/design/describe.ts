@@ -4,8 +4,6 @@ import { type CenterStone, type Design } from "./schema";
 import { indianRingSize, label, metalName } from "./measures";
 import { phenomenonText } from "./character";
 
-/** Plain-language descriptions of a design, for captions, sharing and the AI. */
-
 const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCase());
 
 export function stoneText(c: CenterStone) {
@@ -32,5 +30,4 @@ export function describeDesign(d: Design): string {
   return parts.filter(Boolean).join(" · ");
 }
 
-/** a gem's name for a label or menu: "Cat's eye", "Yellow sapphire" */
 export const gemLabel = (g: string) => (g === "cats-eye" ? "Cat's eye" : label(g));

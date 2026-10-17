@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-/** whether this deployment has a database yet (without one, only the demo works and nobody is signed in) */
 export const hasSupabase = () => !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export function createClient() {
@@ -13,7 +12,7 @@ export function createClient() {
         try {
           list.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // called from a Server Component; the middleware refreshes the session instead
+          return;
         }
       },
     },

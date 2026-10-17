@@ -1,11 +1,8 @@
 import * as THREE from "three";
 import { type Gem } from "../design";
 
-/** Shared types and tiny helpers for the piece builders. */
-
 export type Piece = {
   group: THREE.Group;
-  /** the stone worth zooming in on */
   focus: THREE.Vector3;
   focusSize: number;
   upright: boolean;

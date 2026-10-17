@@ -12,7 +12,6 @@ describe("what can actually be made", () => {
     const hug = chooseStyle(defaultDesign(), "earrings", "huggie");
     expect(applyPatch(hug, { options: { hoopFace: "inner" } }).options.hoopFace).toBe("front");
     expect(blockedOptions(hug).hoopInside?.reason).toMatch(/earlobe/);
-    // a bigger hoop can have stones inside
     const hoop = chooseStyle(defaultDesign(), "earrings", "hoop");
     expect(applyPatch(hoop, { options: { hoopFace: "inner" } }).options.hoopFace).toBe("inner");
   });

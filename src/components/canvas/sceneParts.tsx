@@ -8,13 +8,10 @@ import { type Part, type Pick, type View } from "./types";
 import { framing } from "./framing";
 
 export function Model({ piece }: { piece: Piece }) {
-  // wait a tick before freeing the old piece, so effects that swapped its materials (Refraction) put them back first
-  // and the originals are freed too
   useEffect(() => () => { setTimeout(() => disposeGroup(piece.group), 0); }, [piece]);
   return <primitive object={piece.group} />;
 }
 
-/** Turns a click (not a drag) on the canvas into "which part of the piece was hit", using our own raycast. */
 export function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: (p: Pick) => void; onMiss?: () => void }) {
   const { camera, gl } = useThree();
   const latest = useRef({ piece, onPick, onMiss });
@@ -29,7 +26,7 @@ export function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: 
       if (!down || !onPick) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       down = null;
-      if (moved > 5) return; // that was a drag to turn the piece
+      if (moved > 5) return;
       const r = el.getBoundingClientRect();
       ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
       piece.group.updateWorldMatrix(true, true);
@@ -38,7 +35,6 @@ export function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: 
       let o: THREE.Object3D | null = hit.object;
       let index: number | undefined;
       while (o && !o.userData.part) o = o.parent;
-      // inside a drop part, the part number lives on the part's group
       for (let q: THREE.Object3D | null = o; q; q = q.parent) if (typeof q.userData.dropIndex === "number") { index = q.userData.dropIndex; break; }
       let ear: "left" | "right" | undefined;
       for (let q: THREE.Object3D | null = hit.object; q; q = q.parent) if (q.userData.ear) { ear = q.userData.ear; break; }
@@ -51,7 +47,6 @@ export function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: 
   return null;
 }
 
-/** Re-frames when the view or the kind of piece changes, not on every slider tweak. */
 export function CameraRig({ view, piece, frameKey, controls }: { view: View; piece: Piece; frameKey: string; controls: React.RefObject<OrbitControlsImpl> }) {
   const { camera } = useThree();
   const latest = useRef(piece);

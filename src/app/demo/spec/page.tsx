@@ -8,7 +8,6 @@ import { DEMO_PIECES, demoLinkDetail } from "@/lib/studio/demo";
 
 export const metadata = { title: `Workshop sheet demo · ${BRAND.name}` };
 
-/** a demo piece's workshop sheet: as designed, or a sample client's version (Meher's ruby ring by default) */
 export default function DemoSpecPage({ searchParams }: { searchParams: { piece?: string; client?: string } }) {
   const pieceId = searchParams.piece ?? DEMO_PIECES[0].designId;
   const clientId = searchParams.piece ? searchParams.client : "demo-meher";

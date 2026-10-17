@@ -7,20 +7,14 @@ import { eventText, type DashEvent } from "@/lib/studio/dashboard";
 
 export type LinkPieceView = {
   designId: string; name: string; base: Design; version: Design; changes: string[]; chat: ChatMessage[];
-  /** the priced version the client's piece matches (null: none), and whether this piece has prices at all */
   priced?: PriceVersion | null; hasPrices?: boolean;
 };
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "never");
 
-/**
- * One client link as the jeweller sees it: each piece with what the client changed, the workshop sheet for it, and
- * their whole conversation with the design assistant; then everything they did, in order. Shared by the studio and the demo.
- */
 export default function LinkDetailView({ clientName, status, allowed, backHref, controls, pricing, pieces, events, specHref }: {
   clientName: string; status: string; allowed: string; backHref: string; controls?: React.ReactNode; pricing?: React.ReactNode;
   pieces: LinkPieceView[]; events: DashEvent[];
-  /** the workshop sheet for a piece, as designed or as the client has it */
   specHref: (designId: string, clients: boolean) => string;
 }) {
   const nameOf = (id: string | null) => (id ? pieces.find((p) => p.designId === id)?.name ?? "a piece" : null);

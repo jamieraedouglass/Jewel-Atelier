@@ -7,9 +7,7 @@ import { clampToAllowed, describeChanges, optionLook, optionName, type Allow } f
 export type ClientPieceData = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
 export type EventKind = "tried-on" | "compared" | "asked-jeweller";
 
-/** what the client screen needs from the server; the demo answers the same questions in the browser */
 export interface ClientBackend {
-  /** save an adjusted piece; resolves with what was kept (only what's allowed) */
   save(designId: string, design: Design): Promise<Design | null>;
   chat(designId: string, design: Design, messages: { role: "user" | "assistant"; content: string }[], history: ChatMessage[]): Promise<{ reply: string; proposals: { title: string; why: string; design: Design }[] }>;
   event(designId: string | null, kind: EventKind, detail?: { message?: string }): Promise<void>;
@@ -22,7 +20,6 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return json as T;
 }
 
-/** the real thing: a client link's own routes */
 export function linkBackend(token: string): ClientBackend {
   const base = `/api/client/${encodeURIComponent(token)}`;
   return {
@@ -32,10 +29,6 @@ export function linkBackend(token: string): ClientBackend {
   };
 }
 
-/**
- * The demo: everything runs in the browser, with the same rules as a real link. The chat answers from a small script
- * (the real one asks the AI) so the demo works with no account, database or API key.
- */
 export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName: string, onEvent?: (line: string) => void, pricing?: Pricing, rate: number | null = null,
   onSave?: (designId: string, d: Design) => void): ClientBackend {
   const baseOf = (id: string) => pieces.find((p) => p.designId === id)!.base;
@@ -43,7 +36,6 @@ export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName:
   return {
     async save(designId, design) {
       const kept = clampToAllowed(baseOf(designId), design, allow);
-      // what the real dashboard records: each saved change, in words
       const before = saved.get(designId) ?? pieces.find((p) => p.designId === designId)!.version;
       if (JSON.stringify(before) !== JSON.stringify(kept)) {
         const changes = describeChanges(baseOf(designId), kept);
@@ -57,7 +49,6 @@ export function demoBackend(pieces: ClientPieceData[], allow: Allow, studioName:
       await new Promise((r) => setTimeout(r, 900));
       const question = messages[messages.length - 1]?.content ?? "";
       if (isPriceQuestion(question)) {
-        // the jeweller's own price, if the piece is one of his priced versions; never the AI's
         const piece = pieces.find((p) => p.designId === designId)!;
         const match = pricing ? priceFor(piece.base, design, pricing.pieces[designId]) : null;
         if (match && pricing) {

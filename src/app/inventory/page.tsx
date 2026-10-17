@@ -8,7 +8,6 @@ import { BRAND } from "@/lib/brand";
 
 export const metadata = { title: `Inventory · ${BRAND.name}` };
 
-/** Every piece marked as made: what it is, where it is, what it weighs and what it's worth. */
 export default async function InventoryPage() {
   const { supabase, user } = await requireUser();
   if (!user) redirect("/login?next=/inventory");

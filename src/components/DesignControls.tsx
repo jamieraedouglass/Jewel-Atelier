@@ -19,12 +19,10 @@ import MetalSection from "./controls/MetalSection";
 
 type Props = { design: Design; userId: string | null; onChange: (patch: DesignPatch) => void; onReplace: (d: Design) => void; dropFocus?: number | null };
 
-/** The full set of design controls. Only the sections the current style uses are shown. */
 export default function DesignControls({ design: d, userId, onChange, onReplace, dropFocus }: Props) {
   const meta = styleMeta(d.type, d.style);
   const has = (u: Use) => meta.uses.includes(u);
   const section = { d, onChange };
-  // the showcase opens on the kind of piece being designed
   const [category, setCategory] = useState<ShowcaseCategory>(() => (BRAND.showcaseCategory === "kothari" ? "kothari" : categoryFor(d.type)));
 
   return (
@@ -38,7 +36,6 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
             if (s) onReplace(showcaseDesign(s, d));
           }}>
             <option value="">Choose a showcase piece ({showcaseIn(category).length})…</option>
-            {/* a list mixing piece types (Kothari's, More) is grouped by type */}
             {TYPES.map((t) => {
               const list = showcaseIn(category).filter(({ entry }) => entry.type === t);
               if (!list.length) return null;

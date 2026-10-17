@@ -5,7 +5,6 @@ import { isCurrentThumb, thumbPath } from "@/lib/thumbs";
 
 const top = async (d: ReturnType<typeof defaultDesign>) => {
   const { buildPiece } = await import("@/lib/jewelryModel");
-  // just the layered top (the band would hide its size)
   let layers: THREE.Object3D | null = null;
   buildPiece(d).group.traverse((o) => { if (!layers && o.userData.part === "accents" && o.userData.keep) layers = o; });
   const box = new THREE.Box3().setFromObject(layers!);
@@ -18,7 +17,6 @@ describe("layered (Deco) rings", () => {
     const big = { kind: "stones" as const, outline: "oval" as const, gem: "sapphire" as const, color: "#e7a6c8", cut: "cabochon" as const, shape: "pear" as const, widthMm: 6, direction: "radial" as const, alt: null, every: 1, gapMm: 3 };
     const d = { ...applyPatch(deco, { center: { shape: "marquise", lengthMm: 18, widthMm: 10 } }), frames: Array(6).fill(big) };
     const t = await top(d);
-    // was 101 mm before the cap; six layers can only shrink so far round an 18 mm stone (stones bottom out at 0.6 mm)
     expect(Math.max(t.across, t.along)).toBeLessThan(40);
   });
   it("keep a normal design exactly as it was", async () => {
@@ -34,7 +32,7 @@ describe("layered (Deco) rings", () => {
 describe("gallery pictures", () => {
   it("are redrawn when the look changes", () => {
     expect(isCurrentThumb(thumbPath("u", "d"))).toBe(true);
-    expect(isCurrentThumb("u/d.jpg")).toBe(false); // taken before pictures were stamped
+    expect(isCurrentThumb("u/d.jpg")).toBe(false);
     expect(isCurrentThumb(null)).toBe(false);
   });
 });

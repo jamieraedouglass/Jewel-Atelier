@@ -5,15 +5,12 @@ import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
 import { useEffect } from "react";
 import * as THREE from "three";
 
-/** The jeweller's light box: dark room, crisp strip lights so facets flash and metal reads as polished. */
-/** a real photographic studio (softboxes, a white sweep) for metal and stones to reflect */
 export function useStudio() {
   const tex = useLoader(EXRLoader, STUDIO_HDR);
   tex.mapping = THREE.EquirectangularReflectionMapping;
   return tex;
 }
 
-/** The jeweller's light box: a real studio HDR, plus crisp strip lights so facets flash and metal reads as polished. */
 export function StudioLights() {
   const hdr = useStudio();
   const strips = Array.from({ length: 14 }, (_, k) => {
@@ -30,7 +27,6 @@ export function StudioLights() {
   );
 }
 
-/** a soft pool of light behind the piece, like a jeweller's velvet board under a lamp */
 let backdropTex: THREE.CanvasTexture | null = null;
 export function Backdrop() {
   const { scene } = useThree();

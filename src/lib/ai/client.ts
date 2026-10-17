@@ -1,9 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** The Claude client, model choice, images from storage, and the one-tool-call helper every feature uses. Server-only. */
-
-/** Server-only. The API key never reaches the browser. Created lazily so builds work without a key. */
 let client: Anthropic | null = null;
 export function anthropic() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing. Add it under Vercel → Settings → Environment Variables (or .env.local locally), then redeploy.");
@@ -14,7 +11,6 @@ export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 type ImageBlock = Anthropic.ImageBlockParam;
 const MEDIA = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
-/** Download private storage files and turn them into image blocks for Claude. */
 export async function storageImages(supabase: SupabaseClient, bucket: string, paths: string[]): Promise<ImageBlock[]> {
   const out: ImageBlock[] = [];
   for (const path of paths) {
@@ -27,12 +23,6 @@ export async function storageImages(supabase: SupabaseClient, bucket: string, pa
   return out;
 }
 
-/* ---------- tool schemas ---------- */
-
-/**
- * Ask for one tool call and return its input. Some models refuse a forced tool_choice, so this asks politely
- * (tool_choice auto) and, if the reply is only text, asks once more to call the tool.
- */
 export async function callTool(opts: { system: string; tool: Anthropic.Tool; content: Anthropic.MessageParam["content"]; maxTokens?: number }): Promise<unknown | null> {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: opts.content }];
   for (let attempt = 0; attempt < 2; attempt++) {
