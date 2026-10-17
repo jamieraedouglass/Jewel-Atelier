@@ -2,6 +2,7 @@ import { type Gem } from "./vocab";
 import { TYPE_LABEL, accentsOff, isSolidBracelet, styleMeta } from "./styles";
 import { type CenterStone, type Design } from "./schema";
 import { indianRingSize, label, metalName } from "./measures";
+import { phenomenonText } from "./character";
 
 /** Plain-language descriptions of a design, for captions, sharing and Claude. */
 
@@ -10,7 +11,8 @@ const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCa
 export function stoneText(c: CenterStone) {
   if (c.none) return "no main stone";
   const cut = c.cut === "faceted" ? `${c.shape}-cut` : c.cut;
-  return `${c.carat ? `${c.carat} ct ` : ""}${gemName(c.gem)} ${cut} (${Math.round(c.lengthMm * 10) / 10} × ${Math.round(c.widthMm * 10) / 10} mm)`;
+  const effect = phenomenonText(c);
+  return `${c.carat ? `${c.carat} ct ` : ""}${effect ? `${effect} ` : ""}${gemName(c.gem)} ${cut} (${Math.round(c.lengthMm * 10) / 10} × ${Math.round(c.widthMm * 10) / 10} mm)`;
 }
 
 export function describeDesign(d: Design): string {

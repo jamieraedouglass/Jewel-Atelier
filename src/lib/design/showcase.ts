@@ -50,7 +50,7 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Sapphire petal ring", type: "ring", style: "deco", patch: { metal: "platinum", center: diamond("cushion", 2, "Old cushion diamond"), frames: FRAME_PRESETS[4].frames } as DesignPatch },
   { name: "Marquise mosaic cocktail ring", type: "ring", style: "deco", patch: { metal: "yellow-gold", center: diamond("marquise", 2.5, "Marquise diamond"), frames: FRAME_PRESETS[8].frames } as DesignPatch },
   { name: "Pavé swirl ring", type: "ring", style: "swirl", patch: { metal: "white-gold", center: diamond("round", 1.2, "Round brilliant"), options: { count: 3 }, accents: { sizeCt: 0.012 } } },
-  { name: "Oval trilogy ring", type: "ring", style: "three-stone", patch: { metal: "platinum", center: diamond("oval", 2, "Oval diamond"), sides: { kind: "oval", sizeCt: 1.5 } } },
+  { name: "Oval trilogy ring", type: "ring", style: "three-stone", patch: { metal: "platinum", center: diamond("oval", 2, "Oval diamond"), sides: { kind: "oval", sizeCt: 0.6 } } },
   { name: "Old-mine and baguette line bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["old-mine", "baguette"], turns: [0, 90], sizeCt: 1.2 } } },
   { name: "Round and twin-baguette bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { shapes: ["round", "baguette"], turns: [0, 0], twins: [false, true], sizeCt: 1.5 } } },
   { name: "Three-row oval halo bracelet", type: "bracelet", style: "tennis", patch: { metal: "white-gold", accents: { shapes: ["oval"], sizeCt: 0.5 }, options: { layers: 3, halo: true } } },

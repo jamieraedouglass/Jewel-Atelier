@@ -123,6 +123,16 @@ export const accentsOptional = (d: Pick<Design, "type" | "style">) => {
   const u = styleMeta(d.type, d.style).uses;
   return u.includes("center") && (u.includes("accents") || u.includes("halo") || u.includes("pave") || u.includes("accentTop"));
 };
+/**
+ * Why a design has no accent stones to switch, if it hasn't: a toi-et-moi only has them in its optional surround or
+ * along the band, so with both off the switch would do nothing.
+ */
+export function noAccentsYet(d: Design): string | null {
+  if (d.type === "ring" && d.style === "two-stone" && !d.options.halo && d.band.pave === "none")
+    return "This ring has no accent stones yet: switch on \"A surround round each stone\" under Construction, or add stones along the band.";
+  return null;
+}
+
 /** whether this design's accent stones are switched off */
 export const accentsOff = (d: Design) => !d.accents.enabled && accentsOptional(d);
 

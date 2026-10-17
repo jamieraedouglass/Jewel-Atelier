@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type Design, resolveClasp, roundDiameter } from "../design";
+import { NO_CHARACTER, type Design, resolveClasp, roundDiameter } from "../design";
 import { claspAt } from "./clasps";
 import { type Piece, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -264,7 +264,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const params = spreadParams(front, o.count, 0.4);
       params.forEach((u, i) => {
         const k = 1 - Math.abs(i - (params.length - 1) / 2) / ((params.length - 1) / 2 || 1);
-        const s = setStone({ ...c, shape: c.shape === "round" ? "pear" : c.shape }, d.setting.style, m, 0.45 + 0.55 * k);
+        const s = setStone({ ...c, ...NO_CHARACTER, shape: c.shape === "round" ? "pear" : c.shape }, d.setting.style, m, 0.45 + 0.55 * k);
         const out = outwardAt(curve, u);
         s.position.copy(curve.getPointAt(u)).addScaledVector(out, 2 + (c.lengthMm * (0.45 + 0.55 * k)) / 2 + k * 6);
         s.quaternion.setFromUnitVectors(v3(0, 0, -1), out.clone().negate());
@@ -280,7 +280,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       // rows of briolette drops, each row hanging a little lower, from lines of small diamonds across the front
       const rows = Math.max(1, Math.min(7, o.layers));
       const n = Math.max(5, o.count);
-      const drop = { ...c, cut: "briolette" as const, rotation: 0 };
+      const drop = { ...c, ...NO_CHARACTER, cut: "briolette" as const, rotation: 0 };
       for (let r = 0; r < rows; r++) {
         const { curve: cv, front: fr } = r ? layeredLoop(L, r * 22, 0.85, 0.1) : { curve, front };
         group.add(chainAlong(cv, "fine", m, wrap(fr + 0.3), wrap(fr + 0.3) + 0.4));

@@ -26,6 +26,8 @@ type Props = {
   onDemoEvent?: (line: string) => void;
   /** demo only: each piece as the client saves it */
   onDemoSave?: (designId: string, d: Design) => void;
+  /** demo only: each change as she makes it, before it saves */
+  onDemoChange?: (designId: string, d: Design) => void;
 };
 type Panel = "adjust" | "chat" | "jeweller";
 const LOOPS = new Set(["necklace", "bracelet", "anklet"]);
@@ -35,7 +37,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * What a client sees on a link from the jeweller: the pieces as tabs, each in 3D, adjustable only as the jeweller
  * allowed, with side-by-side comparing, trying the whole set on, the designer chat, and a line to the jeweller.
  */
-export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent, onDemoSave }: Props) {
+export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent, onDemoSave, onDemoChange }: Props) {
   const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave]);
   const [active, setActive] = useState(0);
   const [versions, setVersions] = useState<Record<string, Design>>(() => Object.fromEntries(pieces.map((p) => [p.designId, p.version])));
@@ -53,12 +55,24 @@ export default function ClientStudio({ studioName, clientName, note, allow, piec
 
   // adjustments save on their own, a moment after the last change
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), []);
+  // a change still waiting to save when the screen closes (or the demo restarts it) is saved then, not lost
+  const waiting = useRef<Record<string, Design>>({});
+  const saver = useRef(backend);
+  saver.current = backend;
+  // (the demo already has it: it hears each change as it happens)
+  const realLink = mode.kind === "link";
+  useEffect(() => () => {
+    Object.values(timers.current).forEach(clearTimeout);
+    if (realLink) for (const [id, d] of Object.entries(waiting.current)) void saver.current.save(id, d).catch(() => {});
+  }, [realLink]);
   function change(d: Design) {
     const id = piece.designId;
     setVersions((cur) => ({ ...cur, [id]: d }));
     clearTimeout(timers.current[id]);
+    waiting.current[id] = d;
+    onDemoChange?.(id, d);
     timers.current[id] = setTimeout(async () => {
+      delete waiting.current[id];
       try {
         const kept = await backend.save(id, d);
         if (kept) setVersions((cur) => (JSON.stringify(cur[id]) === JSON.stringify(d) ? { ...cur, [id]: kept } : cur));

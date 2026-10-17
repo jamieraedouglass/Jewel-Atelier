@@ -10,7 +10,7 @@ import { clientChatSystem, isPriceQuestion, mentionsMoney, priceReply } from "@/
 import { rupeeRate } from "@/lib/studio/fx";
 import { knownPriceReply, priceFor } from "@/lib/studio/pricing";
 import { allowText, clampToAllowed } from "@/lib/studio/links";
-import { loadClientBundle, recordEvent, saveClientChat, spendLinkAiCall } from "@/lib/studio/server";
+import { loadClientBundle, recordEvent, refundLinkAiCall, saveClientChat, spendLinkAiCall } from "@/lib/studio/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -18,7 +18,7 @@ export const maxDuration = 60;
 const Body = z.object({
   designId: z.string().uuid(),
   design: z.unknown(),
-  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(4000) })).min(1).max(40),
+  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(8000) })).min(1).max(40),
   /** the whole conversation as shown, kept with the client's copy */
   history: z.unknown().optional(),
 });
@@ -76,6 +76,8 @@ export async function POST(req: Request, { params }: { params: { token: string }
     await saveClientChat(bundle, piece.designId, [...history, { role: "assistant", content: reply || "…" }]);
     return NextResponse.json({ reply: reply || (proposals.length ? "Here's what I'd suggest:" : ""), proposals });
   } catch (e) {
+    // the client shouldn't lose one of the day's questions to an AI that didn't answer
+    await refundLinkAiCall(bundle.link).catch(() => {});
     return aiFailure(e, "The designer chat");
   }
 }

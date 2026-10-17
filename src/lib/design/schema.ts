@@ -2,6 +2,7 @@ import { z } from "zod";
 import { BAND_FINISHES, BANGLE_SIZES, CHAIN_STYLES, CUTS, GEMS, METALS, SETTINGS, SHAPES, SIDE_KINDS } from "./vocab";
 import { TYPES, firstStyle, hasStyle } from "./styles";
 import { DROP_PRESETS, FRAME_PRESETS } from "./presets";
+import { DIAMOND_GRADE_IDS, PHENOMENA } from "./character";
 
 /**
  * A design (any piece of jewellery) is one plain JSON object. It is what the 3D model renders,
@@ -62,6 +63,14 @@ export const CenterStoneSchema = z.object({
   none: z.boolean().default(false),
   /** turn the stone in its setting, degrees (e.g. 90 sets an oval east–west) */
   rotation: z.number().min(-180).max(180).default(0),
+  /** 0 = eye-clean … 1 = heavily included: drawn as small crystals and feathers inside the stone (see character.ts) */
+  inclusions: z.number().min(0).max(1).default(0),
+  /** a star (asterism) or a cat's-eye band across a cabochon */
+  phenomenon: z.enum(PHENOMENA).default("none"),
+  /** how many rays a star has */
+  rays: z.union([z.literal(4), z.literal(6), z.literal(12)]).default(6),
+  /** a diamond's colour band (D–F … S–Z), when known */
+  colorGrade: z.enum(DIAMOND_GRADE_IDS).nullable().default(null),
 });
 
 /** an extra stone in a multi-stone stud: its own gem, cut, shape and size, placed below the previous stone */
@@ -278,6 +287,8 @@ export const DesignSchema = z
         clasp: z.enum(["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"]).default("auto"),
         /** half-flower ring: flowers at the stone's ends along the finger, or at its sides along the band */
         flowerPlace: z.enum(["finger", "band"]).default("finger"),
+        /** two-stone ring: the stones set a little apart, or touching (kissing at their edges) */
+        pairSpacing: z.enum(["apart", "touching"]).default("apart"),
         /** hoops: how far the stones run (front two-thirds, bottom half, or all the way up to the hinge) */
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         /** hoops: which face of the wire the stones sit on — the narrow front edge, the wide outer side, or inside */

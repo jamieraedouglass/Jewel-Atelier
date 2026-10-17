@@ -7,6 +7,7 @@ import { MeshRefractionMaterial } from "@react-three/drei/materials/MeshRefracti
 import { MeshBVH, MeshBVHUniformStruct, SAH } from "three-mesh-bvh";
 import { useStudio } from "./studio";
 import { glowTint } from "@/lib/glow";
+import { addLightTent } from "./lightTent";
 
 /**
  * Real diamond optics for the individually set stones: light is traced through the actual facets (bouncing inside,
@@ -25,9 +26,7 @@ function studioCubeFor(gl: THREE.WebGLRenderer) {
     const cam = new THREE.CubeCamera(0.1, 100, rt);
     // a bright room: diamonds read white and lively; the studio HDR stays for the metal
     const env = new RoomEnvironment();
-    const over = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(4), side: THREE.DoubleSide }));
-    over.rotation.x = Math.PI / 2; over.position.y = 9;
-    env.add(over);
+    addLightTent(env, 4);
     cam.update(gl, env);
     cube = rt.texture as unknown as THREE.CubeTexture;
     studioCubes.set(gl, cube);
@@ -87,7 +86,7 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       const twin = mesh.parent.children.find((c) => c !== mesh && (c as THREE.Mesh).geometry === mesh.geometry) as THREE.Mesh | undefined;
       const body = twin?.material as THREE.MeshPhysicalMaterial | undefined;
       const colorless = !body || body.opacity < 0.5;
-      const tint = colorless ? new THREE.Color(1, 1, 1) : glowTint(body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08), body!.userData.glow ?? 0);
+      const tint = colorless ? new THREE.Color(mesh.userData.tint ?? 0xffffff) : glowTint(body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08), body!.userData.glow ?? 0);
       const bvh = acquireBvh(mesh.geometry);
       bvhKeys.push(mesh.geometry.uuid);
       const mat = new (MeshRefractionMaterial as unknown as new () => RefractMat)();
@@ -97,7 +96,8 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       mat.color = tint;
       mat.bounces = inst ? 2 : colorless ? 3 : 2;
       mat.ior = colorless ? 2.42 : 1.72;
-      mat.aberrationStrength = colorless ? 0.012 : 0.004;
+      // the split of white light into colours (fire): strong in diamonds, a little in coloured stones
+      mat.aberrationStrength = colorless ? 0.022 : 0.006;
       mat.fresnel = 1;
       // the shader works in device pixels: on a Retina screen that's twice the CSS size
       mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());
@@ -107,6 +107,8 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         "vec3 outC = mix(diffuseColor.rgb, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);",
       );
+      // a stone with inclusions lets them show through (see seeThrough): keep that, and draw it after the metal
+      mat.depthWrite = (mesh.material as THREE.Material).depthWrite;
       made.push(mat);
       swaps.push({ mesh, before: mesh.material, hidden: twin ? [twin] : [] });
       mesh.material = mat;

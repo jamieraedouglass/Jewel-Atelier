@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KARATS, METALS, SHAPES, isGold, label, lengthForShape, metalName, normalizeDesign, type Design } from "../design";
-import { StoneOptionSchema, clampToAllowed, optionLook, optionName, type Allow } from "./links";
+import { FRESH_STONE, StoneOptionSchema, clampToAllowed, optionLook, optionName, type Allow } from "./links";
 
 /**
  * Prices on a client link. Carl may (but needn't) give a price, in rupees, for each piece as he designed it, and for
@@ -44,7 +44,7 @@ export function versionDesign(base: Design, v: Omit<PriceVersion, "inr">): Desig
   if (!base.center.none) {
     if (v.stone) {
       const look = optionLook(v.stone);
-      Object.assign(d.center, { gem: v.stone.gem, color: look.color, clarity: look.clarity, glow: look.glow, label: look.label, carat: null });
+      Object.assign(d.center, { gem: v.stone.gem, color: look.color, clarity: look.clarity, glow: look.glow, label: look.label, carat: null, ...FRESH_STONE });
     }
     if (v.shape && v.shape !== base.center.shape) {
       d.center.shape = v.shape;

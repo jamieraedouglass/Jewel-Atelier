@@ -3,14 +3,18 @@ import SendForm from "@/components/studio/SendForm";
 import { BRAND } from "@/lib/brand";
 import { describeDesign, normalizeDesign } from "@/lib/design";
 import { requireStudioAdmin } from "@/lib/studio/guard";
-import { allDesigns, listAccounts } from "@/lib/studio/server";
+import { allDesigns, designRowsByIds, listAccounts } from "@/lib/studio/server";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: `Send to a client · ${BRAND.name}`, robots: { index: false } };
 
 export default async function SendPage({ searchParams }: { searchParams: { designs?: string } }) {
   await requireStudioAdmin();
-  const [designs, accounts] = await Promise.all([allDesigns(), listAccounts()]);
+  const wanted = (searchParams.designs ?? "").split(",").filter(Boolean);
+  const [recent, accounts] = await Promise.all([allDesigns(), listAccounts()]);
+  // a piece chosen from elsewhere is always on the list, however old
+  const missing = wanted.filter((id) => !recent.some((d) => d.id === id));
+  const designs = [...(missing.length ? await designRowsByIds(missing) : []), ...recent];
   const owner = (id: string) => accounts.find((a) => a.id === id)?.name ?? "";
   const rows = designs.map((d) => ({ id: d.id, name: d.name, summary: describeDesign(normalizeDesign(d.data)), owner: owner(d.owner) }));
   return (
@@ -20,7 +24,7 @@ export default async function SendPage({ searchParams }: { searchParams: { desig
         <h1 style={{ fontSize: 36 }}>Send designs to a client</h1>
         <p className="muted" style={{ margin: 0 }}>They get a private link: no account needed. They see the pieces in 3D, try them on, and change only what you allow.</p>
       </div>
-      <SendForm designs={rows} initial={(searchParams.designs ?? "").split(",").filter(Boolean)} />
+      <SendForm designs={rows} initial={wanted} />
     </main>
   );
 }

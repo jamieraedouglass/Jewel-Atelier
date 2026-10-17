@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { isStudioAdmin } from "@/lib/studio/admin";
 import { CreateLinkSchema, normalizeAllow, type CreateLink } from "@/lib/studio/links";
 import { cleanPricing, normalizePricing, type Pricing } from "@/lib/studio/pricing";
-import { allDesigns, createLink, designsByIds, linkById, updateLink } from "@/lib/studio/server";
+import { createLink, designsByIds, linkById, updateLink } from "@/lib/studio/server";
 
 async function admin() {
   const { user } = await requireUser();
@@ -18,11 +18,12 @@ export async function createClientLink(input: CreateLink, prices?: Pricing): Pro
   if (!user) return { error: "Only the studio's master accounts can send designs to clients." };
   const parsed = CreateLinkSchema.safeParse(input);
   if (!parsed.success) return { error: "Add the client's name and at least one piece." };
-  const known = new Set((await allDesigns()).map((d) => d.id));
-  if (parsed.data.designIds.some((id) => !known.has(id))) return { error: "One of those pieces no longer exists." };
+  // check the chosen pieces themselves, however old (not just the most recent ones)
+  const bases = await designsByIds(parsed.data.designIds);
+  if (parsed.data.designIds.some((id) => !bases[id])) return { error: "One of those pieces no longer exists." };
   try {
     // prices only for versions the client can actually reach on this link
-    const pricing = cleanPricing(normalizePricing(prices), await designsByIds(parsed.data.designIds), parsed.data.allow);
+    const pricing = cleanPricing(normalizePricing(prices), bases, parsed.data.allow);
     const { id, token } = await createLink(user.id, { ...parsed.data, pricing });
     revalidatePath("/studio");
     const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";

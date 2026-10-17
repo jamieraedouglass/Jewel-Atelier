@@ -4,6 +4,8 @@ import { BEAD_GEMS, type CenterStone, type Design, type Gem } from "../design";
 import { type OutlineFn, cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, facetedGeo, outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
+import { inclusionSpecks, phenomenonLayer, seeThrough } from "./character";
+import { chroma } from "../design/character";
 
 /* ================= stone geometry by cut ================= */
 
@@ -82,8 +84,12 @@ export const isColorless = (gem: Gem, color: string) => {
   if (!COLORLESS.has(gem)) return false;
   const hsl = { h: 0, s: 0, l: 0 };
   new THREE.Color(color).getHSL(hsl);
-  return hsl.s < 0.3 || hsl.l > 0.92;
+  // near-white, or a faint tint (a K–M or N–R diamond is still a white stone, just warmer)
+  return hsl.s < 0.3 || hsl.l > 0.92 || chroma(color) < 0.25;
 };
+
+/** the faint body colour of a near-colourless stone (a yellowish diamond), or null when it's simply white */
+const warmth = (color: string) => (chroma(color) > 0.06 ? new THREE.Color(color) : null);
 
 /** rose-cut: faceted dome on a flat base. polki: flat, slightly irregular slab with a foil back. */
 function lowCutGeo(fn: OutlineFn, cut: "rose-cut" | "polki", dome: number) {
@@ -101,8 +107,23 @@ function lowCutGeo(fn: OutlineFn, cut: "rose-cut" | "polki", dome: number) {
   return facetedGeo(ring, v3(), tiers, cut === "rose-cut" ? h : h, cut === "rose-cut" ? -0.05 : -h * 1.1);
 }
 
-/** a loose stone, girdle at y = 0, facing +Y, length along Z */
+/** a loose stone, girdle at y = 0, facing +Y, length along Z, with its star or inclusions if it has them */
 function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
+  const g = stoneBody(c, m, scale);
+  const L = c.lengthMm * scale, W = c.widthMm * scale, dome = Math.max(0.25, c.domeMm * scale);
+  if ((c.cut === "cabochon" || c.cut === "carved") && !BEAD_GEMS.has(c.gem)) {
+    const body = g.children[0] as THREE.Mesh | undefined;
+    const star = body && phenomenonLayer(c, body.geometry, L, W);
+    if (star) g.add(star);
+  }
+  if (c.cut !== "bead" && !BEAD_GEMS.has(c.gem)) {
+    const specks = inclusionSpecks(c, outlineFn(c.shape, L, W), L, W, dome);
+    if (specks) { seeThrough(g); g.add(specks); }
+  }
+  return g;
+}
+
+function stoneBody(c: CenterStone, m: Mats, scale = 1): THREE.Group {
   const g = new THREE.Group();
   const L = c.lengthMm * scale, W = c.widthMm * scale, dome = c.domeMm * scale;
   if (c.cut === "bead") {
@@ -121,8 +142,12 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
     return g;
   }
   const colorless = isColorless(c.gem, c.color);
-  const tint = c.cut === "polki" ? (colorless ? 0xfff0c8 : new THREE.Color(c.color).lerp(new THREE.Color(0xffe0a0), 0.25)) : colorless ? 0xf2f5ff : new THREE.Color(c.color).lerp(new THREE.Color(0xffffff), 0.15);
-  g.add(new THREE.Mesh(geo, m.mirror(tint, c.cut === "polki" ? 2.4 : 3.6)), new THREE.Mesh(geo, colorless ? m.skin : m.stone(c, W)));
+  const warm = colorless ? warmth(c.color) : null;
+  const tint = c.cut === "polki" ? (colorless ? 0xfff0c8 : new THREE.Color(c.color).lerp(new THREE.Color(0xffe0a0), 0.25)) : warm ? warm : colorless ? 0xf2f5ff : new THREE.Color(c.color).lerp(new THREE.Color(0xffffff), 0.15);
+  const mirror = new THREE.Mesh(geo, m.mirror(tint, c.cut === "polki" ? 2.4 : 3.6));
+  // the traced pass draws colourless stones white unless told their tint
+  if (warm) mirror.userData.tint = `#${warm.getHexString()}`;
+  g.add(mirror, new THREE.Mesh(geo, colorless ? m.skin : m.stone(c, W)));
   return g;
 }
 

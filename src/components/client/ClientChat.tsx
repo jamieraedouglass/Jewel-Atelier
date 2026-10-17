@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { chatForApi, type ChatMessage, plainReply } from "@/lib/chat";
 import { describeChanges } from "@/lib/studio/links";
-import type { Design } from "@/lib/design";
+import { normalizeDesign, type Design } from "@/lib/design";
 import type { ClientBackend } from "./backend";
 
 const STARTERS = ["Would this suit everyday wear?", "What stone would make it feel more bridal?", "Is this size right for my hand?", "What would this cost?"];
@@ -25,7 +25,8 @@ export default function ClientChat({ designId, base, design, history, backend, o
     const next: ChatMessage[] = [...history, { role: "user", content }];
     onHistory(next); setDraft(""); setBusy(true); setError(null);
     try {
-      const r = await backend.chat(designId, design, chatForApi(next), next);
+      // a suggestion here is a whole design: describe it by what it changes from the jeweller's piece
+      const r = await backend.chat(designId, design, chatForApi(next, 40, (p) => describeChanges(base, normalizeDesign(p.patch)).join("; ") || "as designed"), next);
       onHistory([...next, { role: "assistant", content: r.reply || "…", proposals: r.proposals.map((p) => ({ title: p.title, why: p.why, patch: p.design as unknown as Record<string, unknown> })) }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The designer couldn't answer just now.");

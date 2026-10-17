@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import * as THREE from "three";
 import { type Piece } from "@/lib/jewelryModel";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { addLightTent } from "./lightTent";
 
 /**
  * Diamonds read as grey when their mirror facets reflect a dark studio. A real stone is lit by a bright room and
@@ -16,11 +17,9 @@ function roomEnvFor(gl: THREE.WebGLRenderer) {
   let env = roomEnvs.get(gl);
   if (!env) {
     const pm = new THREE.PMREMGenerator(gl);
-    // a bright room with a big softbox overhead, so stones seen from above (the Top view) light up instead of going grey
+    // a bright room with a light tent overhead, so stones seen from above light up with a brilliant's pattern
     const room = new RoomEnvironment();
-    const box = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(6), side: THREE.DoubleSide }));
-    box.rotation.x = Math.PI / 2; box.position.y = 9;
-    room.add(box);
+    addLightTent(room, 6);
     env = pm.fromScene(room, 0.005).texture;
     pm.dispose();
     roomEnvs.set(gl, env);
@@ -54,3 +53,4 @@ export function StoneLight({ piece }: { piece: Piece }) {
   }, [gl, piece]);
   return null;
 }
+

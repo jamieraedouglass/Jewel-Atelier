@@ -1,6 +1,7 @@
 import { type PieceType, STYLES, firstStyle, hasStyle } from "./styles";
 import { type Design, DesignSchema, DropPartSchema, defaultDesign } from "./schema";
 import { clamp, round1 } from "./measures";
+import { buildable } from "./buildRules";
 
 /** Changing a design: patches, style switches and the right earring of an odd pair. */
 
@@ -26,7 +27,8 @@ export function asRightEar(r: Design): Record<string, unknown> {
 /** Parse anything (DB row, Claude output) into a complete, valid design. */
 export function normalizeDesign(input: unknown): Design {
   const r = DesignSchema.safeParse(input ?? {});
-  return r.success ? r.data : defaultDesign();
+  // anything that can't actually be made is corrected (see buildRules)
+  return r.success ? buildable(r.data) : defaultDesign();
 }
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
@@ -40,7 +42,7 @@ export function applyPatch(design: Design, patch: DesignPatch): Design {
     merged[k] = v && typeof v === "object" && !Array.isArray(v) && cur && typeof cur === "object" ? { ...cur, ...v } : v;
   }
   const r = DesignSchema.safeParse(merged);
-  return r.success ? r.data : design;
+  return r.success ? buildable(r.data) : design;
 }
 
 /** largest sensible main stone (mm, longest side) for each type; specific styles override */

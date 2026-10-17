@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CUTS, GEMS, GEM_LOOK, SHAPES, type Design, canReproportion, estimateDims, gemLabel, proportionPresets, reproportion, stoneRatio } from "@/lib/design";
+import {
+  CUTS, DIAMOND_GRADES, GEMS, GEM_LOOK, SHAPES, STAR_RAYS, type Design, canReproportion, estimateDims, gemLabel, inclusionWords, proportionPresets, reproportion, stoneRatio,
+} from "@/lib/design";
 import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type SectionProps } from "./fields";
 import ColourGrade from "./ColourGrade";
 
@@ -41,13 +43,13 @@ export default function CenterStoneSection({ d, onChange }: SectionProps) {
         <p className="muted small" style={{ margin: 0 }}>{c.label}</p>
         <div className="row2">
           <label className="field" htmlFor="gem"><span>Gem</span>
-            <GemSelect id="gem" value={c.gem} options={GEMS} onPick={(gem) => setCenter({ gem, ...GEM_LOOK[gem], label: gemLabel(gem) })} />
+            <GemSelect id="gem" value={c.gem} options={GEMS} onPick={(gem) => setCenter({ gem, ...GEM_LOOK[gem], label: gemLabel(gem), colorGrade: null })} />
           </label>
           <label className="field" htmlFor="carat"><span>Carat</span>
             <input id="carat" type="number" min={0.01} max={200} step={0.01} value={caratText} placeholder="e.g. 15.24" onChange={(e) => setCarat(e.target.value)} />
           </label>
         </div>
-        <Chips name="Cut" options={CUTS} value={c.cut} onPick={(cut) => setCenter({ cut, ...(c.carat ? estimateDims(c.gem, cut, c.shape, c.carat, ratio) : { domeMm: Math.round(c.widthMm * DOME_SHARE[cut] * 10) / 10 }) })} />
+        <Chips name="Cut" options={CUTS} value={c.cut} onPick={(cut) => setCenter({ cut, ...(cut === "cabochon" || cut === "carved" ? {} : { phenomenon: "none" as const }), ...(c.carat ? estimateDims(c.gem, cut, c.shape, c.carat, ratio) : { domeMm: Math.round(c.widthMm * DOME_SHARE[cut] * 10) / 10 }) })} />
         <Chips name="Shape" options={SHAPES} value={c.shape} onPick={(shape) => setCenter({ shape, ...(c.carat ? estimateDims(c.gem, c.cut, shape, c.carat) : {}) })} />
         {canReproportion(c.shape) && (
           <>
@@ -73,11 +75,32 @@ export default function CenterStoneSection({ d, onChange }: SectionProps) {
         </div>
         <div className="row2">
           <label className="field" htmlFor="color"><span>Colour</span>
-            <input id="color" type="color" value={c.color} onChange={(e) => setCenter({ color: e.target.value })} style={colorInputStyle} />
+            <input id="color" type="color" value={c.color} onChange={(e) => setCenter({ color: e.target.value, colorGrade: null })} style={colorInputStyle} />
           </label>
           <Range id="angle" label="Angle" value={c.rotation} min={-180} max={180} step={5} format={(n) => `${n}°`} onChange={(rotation) => setCenter({ rotation })} />
         </div>
         <ColourGrade id="center" gem={c.gem} look={c} onPick={(look, v) => setCenter({ ...look, ...(v ? { label: `${v.name} ${gemLabel(c.gem).toLowerCase()}` } : {}) })} />
+        {c.gem === "diamond" && (
+          <div style={{ display: "grid", gap: 6 }}>
+            <span className="small muted">Diamond colour</span>
+            <div className="chips" role="group" aria-label="Diamond colour">
+              {DIAMOND_GRADES.map((g) => (
+                <button key={g.id} type="button" className="chip" style={{ textTransform: "none" }} aria-pressed={c.colorGrade === g.id} onClick={() => setCenter({ color: g.color, colorGrade: g.id })}>
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 99, background: g.color, marginRight: 6, border: "1px solid var(--line)" }} />{g.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <Range id="incl" label="Inclusions" value={c.inclusions} min={0} max={1} step={0.05} format={(n) => inclusionWords(n)} onChange={(inclusions) => setCenter({ inclusions })} />
+        {c.cut !== "bead" && (
+          <div style={{ display: "grid", gap: 6 }}>
+            <Chips name="Effect" options={["none", "star", "cats-eye"] as const} value={c.phenomenon} fmt={(p) => (p === "none" ? "None" : p === "star" ? "Star" : "Cat's eye")}
+              // a star or cat's eye only shows on a cabochon
+              onPick={(phenomenon) => setCenter(phenomenon === "none" || c.cut === "cabochon" || c.cut === "carved" ? { phenomenon } : { phenomenon, cut: "cabochon", domeMm: Math.round(c.widthMm * DOME_SHARE.cabochon * 10) / 10 })} />
+            {c.phenomenon === "star" && <Chips name="Star rays" options={STAR_RAYS} value={c.rays} fmt={(n) => `${n} rays`} onPick={(rays) => setCenter({ rays })} />}
+          </div>
+        )}
       </>)}
     </section>
   );

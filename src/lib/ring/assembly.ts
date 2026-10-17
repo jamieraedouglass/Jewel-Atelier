@@ -1,9 +1,12 @@
-import { applyGlow } from "../glow";
+import { applyGlow, cabochonBody } from "../glow";
+import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
 import { cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, outlineFn, roseCutGeo, sideStoneGeo } from "./stoneGeometry";
 import { metalTone, textureBump } from "./metal";
 import { bandSection, shankGeo } from "./band";
+import { inclusionSpecks, phenomenonLayer, seeThrough } from "../jewelry/character";
+import { canHug } from "../design/buildRules";
 
 /**
  * Builds the whole ring as a plain three.js Group from a Design.
@@ -14,8 +17,8 @@ import { bandSection, shankGeo } from "./band";
 export function buildRing(d: Design): THREE.Group {
   const root = new THREE.Group();
   const tone = metalTone(d);
-  const metal = new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 });
-  const bandMetal = metal.clone();
+  const metal = handPolished(new THREE.MeshPhysicalMaterial({ color: tone.color, metalness: 1, roughness: tone.roughness, envMapIntensity: 1.05, clearcoat: 0.3, clearcoatRoughness: 0.1 }));
+  const bandMetal = handPolished(metal.clone());
   if (d.band.finish === "textured") {
     const bump = textureBump();
     if (bump) { bandMetal.bumpMap = bump; bandMetal.bumpScale = 0.6; bandMetal.roughness = tone.roughness + 0.12; }
@@ -66,6 +69,7 @@ export function buildRing(d: Design): THREE.Group {
     sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
     envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
   }), c.glow, isCab);
+  if (isCab && c.cut !== "bead") cabochonBody(stoneMat);
   const stone = new THREE.Group();
   stone.userData.part = "center";
   if (isCab) stone.add(new THREE.Mesh(c.cut === "carved"
@@ -75,6 +79,15 @@ export function buildRing(d: Design): THREE.Group {
     const g = centerFacetedGeo(c.shape, fn, W, Math.max(0.6, c.domeMm));
     const inner = mirror.clone(); inner.color = colorless ? new THREE.Color(0xf2f5ff) : color.clone().lerp(new THREE.Color(0xffffff), 0.15);
     stone.add(new THREE.Mesh(g, inner), new THREE.Mesh(g, stoneMat));
+  }
+  // the stone's character: a star or cat's-eye band on a cabochon, inclusions inside
+  if (isCab && c.cut !== "bead") {
+    const star = phenomenonLayer(c, (stone.children[0] as THREE.Mesh).geometry, L, W);
+    if (star) stone.add(star);
+  }
+  if (c.cut !== "bead") {
+    const specks = inclusionSpecks(c, fn, L, W, Math.max(0.25, c.domeMm));
+    if (specks) { seeThrough(stone); stone.add(specks); }
   }
   stone.position.y = GY;
   head.add(stone);
@@ -99,7 +112,7 @@ export function buildRing(d: Design): THREE.Group {
   } else {
     head.add(tube(loop(0.95, GY - 0.55), 0.38, true));
     // side stones that hug the centre take over the claws on those sides (they share them), so nothing holds them apart
-    const hugging = d.sides.kind !== "none" && d.sides.hug && d.sides.follow !== "band";
+    const hugging = d.sides.kind !== "none" && d.sides.hug && canHug(d.sides.kind) && d.sides.follow !== "band";
     const positions = clawDegrees(c.shape, L, W, d.setting.style).filter((deg) => {
       if (!hugging) return true;
       const a = ((deg % 360) + 360) % 360;
@@ -166,16 +179,17 @@ export function buildRing(d: Design): THREE.Group {
     // hugging: the straight edge runs most of the centre stone's length, like a classic half-moon trilogy
     const asp = { "half-moon": 0.46, trapezoid: 0.5, baguette: 2.6, round: 1, oval: 0.74, pear: 1.5, none: 1 }[d.sides.kind];
     const hugL = L * d.sides.hugFrac;
-    const { L: sl, W: sw } = d.sides.hug
+    const fitted = d.sides.hug && canHug(d.sides.kind);
+    const { L: sl, W: sw } = fitted
       ? d.sides.kind === "baguette" ? { L: W * 0.75, W: W * 0.3 } : d.sides.kind === "round" ? { L: hugL * 0.8, W: hugL * 0.8 } : d.sides.kind === "pear" ? { L: hugL * 0.9, W: hugL * 0.6 } : { L: hugL, W: hugL * asp }
       : sideStoneDims(d.sides.kind, d.sides.sizeCt);
     const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
-    const hug = d.sides.hug;
+    const hug = fitted;
     // hugging stones get a fine rim, so the stones themselves meet the centre stone
     const shape = new THREE.Shape(sc(hug ? 1.035 : 1.09));
     shape.holes.push(new THREE.Path(sc(hug ? 0.985 : 0.965).reverse()));
-    const bz = new THREE.ExtrudeGeometry(shape, { depth: d.sides.hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
+    const bz = new THREE.ExtrudeGeometry(shape, { depth: hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
     // the centre stone's edge in the direction of the side stones (its outline at the widest point across the finger)
     const edgeX = Math.max(...Array.from({ length: 180 }, (_, i) => fn(i / 180)[0]));
@@ -248,7 +262,7 @@ export function buildRing(d: Design): THREE.Group {
         grp.userData.part = "sides";
         grp.userData.onBand = true;
         // the seat walls get a soft satin, like a polished wall seen side-on, rather than mirroring the dark room
-        const seatMetal = (metal as THREE.MeshPhysicalMaterial).clone(); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
+        const seatMetal = handPolished((metal as THREE.MeshPhysicalMaterial).clone()); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
         grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, seatMetal), new THREE.Mesh(flb, seatMetal));
         // small claws at the corners, on the band's curve
         for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
@@ -262,7 +276,18 @@ export function buildRing(d: Design): THREE.Group {
     } else for (const side of [1, -1]) {
       const grp = new THREE.Group();
       grp.userData.part = "sides";
-      grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond), new THREE.Mesh(bz, metal));
+      // a round, oval or pear is claw-set like the centre stone; fitted shapes sit in a fine rim
+      const clawSet = !hug && (d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear");
+      grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond));
+      if (!clawSet) grp.add(new THREE.Mesh(bz, metal));
+      else for (const f of [0.125, 0.375, 0.625, 0.875]) {
+        const [x, z] = ol[Math.floor(f * ol.length) % ol.length];
+        const out = new THREE.Vector3(cx + (x - cx) * 1.05, 0, z * 1.05);
+        const claw = tube([new THREE.Vector3(cx + (x - cx) * 0.55, -pav * 0.85, z * 0.55), new THREE.Vector3(out.x, 0.02, out.z), new THREE.Vector3(cx + (x - cx) * 1.0, Math.max(0.25, pav * 0.3), z * 1.0)], 0.26);
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 9), metal);
+        tip.scale.set(1, 0.8, 1); tip.position.set(cx + (x - cx) * 1.0, Math.max(0.25, pav * 0.3), z * 1.0);
+        grp.add(claw, tip);
+      }
       for (const z of [-1, 1].map((k) => k * Math.min(1.6, sl * 0.22))) {
         grp.add(tube([new THREE.Vector3(cx + 0.3, -pav * 0.7, z), new THREE.Vector3(-0.3, -pav * 0.72, z * 0.9), new THREE.Vector3(-(gap - W * 0.35) + 0.3, lowRailY - GY, z * 0.8)], 0.42));
       }
