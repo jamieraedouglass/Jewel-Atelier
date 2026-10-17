@@ -80,7 +80,11 @@ export async function duplicateDesign(raw: unknown): Promise<{ id?: string; erro
 export async function setThumbnail(id: string, path: string) {
   const { supabase, user } = await requireUser();
   if (!user || !path.startsWith(`${user.id}/`)) return;
+  const { data: before } = await supabase.from("designs").select("thumbnail_path").eq("id", id).eq("owner", user.id).maybeSingle();
   await supabase.from("designs").update({ thumbnail_path: path }).eq("id", id).eq("owner", user.id);
+  // the picture it replaces (an older look, under another name) isn't needed any more
+  const old = (before as { thumbnail_path?: string | null } | null)?.thumbnail_path;
+  if (old && old !== path && old.startsWith(`${user.id}/`)) await supabase.storage.from("thumbnails").remove([old]).catch(() => {});
   revalidatePath("/rings");
 }
 

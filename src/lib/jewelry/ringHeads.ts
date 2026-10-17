@@ -14,7 +14,7 @@ import { handPolished } from "../polish";
  * Layers built outward from the centre stone. Each layer's inner edge is sized so it clears the layer inside it
  * all the way round, whatever the two shapes are (a round ring of calibré inside a hexagon of pavé, say).
  */
-export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
+export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass = 0): { group: THREE.Group; extent: number } {
   const g = new THREE.Group();
   g.userData.part = "accents";
   g.userData.keep = true; // the Deco layers are the design, not optional accents
@@ -25,8 +25,20 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
   { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = fn(k / 720); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
   for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
   const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
+  // keep the whole top to a size that can be worn: if the layers would grow past it, they're made finer to fit
+  const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
+  const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12); // a big cocktail ring top runs to ~32 mm
+  const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm), 0);
+  const fit = centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
+  const frames = fit < 1 ? d.frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * fit), gapMm: f.gapMm * fit })) : d.frames;
+  // a domed (bombé) top: each layer sits lower the further out it is, and its stones tilt out with the curve
+  const dome = d.options.decoDome;
+  const Rd = dome > 0 ? 70 - 45 * dome : 0; // the dome's radius of curvature, mm (smaller is higher)
+  const r0 = centreHalf - 0.5;
+  const domeY = (r: number) => y0 - Math.max(0, r * r - r0 * r0) / (2 * Rd);
+  const tilt = (p: THREE.Vector3) => v3(p.x / Rd, 1, p.z / Rd).normalize();
   let y = y0, outer: THREE.Vector3[] = [];
-  d.frames.forEach((f) => {
+  frames.forEach((f) => {
     const stoneL = f.widthMm * ASPECT[f.shape];
     const thick = f.kind === "stones" ? (f.direction === "radial" ? stoneL : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm;
     // the layer's own shape, scaled up until its inner edge clears everything inside
@@ -34,13 +46,14 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
     const S = 240, raw = Array.from({ length: S }, (_, k) => unit(k / S));
     let kScale = 0;
     for (const [x, z] of raw) kScale = Math.max(kScale, (prevAt(theta(x, z)) + f.gapMm) / (Math.hypot(x, z) || 1));
+    if (dome > 0) y = domeY(raw.reduce((a, [x, z]) => a + Math.hypot(x, z), 0) / S * kScale + thick / 2);
     const ring = (extra: number) => raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
     const centre = new THREE.CatmullRomCurve3(ring(thick / 2), true, "centripetal");
     if (f.kind === "stones") {
       const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: (f.cut === "polki" || f.cut === "rose-cut" || f.cut === "briolette" || f.cut === "bead" ? f.cut : "faceted") as Design["accents"]["cut"], sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [], colors: [] } };
       const main = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape };
       const alt = f.alt ? { gem: f.alt.gem, color: f.alt.color, cut: f.alt.cut, shape: f.alt.shape } : null;
-      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main) }).group);
+      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main), ...(dome > 0 ? { up: (u: number) => tilt(centre.getPointAt(u)) } : {}) }).group);
     } else if (f.kind === "milgrain") {
       const n = Math.max(12, Math.round(centre.getLength() / 0.5));
       // satin beads: rows of mirror-bright beads each catch a highlight and blur into a glowing band
@@ -53,9 +66,14 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
     outer = ring(thick);
     for (const p of outer) { const a = theta(p.x, p.z), b = Math.floor((a / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(p.x, p.z)); }
     for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], Math.min(prev[(b + 1) % N], prev[(b + N - 1) % N]));
-    y -= 0.12; // a gentle dome, like a cocktail ring
+    if (!(dome > 0)) y -= 0.12; // a gentle dome, like a cocktail ring
   });
-  if (outer.length) {
+  if (outer.length && dome > 0) {
+    // the plate follows the dome: rings of points from the centre out to the outer edge, lifted onto the curve
+    const plate = new THREE.Mesh(domedPlate(outer.map((p) => new THREE.Vector2(p.x, p.z)), (r) => domeY(r) - 0.75, 1.6), plateMetal(m));
+    plate.userData.part = "metal";
+    g.add(plate);
+  } else if (outer.length) {
     // the gold plate everything is set into
     const shape = new THREE.Shape(outer.map((p) => new THREE.Vector2(p.x, p.z)));
     const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
@@ -71,21 +89,66 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
     }
     pos.needsUpdate = true;
     geo.computeVertexNormals();
-    // a satin finish on the flat plate, as a jeweller would leave it, so it reads as metal rather than a black mirror
-    const satin = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone());
-    satin.roughness = 0.62;
-    satin.envMapIntensity = 0.3;
-    // a little deeper in tone: flat and facing the lamp, it would otherwise mirror it straight back as a white panel
-    satin.color = satin.color.clone().multiplyScalar(0.72);
-    // no glossy clear coat: on a plate this broad it mirrors the overhead light and the whole top flares white
-    satin.clearcoat = 0;
-    const plate = new THREE.Mesh(geo, satin);
+    const plate = new THREE.Mesh(geo, plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
   }
   let extent = 0;
   for (let b = 0; b < N; b++) extent = Math.max(extent, prev[b]);
+  // layers of different shapes leave room round each other, so the first fit can still come out too big: measure, and
+  // if it has, build again with the layers made finer by what's left over
+  if (extent > maxHalf * 1.12 && pass < 3) {
+    const k = Math.max(0.2, (maxHalf - centreHalf) / Math.max(0.1, extent - centreHalf));
+    // (the first attempt was never drawn, so there's nothing to free)
+    return decoFrames({ ...d, frames: frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * k), gapMm: f.gapMm * k })) }, m, c, y0, pass + 1);
+  }
   return { group: g, extent };
+}
+
+/** the metal of a broad plate under stones */
+function plateMetal(m: Mats) {
+  // a satin finish, as a jeweller would leave it, so it reads as metal rather than a black mirror
+  const satin = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone());
+  satin.roughness = 0.62;
+  satin.envMapIntensity = 0.3;
+  // a little deeper in tone: flat and facing the lamp, it would otherwise mirror it straight back as a white panel
+  satin.color = satin.color.clone().multiplyScalar(0.72);
+  // no glossy clear coat: on a plate this broad it mirrors the overhead light and the whole top flares white
+  satin.clearcoat = 0;
+  return satin;
+}
+
+/**
+ * A domed plate: its top follows `topY(r)` (r = distance from the centre), its sides taper in underneath like a
+ * cocktail ring's gallery. Built as rings of points from the centre to the outline, so the dome actually curves.
+ */
+function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth: number) {
+  const N = outline.length, R = 10, pos: number[] = [], idx: number[] = [];
+  const vert = (x: number, y: number, z: number) => { pos.push(x, y, z); return pos.length / 3 - 1; };
+  const top: number[][] = [], bot: number[][] = [];
+  for (let r = 0; r <= R; r++) {
+    const t = r / R, row: number[] = [], brow: number[] = [];
+    for (let i = 0; i < N; i++) {
+      const p = outline[i], x = p.x * t, z = p.y * t, rr = Math.hypot(x, z);
+      row.push(vert(x, topY(rr), z));
+      brow.push(vert(x * 0.62, topY(rr) - depth, z * 0.62));
+    }
+    top.push(row); bot.push(brow);
+  }
+  for (let r = 0; r < R; r++) for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    idx.push(top[r][i], top[r + 1][i], top[r + 1][j], top[r][i], top[r + 1][j], top[r][j]);
+    idx.push(bot[r][i], bot[r + 1][j], bot[r + 1][i], bot[r][i], bot[r][j], bot[r + 1][j]);
+  }
+  for (let i = 0; i < N; i++) { // the tapering side
+    const j = (i + 1) % N, a = top[R][i], b = top[R][j], c2 = bot[R][i], e = bot[R][j];
+    idx.push(a, c2, e, a, e, b);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
 }
 
 /** pavé ribbons sweeping round the centre stone into the shank (swirl / bypass rings) */
@@ -178,13 +241,33 @@ export function flowerCluster(d: Design, m: Mats, around?: CenterStone) {
 }
 
 /** a ring of tiny stones round one stone (tennis bracelets with a halo on every stone) */
-export function haloRing(pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, out: Item[]) {
-  const hd = Math.max(0.55, W * 0.17), a = W / 2 + hd / 2 + 0.15, b = L / 2 + hd / 2 + 0.15;
-  const per = Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+/**
+ * A halo of small stones round one stone in a line (tennis bracelets and necklaces), following that stone's own
+ * outline: a heart gets a heart-shaped halo, a pear a pear-shaped one. Stones are spaced evenly along the outline.
+ */
+export function haloRing(pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, out: Item[], shape: CenterStone["shape"] = "oval") {
+  const hd = Math.max(0.55, W * 0.17), off = hd / 2 + 0.15;
+  const fn = outlineFn(shape, L, W);
+  // the outline pushed out by `off` along its outward normal, sampled finely
+  const S = 360, pts: THREE.Vector2[] = [];
+  const raw = Array.from({ length: S }, (_, i) => fn(i / S));
+  const cx = raw.reduce((s, [x]) => s + x, 0) / S, cz = raw.reduce((s, [, z]) => s + z, 0) / S;
+  for (let i = 0; i < S; i++) {
+    const [x0, z0] = raw[(i + S - 1) % S], [x1, z1] = raw[(i + 1) % S], [x, z] = raw[i];
+    let nx = z1 - z0, nz = -(x1 - x0);
+    const len = Math.hypot(nx, nz) || 1; nx /= len; nz /= len;
+    if (nx * (x - cx) + nz * (z - cz) < 0) { nx = -nx; nz = -nz; } // pointing outward
+    pts.push(new THREE.Vector2(x + nx * off, z + nz * off));
+  }
+  const seg = pts.map((p, i) => p.distanceTo(pts[(i + 1) % S]));
+  const per = seg.reduce((s, d) => s + d, 0);
   const n = Math.max(8, Math.round(per / (hd + 0.12)));
+  let i = 0, acc = 0;
   for (let k = 0; k < n; k++) {
-    const t = (k / n) * Math.PI * 2;
-    out.push({ pos: v3(Math.cos(t) * a, -0.15, Math.sin(t) * b).applyQuaternion(quat).add(pos), dia: hd, quat });
+    const want = (k / n) * per;
+    while (acc + seg[i] < want && i < S - 1) { acc += seg[i]; i++; }
+    const p = pts[i].clone().lerp(pts[(i + 1) % S], seg[i] ? (want - acc) / seg[i] : 0);
+    out.push({ pos: v3(p.x, -0.15, p.y).applyQuaternion(quat).add(pos), dia: hd, quat });
   }
 }
 

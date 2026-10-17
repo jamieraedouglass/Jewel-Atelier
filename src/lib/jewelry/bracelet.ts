@@ -34,7 +34,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       const run = patternRun(d, m, curve, gapU ? front + 0.5 + gapU : front, gapU ? front + 1.5 - gapU : front + 1, {
         closed: !gapU, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
         offset: (u) => outwardAt(curve, u).multiplyScalar(off),
-        onPlace: o.halo ? (pos, quat, W, L) => haloRing(pos, quat, W, L, haloItems) : undefined,
+        onPlace: o.halo ? (pos, quat, W, L, shape) => haloRing(pos, quat, W, L, haloItems, shape) : undefined,
       });
       group.add(run.group);
       maxW = run.maxW;

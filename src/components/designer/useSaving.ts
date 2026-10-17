@@ -6,6 +6,7 @@ import { duplicateDesign, saveDesign, setPublic, setThumbnail } from "@/app/acti
 import { describeDesign, type Design } from "@/lib/design";
 import { createClient } from "@/lib/supabase/client";
 import type { RingCanvasHandle } from "../canvas/types";
+import { thumbPath } from "@/lib/thumbs";
 
 export const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}.png`;
 
@@ -31,7 +32,7 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     try {
       const blob = (await canvas.current?.hero?.()) ?? (await canvas.current?.snapshot());
       if (!blob || blob.size < 2000) return; // nothing drawn yet
-      const path = `${userId}/${designId}.jpg`;
+      const path = thumbPath(userId, designId);
       const { error } = await createClient().storage.from("thumbnails").upload(path, blob, { contentType: "image/jpeg", upsert: true });
       if (error) console.warn("thumbnail upload failed:", error.message);
       else await setThumbnail(designId, path);

@@ -8,6 +8,7 @@ import BackupButtons from "@/components/BackupButtons";
 import ThumbStudio from "@/components/gallery/ThumbStudio";
 import { STATUSES, STATUS_LABEL, normalizeStatus, type Status } from "@/lib/inventory";
 import { BRAND } from "@/lib/brand";
+import { isCurrentThumb } from "@/lib/thumbs";
 
 export const metadata = { title: `My designs · ${BRAND.name}` };
 
@@ -39,7 +40,8 @@ export default async function MyRings({ searchParams }: { searchParams: { status
       ) : (
         <div className="grid">
           {rows.map((r) => {
-            const thumb = r.thumbnail_path ? supabase.storage.from("thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl : null;
+            // an out-of-date picture is redrawn (see thumbs.ts), so every card shows the same lighting and backdrop
+            const thumb = isCurrentThumb(r.thumbnail_path) ? supabase.storage.from("thumbnails").getPublicUrl(r.thumbnail_path!).data.publicUrl : null;
             return (
               <div key={r.id} className="card">
                 <Link href={`/design/${r.id}`} style={{ textDecoration: "none" }}>
