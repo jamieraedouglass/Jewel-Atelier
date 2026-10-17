@@ -6,6 +6,7 @@ import { type Mats } from "./materials";
 import { ASPECT, type Item, accents, balls } from "./elements";
 import { patternMaxW, patternRun } from "./patterns";
 import { tube } from "./stones";
+import { handPolished } from "../polish";
 
 /* ================= Art Deco layers ================= */
 
@@ -42,7 +43,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
       g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main) }).group);
     } else if (f.kind === "milgrain") {
       const n = Math.max(12, Math.round(centre.getLength() / 0.5));
-      g.add(balls(m.metal, Array.from({ length: n }, (_, k) => ({ pos: centre.getPointAt(k / n).add(v3(0, 0.12, 0)), dia: 0.42 }))));
+      // satin beads: rows of mirror-bright beads each catch a highlight and blur into a glowing band
+      g.add(balls(m.satin, Array.from({ length: n }, (_, k) => ({ pos: centre.getPointAt(k / n).add(v3(0, 0.12, 0)), dia: 0.42 }))));
     } else {
       const band = new THREE.Mesh(new THREE.TubeGeometry(centre, 240, thick / 2, 8, true), m.metal);
       band.scale.y = 0.6; band.position.y = (1 - 0.6) * y;
@@ -56,12 +58,27 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15) {
   if (outer.length) {
     // the gold plate everything is set into
     const shape = new THREE.Shape(outer.map((p) => new THREE.Vector2(p.x, p.z)));
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.3, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
     geo.rotateX(Math.PI / 2); geo.translate(0, y - 0.75, 0);
+    // not a slab: the sides taper in underneath, like a cocktail ring's gallery narrowing down to the band
+    geo.computeBoundingBox();
+    const { min, max } = geo.boundingBox!;
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const t = (pos.getY(i) - min.y) / Math.max(1e-6, max.y - min.y); // 0 underneath, 1 on top
+      const k = 0.62 + 0.38 * Math.pow(t, 0.6);
+      pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
     // a satin finish on the flat plate, as a jeweller would leave it, so it reads as metal rather than a black mirror
-    const satin = (m.metal as THREE.MeshPhysicalMaterial).clone();
-    satin.roughness = 0.38;
-    satin.envMapIntensity = 0.7;
+    const satin = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone());
+    satin.roughness = 0.62;
+    satin.envMapIntensity = 0.3;
+    // a little deeper in tone: flat and facing the lamp, it would otherwise mirror it straight back as a white panel
+    satin.color = satin.color.clone().multiplyScalar(0.72);
+    // no glossy clear coat: on a plate this broad it mirrors the overhead light and the whole top flares white
+    satin.clearcoat = 0;
     const plate = new THREE.Mesh(geo, satin);
     plate.userData.part = "metal";
     g.add(plate);

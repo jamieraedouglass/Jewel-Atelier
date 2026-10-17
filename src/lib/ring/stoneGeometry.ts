@@ -270,7 +270,9 @@ export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number
   const ol = sideOutline(kind, L, W);
   const span = kind === "baguette" || kind === "pear" ? L : W;
   const cx = kind === "round" || kind === "oval" ? W / 2 : kind === "pear" ? L * 0.55 : span * 0.42;
-  const crown = Math.min(L, W) * 0.3, pav = Math.min(L, W) * 0.75;
+  // rounds, ovals and pears are cut like any brilliant (crown ~16%, pavilion ~43% of the width); fitted shapes sit deeper in their rims
+  const brilliant = kind === "round" || kind === "oval" || kind === "pear";
+  const crown = Math.min(L, W) * (brilliant ? 0.16 : 0.3), pav = Math.min(L, W) * (brilliant ? 0.43 : 0.75);
   const ccw = [...ol].reverse(); // facets must wind counter-clockwise to face outward
   const ring = (s: number, y: number) => ccw.map(([x, z]) => new THREE.Vector3(cx + (x - cx) * s, y, z * s));
   const tiers: Tier[] = kind === "round" || kind === "oval" || kind === "pear"

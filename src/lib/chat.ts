@@ -46,13 +46,13 @@ export { describePatch };
  * The conversation as the chat API takes it: at most `max` messages, starting with one of theirs, with each suggestion
  * (and what they did with it) folded into the text so the consultant remembers.
  */
-export function chatForApi(messages: ChatMessage[], max = 40) {
+export function chatForApi(messages: ChatMessage[], max = 40, describe: (p: ChatProposal) => string = (p) => describePatch(p.patch)) {
   let tail = messages.slice(-max);
   while (tail.length && tail[0].role !== "user") tail = tail.slice(1);
   return tail.map((m) => ({
     role: m.role,
     content: m.proposals?.length
-      ? `${m.content}\n${m.proposals.map((p) => `[Suggested: ${p.title} — ${describePatch(p.patch)}${p.state === "applied" ? " (they applied it)" : p.state === "dismissed" ? " (they turned it down)" : ""}]`).join("\n")}`
+      ? `${m.content}\n${m.proposals.map((p) => `[Suggested: ${p.title} — ${describe(p)}${p.state === "applied" ? " (they applied it)" : p.state === "dismissed" ? " (they turned it down)" : ""}]`).join("\n")}`
       : m.content,
   }));
 }

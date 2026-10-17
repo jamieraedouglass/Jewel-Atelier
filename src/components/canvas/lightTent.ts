@@ -20,10 +20,12 @@ export function addLightTent(scene: THREE.Object3D, brightness: number) {
   const head = new THREE.Mesh(new THREE.CircleGeometry(2.1, 32), dark);
   head.rotation.x = Math.PI / 2; head.position.y = 8.9;
   scene.add(head);
-  // dark cards round the sides, between the room's lights
-  for (let i = 0; i < 6; i++) {
-    const a = ((i + 0.5) / 6) * Math.PI * 2;
-    const card = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 5), dark);
+  // round the sides, alternating bright panels and dark cards: seen through a big stone's top facet, the walls then
+  // break into a pattern of light and dark instead of one even grey
+  const side = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(brightness * 0.45), side: THREE.DoubleSide });
+  for (let i = 0; i < 12; i++) {
+    const a = ((i + 0.5) / 12) * Math.PI * 2;
+    const card = new THREE.Mesh(new THREE.PlaneGeometry(i % 2 ? 1.6 : 2.2, 5), i % 2 ? dark : side);
     card.position.set(Math.cos(a) * 9, 3, Math.sin(a) * 9);
     card.lookAt(0, 3, 0);
     scene.add(card);

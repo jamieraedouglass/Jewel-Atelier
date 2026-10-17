@@ -11,7 +11,7 @@ const find = async (d: ReturnType<typeof defaultDesign>) => {
   buildPiece(d).group.traverse((o) => {
     const m = o as THREE.Mesh;
     if (m.isMesh && (m.material as THREE.ShaderMaterial).isShaderMaterial) out.star++;
-    if ((m as unknown as THREE.InstancedMesh).isInstancedMesh && (m.material as THREE.MeshBasicMaterial).depthTest === false) out.specks += (m as unknown as THREE.InstancedMesh).count;
+    if (m.userData?.inclusions) out.specks += (m as unknown as THREE.InstancedMesh).count;
     if (m.userData?.tint) out.tints.push(m.userData.tint);
   });
   return out;

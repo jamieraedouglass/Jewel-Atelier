@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   GEMS, GEM_LOOK, KARATS, METALS, SHAPES, gemLabel, indianRingSize, label, lengthForShape, metalName, normalizeDesign,
-  varietiesOf, varietyLook, type Design, type Gem,
+  NO_CHARACTER, varietiesOf, varietyLook, type Design, type Gem,
 } from "../design";
 
 /**
@@ -39,6 +39,8 @@ export function optionLook(o: StoneOption) {
 export const optionName = (o: StoneOption) => optionLook(o).label;
 
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+/** a stone swapped in for the design's own carries none of that stone's particulars (its grade, inclusions, star) */
+export const FRESH_STONE = NO_CHARACTER;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const round1 = (n: number) => Math.round(n * 10) / 10;
 /** A stone's size for people to read: "10.8 × 9.8". */
@@ -62,11 +64,12 @@ export function clampToAllowed(base: Design, proposed: Design, allow: Allow): De
   if (!base.center.none) {
     const c = base.center, p = proposed.center;
     // the stone: the design's own, or one of Carl's options (in exactly that option's look)
-    const option = allow.stones.find((o) => o.gem === p.gem && (o.grade ? optionLook(o).color.toLowerCase() === p.color.toLowerCase() : true));
+    const sameColour = (o: StoneOption) => optionLook(o).color.toLowerCase() === p.color.toLowerCase();
+    const option = allow.stones.find((o) => o.gem === p.gem && sameColour(o)) ?? allow.stones.find((o) => o.gem === p.gem && !o.grade);
     const ownStone = p.gem === c.gem && p.color.toLowerCase() === c.color.toLowerCase();
     if (!ownStone && option) {
       const look = optionLook(option);
-      Object.assign(out.center, { gem: option.gem, color: look.color, clarity: look.clarity, glow: look.glow, label: look.label });
+      Object.assign(out.center, { gem: option.gem, color: look.color, clarity: look.clarity, glow: look.glow, label: look.label, ...FRESH_STONE });
     }
     // the shape: its own or one Carl allows
     const shape = p.shape === c.shape || allow.shapes.includes(p.shape) ? p.shape : c.shape;
@@ -74,7 +77,7 @@ export function clampToAllowed(base: Design, proposed: Design, allow: Allow): De
     // the size: within Carl's range of the original
     const r = allow.stoneScale;
     const width = clamp(p.widthMm, c.widthMm * (1 - r), c.widthMm * (1 + r));
-    const length = shape === c.shape ? clamp(p.lengthMm, c.lengthMm * (1 - r), c.lengthMm * (1 + r)) : lengthForShape(width, shape);
+    const length = shape === c.shape ? width * (c.lengthMm / c.widthMm) : lengthForShape(width, shape);
     out.center.widthMm = round1(width);
     out.center.lengthMm = round1(length);
     const k = out.center.widthMm / c.widthMm;

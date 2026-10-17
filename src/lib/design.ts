@@ -13,5 +13,6 @@ export * from "./design/dropParts";
 export * from "./design/measures";
 export * from "./design/describe";
 export * from "./design/character";
+export * from "./design/buildRules";
 export * from "./design/forAi";
 export * from "./design/showcase";

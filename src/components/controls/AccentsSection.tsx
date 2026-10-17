@@ -6,6 +6,8 @@ import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type Se
 import ColourGrade from "./ColourGrade";
 
 type Accents = Design["accents"];
+/** shapes that look the same turned any way, so a direction would change nothing */
+const SAME_EVERY_WAY = new Set(["round", "old-mine"]);
 type Pattern = Pick<Accents, "shapes" | "turns" | "twins" | "sizes">;
 const pattern = (shapes: Accents["shapes"], turns: number[] = [], twins: boolean[] = [], sizes: number[] = []): Pattern => ({ shapes, turns, twins, sizes });
 
@@ -89,8 +91,12 @@ export default function AccentsSection({ d, onChange, usesShapes }: SectionProps
             {a.colors.length > 0 && <button type="button" className="chip" onClick={() => setAccents({ colors: [] })}>All one colour</button>}
           </div>
           <span className="small muted">Stone direction</span>
-          <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={a.orientation}
-            fmt={(v) => (v === "along" ? "Along the line" : v === "across" ? "Across the line" : "Alternating")} onPick={(orientation) => setAccents({ orientation })} />
+          {a.shapes.some((sh) => !SAME_EVERY_WAY.has(sh)) ? (
+            <Chips name="Stone direction" options={["along", "across", "alternate"] as const} value={a.orientation}
+              fmt={(v) => (v === "along" ? "Along the line" : v === "across" ? "Across the line" : "Alternating")} onPick={(orientation) => setAccents({ orientation })} />
+          ) : (
+            <p className="small muted" style={{ margin: 0 }}>Round stones look the same whichever way they point. To change where they sit, see Construction.</p>
+          )}
         </>
       )}
       <Range id="acc-ct" label="Each" value={a.sizeCt} min={0.005} max={accentMaxCt(usesShapes)} step={0.005} format={(n) => `${n.toFixed(n >= 1 ? 2 : 3)} ct`} onChange={(sizeCt) => setAccents({ sizeCt })} />

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CenterStone, type Design, type Gem, ringInnerDiameter } from "../design";
+import { NO_CHARACTER, type CenterStone, type Design, type Gem, ringInnerDiameter } from "../design";
 import { bandSection, buildRing, outlineFn, shankGeo } from "../ringModel";
 import { type Piece, v3 } from "./common";
 import { type Mats, makeMaterials } from "./materials";
@@ -7,6 +7,7 @@ import { setStoneRaw, tube } from "./stones";
 import { accents, aroundOutline, backingPlate, balls } from "./elements";
 import { halo, outlineCurve, patternMaxW, patternRun } from "./patterns";
 import { decoFrames, flowerCluster, halfFlower, swirlArms } from "./ringHeads";
+import { handPolished } from "../polish";
 
 /**
  * How far a stone reaches sideways (along x) from its centre once turned by `deg`: towards +x (side 1) or −x (side −1).
@@ -37,7 +38,7 @@ export function ringPiece(d: Design): Piece {
     const group = new THREE.Group();
     const RIN = ringInnerDiameter(d.ringSize) / 2;
     const bw = Math.max(d.band.widthMm, 3);
-    const innerMat = (m.metal as THREE.MeshPhysicalMaterial).clone(); innerMat.side = THREE.DoubleSide;
+    const innerMat = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone()); innerMat.side = THREE.DoubleSide;
     const band = new THREE.Mesh(new THREE.CylinderGeometry(RIN + 1.9, RIN + 1.9, bw, 160, 1, true), innerMat);
     band.rotation.x = Math.PI / 2;
     const inner = new THREE.Mesh(new THREE.CylinderGeometry(RIN, RIN, bw, 160, 1, true), innerMat);
@@ -82,7 +83,7 @@ export function ringPiece(d: Design): Piece {
     if (head) head.position.x = -a;
     const gy0: number = group.userData.girdleY ?? 12;
     const mm = makeMaterials(d);
-    const partner = setStoneRaw({ ...d.center, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false }, d.setting.style, mm);
+    const partner = setStoneRaw({ ...d.center, ...NO_CHARACTER, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false }, d.setting.style, mm);
     partner.rotation.y = THREE.MathUtils.degToRad(e.rotation);
     partner.position.set(b + e.dx, gy0, e.dz);
     partner.userData.part = "extra";
@@ -90,7 +91,7 @@ export function ringPiece(d: Design): Piece {
     if (d.options.halo) {
       // a surround round each stone (baguettes, pavé, any shape in the accent pattern)
       const hm = halo(d, mm, d.center); hm.group.position.set(-a, gy0, 0); hm.group.rotation.y = THREE.MathUtils.degToRad(d.center.rotation); group.add(hm.group);
-      const pc = { ...d.center, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false };
+      const pc = { ...d.center, ...NO_CHARACTER, ...e, carat: null, label: "", photoPath: null, rotation: 0, none: false };
       const hp = halo(d, mm, pc); hp.group.position.set(b + e.dx, gy0, e.dz); hp.group.rotation.y = THREE.MathUtils.degToRad(e.rotation); group.add(hp.group);
     }
     // a bridge under both stones into the shank

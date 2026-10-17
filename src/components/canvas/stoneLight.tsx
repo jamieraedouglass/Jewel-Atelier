@@ -53,3 +53,4 @@ export function StoneLight({ piece }: { piece: Piece }) {
   }, [gl, piece]);
   return null;
 }
+

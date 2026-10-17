@@ -49,7 +49,7 @@ export default function CenterStoneSection({ d, onChange }: SectionProps) {
             <input id="carat" type="number" min={0.01} max={200} step={0.01} value={caratText} placeholder="e.g. 15.24" onChange={(e) => setCarat(e.target.value)} />
           </label>
         </div>
-        <Chips name="Cut" options={CUTS} value={c.cut} onPick={(cut) => setCenter({ cut, ...(c.carat ? estimateDims(c.gem, cut, c.shape, c.carat, ratio) : { domeMm: Math.round(c.widthMm * DOME_SHARE[cut] * 10) / 10 }) })} />
+        <Chips name="Cut" options={CUTS} value={c.cut} onPick={(cut) => setCenter({ cut, ...(cut === "cabochon" || cut === "carved" ? {} : { phenomenon: "none" as const }), ...(c.carat ? estimateDims(c.gem, cut, c.shape, c.carat, ratio) : { domeMm: Math.round(c.widthMm * DOME_SHARE[cut] * 10) / 10 }) })} />
         <Chips name="Shape" options={SHAPES} value={c.shape} onPick={(shape) => setCenter({ shape, ...(c.carat ? estimateDims(c.gem, c.cut, shape, c.carat) : {}) })} />
         {canReproportion(c.shape) && (
           <>

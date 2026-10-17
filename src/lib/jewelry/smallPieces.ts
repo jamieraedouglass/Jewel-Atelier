@@ -1,10 +1,10 @@
 import * as THREE from "three";
-import { type Design, roundDiameter } from "../design";
+import { NO_CHARACTER, type Design, roundDiameter } from "../design";
 import { outlineFn } from "../ringModel";
 import { type Piece, Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStone, tube } from "./stones";
-import { type Item, accents, aroundOutline, balls, chainAlong, fringe } from "./elements";
+import { type Item, accents, aroundOutline, balls, chainAlong, fringe, ghungroo } from "./elements";
 import { flower, halo, patternAt, patternRun } from "./patterns";
 import { loopCurve, outwardAt, wrap } from "./curves";
 import { braceletPiece } from "./bracelet";
@@ -20,10 +20,10 @@ export function ankletPiece(d: Design, m: Mats): Piece {
     const u = wrap(front + (i - (n - 1) / 2) * (0.75 / n));
     const out = outwardAt(curve, u), p = curve.getPointAt(u);
     loops.push({ pos: p.clone().addScaledVector(out, 1.2), dia: 1 });
-    bells.push({ pos: p.clone().addScaledVector(out, 3.6), dia: 4.2 });
+    bells.push({ pos: p.clone().addScaledVector(out, 3.6), dia: 4.2, up: out.clone().negate() }); // slit facing away from the chain
     if (i % 3 === 1) dots.push({ pos: p.clone().add(v3(0, 0.8, 0)), dia: 2.2 });
   }
-  group.add(balls(m.metal, bells), balls(m.metal, loops));
+  group.add(ghungroo(m.metal, bells), balls(m.metal, loops));
   if (d.enamel.enabled) group.add(balls(m.enamel, dots, 0.6));
   else group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, dots.map((x) => ({ ...x, dia: roundDiameter(d.accents.gem, d.accents.sizeCt) }))));
   return { group, focus: curve.getPointAt(front), focusSize: 40, upright: false };
@@ -121,7 +121,7 @@ export function handPiece(d: Design, m: Mats): Piece {
   group.add(ring);
   const f = flower(d, m, d.center);
   group.add(f.group);
-  const ringFlower = flower(d, m, { ...d.center, lengthMm: 4, widthMm: 4, domeMm: 0.6 }, 1);
+  const ringFlower = flower(d, m, { ...d.center, ...NO_CHARACTER, lengthMm: 4, widthMm: 4, domeMm: 0.6 }, 1);
   ringFlower.group.position.set(0, 0.9, 70 - 9);
   group.add(ringFlower.group);
   // chains: one to the ring, three fanning to the bracelet

@@ -1,6 +1,6 @@
 "use client";
 
-import { BANGLE_SIZES, CHAIN_STYLES, NECKLACE_LENGTHS, SETTINGS, type ClaspChoice, type Design, type Use, claspChoices, isSolidBracelet, label } from "@/lib/design";
+import { BANGLE_SIZES, CHAIN_STYLES, NECKLACE_LENGTHS, SETTINGS, type ClaspChoice, type Design, type Use, claspChoices, isSolidBracelet, label, blockedOptions } from "@/lib/design";
 
 const CLASP_LABEL: Record<ClaspChoice, string> = {
   auto: "Usual for this piece", box: "Box clasp", jewelled: "Jewelled box (the design runs onto it)", hidden: "Hidden (stones unbroken)",
@@ -27,6 +27,7 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
   const o = d.options;
   const setOpt = (p: Partial<Design["options"]>) => onChange({ options: p });
   const hoopish = d.style === "hoop" || d.style === "huggie";
+  const blocked = blockedOptions(d);
   return (
     <section style={sectionStyle}>
       <h3>Construction</h3>
@@ -54,8 +55,9 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
       {d.style === "two-stone" && d.type === "ring" && (
         <>
           <span className="small muted">The two stones</span>
-          <Chips name="The two stones" options={["apart", "touching"] as const} value={o.pairSpacing}
+          <Chips name="The two stones" options={blocked.pairTouching ? (["apart"] as const) : (["apart", "touching"] as const)} value={o.pairSpacing}
             fmt={(v) => (v === "apart" ? "A little apart" : "Touching")} onPick={(pairSpacing) => setOpt({ pairSpacing })} />
+          {blocked.pairTouching && <p className="small muted" style={{ margin: 0 }}>{blocked.pairTouching.reason}</p>}
         </>
       )}
       {has("halo") && <Toggle id="halo" checked={o.halo} onChange={(halo) => setOpt({ halo })}>{haloLabel(d.style)}</Toggle>}
@@ -66,9 +68,10 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
           <span className="small muted">How far the stones run</span>
           <Chips name="Coverage" options={["front", "half", "full"] as const} value={o.paveCoverage}
             fmt={(v) => (v === "front" ? "Front two-thirds" : v === "half" ? "Bottom half" : "All the way up")} onPick={(paveCoverage) => setOpt({ paveCoverage })} />
-          <span className="small muted">Which face of the wire</span>
-          <Chips name="Face" options={["front", "outer", "inner"] as const} value={o.hoopFace}
-            fmt={(v) => (v === "front" ? "Front edge (narrow)" : v === "outer" ? "Outer side (wide)" : "Inside")} onPick={(hoopFace) => setOpt({ hoopFace })} />
+          <span className="small muted">Where the stones sit</span>
+          <Chips name="Face" options={blocked.hoopInside ? (["front", "outer"] as const) : (["front", "outer", "inner"] as const)} value={o.hoopFace}
+            fmt={(v) => (v === "front" ? "Facing out (the side people see)" : v === "outer" ? "Round the outside of the hoop" : "On the inside")} onPick={(hoopFace) => setOpt({ hoopFace })} />
+          {blocked.hoopInside && <p className="small muted" style={{ margin: 0 }}>{blocked.hoopInside.reason}</p>}
         </>
       )}
       {d.style === "hoop" && !d.center.none && (

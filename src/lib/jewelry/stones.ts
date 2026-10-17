@@ -4,7 +4,7 @@ import { BEAD_GEMS, type CenterStone, type Design, type Gem } from "../design";
 import { type OutlineFn, cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, facetedGeo, outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
-import { inclusionSpecks, phenomenonLayer } from "./character";
+import { inclusionSpecks, phenomenonLayer, seeThrough } from "./character";
 import { chroma } from "../design/character";
 
 /* ================= stone geometry by cut ================= */
@@ -118,7 +118,7 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
   }
   if (c.cut !== "bead" && !BEAD_GEMS.has(c.gem)) {
     const specks = inclusionSpecks(c, outlineFn(c.shape, L, W), L, W, dome);
-    if (specks) g.add(specks);
+    if (specks) { seeThrough(g); g.add(specks); }
   }
   return g;
 }

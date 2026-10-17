@@ -12,6 +12,8 @@ import PriceEditor, { filledPricing } from "../studio/PriceEditor";
 import ClientStudio from "./ClientStudio";
 
 type Side = "see" | "settings";
+/** one object for the whole visit: a new one each render would rebuild the demo's backend and forget what it had logged */
+const DEMO_MODE = { kind: "demo" } as const;
 const BASES = Object.fromEntries(DEMO_PIECES.map((p) => [p.designId, p.base]));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -29,30 +31,31 @@ export default function DemoClient({ studioName }: { studioName: string }) {
   const [open, setOpen] = useState(true);
   // her screen starts again (keeping her changes, within the new rules) when the jeweller changes what she may do
   const [round, setRound] = useState(0);
+  // Meher's pieces as they are this moment, including a change not saved yet (her screen restarts from these)
   const latest = useRef(versions);
-  latest.current = versions;
 
   const onDemoEvent = useCallback((line: string) => setLog((cur) => [`${DEMO_CLIENT.name}: ${line}`, ...cur].slice(0, 30)), []);
-  const onDemoSave = useCallback((id: string, d: Design) => setVersions((cur) => ({ ...cur, [id]: d })), []);
+  const onDemoSave = useCallback((id: string, d: Design) => { latest.current = { ...latest.current, [id]: d }; setVersions((cur) => ({ ...cur, [id]: d })); }, []);
+  const onDemoChange = useCallback((id: string, d: Design) => { latest.current = { ...latest.current, [id]: d }; }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const pieces = useMemo(() => DEMO_PIECES.map((p) => ({ ...p, version: latest.current[p.designId] })), [round]);
   const shownPricing = useMemo(() => cleanPricing(filledPricing(pricing), BASES, allow), [pricing, allow]);
 
   function changeAllow(next: Allow) {
     setAllow(next);
-    setVersions((cur) => {
-      const kept = Object.fromEntries(DEMO_PIECES.map((p) => [p.designId, clampToAllowed(p.base, cur[p.designId], next)]));
-      latest.current = kept;
-      return kept;
-    });
+    // keep her changes (the latest, even one not saved yet), within what she may now do
+    const kept = Object.fromEntries(DEMO_PIECES.map((p) => [p.designId, clampToAllowed(p.base, latest.current[p.designId], next)]));
+    latest.current = kept;
+    setVersions(kept);
     setRound((n) => n + 1);
   }
+
 
   return (
     <div className={`demo-split${open ? "" : " closed"}`}>
       <div style={{ minWidth: 0 }}>
         <ClientStudio key={round} studioName={studioName} clientName={DEMO_CLIENT.name} note={DEMO_CLIENT.note} allow={allow} pieces={pieces} pricing={shownPricing}
-          mode={{ kind: "demo" }} onDemoEvent={onDemoEvent} onDemoSave={onDemoSave} />
+          mode={DEMO_MODE} onDemoEvent={onDemoEvent} onDemoSave={onDemoSave} onDemoChange={onDemoChange} />
       </div>
       <aside className="demo-side" aria-label="Your side, live">
         {!open ? (

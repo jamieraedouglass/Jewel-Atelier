@@ -82,8 +82,8 @@ function seeded(seed: number) {
 }
 
 /**
- * Inclusions as small dark crystals and pale feathers inside the stone, more of them the more included it is. They
- * are drawn over the stone (it would otherwise hide them) and kept well inside its outline.
+ * Inclusions as small dark crystals and pale feathers inside the stone, more of them the more included it is, kept
+ * well inside its outline. Pair with seeThrough on the stone's own meshes.
  */
 export function inclusionSpecks(c: Pick<CenterStone, "inclusions" | "cut" | "lengthMm" | "widthMm">, fn: OutlineFn, L: number, W: number, dome: number): THREE.Group | null {
   const n = Math.round(c.inclusions * 18);
@@ -91,8 +91,9 @@ export function inclusionSpecks(c: Pick<CenterStone, "inclusions" | "cut" | "len
   const rnd = seeded(c.lengthMm * 31 + c.widthMm * 17 + c.inclusions * 101);
   const cab = c.cut === "cabochon" || c.cut === "carved";
   const yLo = cab ? dome * 0.1 : -W * 0.18, yHi = cab ? dome * 0.55 : Math.max(0.1, dome * 0.5);
-  const crystals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: 0x24201c, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }), n);
-  const feathers = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0xf6f3ea, transparent: true, opacity: 0.32, depthTest: false, depthWrite: false, side: THREE.DoubleSide }), n);
+  // depth-tested: metal in front hides them; the stone around them doesn't, as it's drawn without blocking them (seeThrough)
+  const crystals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: 0x24201c, transparent: true, opacity: 0.55, depthWrite: false }), n);
+  const feathers = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0xf6f3ea, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide }), n);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3();
   let nc = 0, nf = 0;
   for (let i = 0; i < n; i++) {
@@ -112,9 +113,27 @@ export function inclusionSpecks(c: Pick<CenterStone, "inclusions" | "cut" | "len
   crystals.count = nc; feathers.count = nf;
   const g = new THREE.Group();
   for (const mesh of [crystals, feathers]) {
+    mesh.userData.inclusions = true;
     mesh.renderOrder = 5;
     mesh.raycast = () => {};
     if (mesh.count) g.add(mesh);
   }
   return g;
+}
+
+/**
+ * Lets a stone's inclusions show: the stone's meshes are drawn after everything solid and don't hide what's inside them,
+ * so its inclusions are hidden only by what's really in front (claws, the band). Their materials are copied, as they're
+ * shared with other stones.
+ */
+export function seeThrough(stone: THREE.Object3D) {
+  stone.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || mesh.userData.inclusions || Array.isArray(mesh.material)) return;
+    const m = mesh.material as THREE.Material & { isShaderMaterial?: boolean };
+    if (m.isShaderMaterial || m.transparent) return; // the star layer and see-through skins already don't block
+    mesh.material = m.clone();
+    (mesh.material as THREE.Material).depthWrite = false;
+    mesh.renderOrder = 1;
+  });
 }

@@ -28,10 +28,11 @@ export default async function ClientLinkPage({ params }: { params: { token: stri
   const bundle = await loadClientBundle(params.token);
   if (!bundle) notFound();
   if (bundle.state !== "active" || !bundle.pieces.length) {
+    const gone = bundle.state === "active";
     return (
       <main className="page" style={{ maxWidth: 560 }}>
-        <h1 style={{ fontSize: 34 }}>This link has {bundle.state === "revoked" ? "been closed" : "expired"}</h1>
-        <p className="muted">Ask {BRAND.studioName} for a new one; your earlier changes are kept.</p>
+        <h1 style={{ fontSize: 34 }}>{gone ? "These pieces are no longer available" : `This link has ${bundle.state === "revoked" ? "been closed" : "expired"}`}</h1>
+        <p className="muted">{gone ? `${BRAND.studioName} has taken these designs down. Ask them for a new link.` : `Ask ${BRAND.studioName} for a new one; your earlier changes are kept.`}</p>
       </main>
     );
   }

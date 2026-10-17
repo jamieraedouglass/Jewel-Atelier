@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CenterStone, type Design, rightEarDesign, roundDiameter } from "../design";
+import { NO_CHARACTER, type CenterStone, type Design, rightEarDesign, roundDiameter } from "../design";
 import { type Piece, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStone, setStoneRaw, tube } from "./stones";
@@ -23,7 +23,7 @@ function stud(d: Design, m: Mats, mirror: boolean) {
   let z = reach(c.lengthMm, c.widthMm, c.rotation) + (d.options.halo ? roundDiameter(d.accents.gem, d.accents.sizeCt) + 0.8 : 0);
   let prev = new THREE.Vector3();
   for (const e of d.extraStones) {
-    const stone: CenterStone = { ...c, ...e, domeMm: e.cut === "faceted" ? Math.max(e.domeMm, Math.min(e.widthMm, e.lengthMm) * 0.15) : e.domeMm, carat: null, label: "", photoPath: null, rotation: 0 };
+    const stone: CenterStone = { ...c, ...NO_CHARACTER, ...e, domeMm: e.cut === "faceted" ? Math.max(e.domeMm, Math.min(e.widthMm, e.lengthMm) * 0.15) : e.domeMm, carat: null, label: "", photoPath: null, rotation: 0 };
     const half = reach(e.lengthMm, e.widthMm, e.rotation);
     const pos = new THREE.Vector3(e.dx * flip, 0, z + 0.4 + half + e.dz);
     const s = setStoneRaw(stone, d.setting.style, m);
@@ -163,7 +163,7 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
   let focus = v3(), focusSize = Math.max(c.lengthMm, c.widthMm) * 1.6;
   const accentDia = roundDiameter(d.accents.gem, d.accents.sizeCt);
   const topStud = (z = 0) => {
-    const f = flower(d, m, { ...c, lengthMm: Math.min(c.lengthMm, 6), widthMm: Math.min(c.widthMm, 6) });
+    const f = flower(d, m, { ...c, ...NO_CHARACTER, lengthMm: Math.min(c.lengthMm, 6), widthMm: Math.min(c.widthMm, 6) });
     f.group.position.z = z;
     one.add(f.group);
     return f.radius;

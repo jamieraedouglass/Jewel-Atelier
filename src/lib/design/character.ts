@@ -21,6 +21,9 @@ export const PHENOMENA = ["none", "star", "cats-eye"] as const;
 export type Phenomenon = (typeof PHENOMENA)[number];
 export const STAR_RAYS = [4, 6, 12] as const;
 
+/** none of a particular stone's character: for stones copied from the main one (partners, side stones, petals) */
+export const NO_CHARACTER = { colorGrade: null, inclusions: 0, phenomenon: "none" } as const;
+
 /** how included a stone looks, in words (0 = eye-clean, 1 = heavily included) */
 export function inclusionWords(n: number): string {
   if (n < 0.08) return "eye-clean";
@@ -29,12 +32,17 @@ export function inclusionWords(n: number): string {
   return "heavily included";
 }
 
-type Character = { gem: string; inclusions: number; phenomenon: Phenomenon; rays: number; colorGrade: string | null };
+type Character = { gem: string; cut?: string; inclusions: number; phenomenon: Phenomenon; rays: number; colorGrade: string | null };
+
+/** the effect a stone actually shows: a star or cat's eye needs a cabochon (or a carved, domed stone) */
+export const shownPhenomenon = (c: { phenomenon: Phenomenon; cut?: string }): Phenomenon =>
+  c.cut === undefined || c.cut === "cabochon" || c.cut === "carved" ? c.phenomenon : "none";
 
 /** the effect, as part of a stone's name: "6-ray star", "cat's-eye" (nothing for a cat's eye gem, which says it already) */
-export function phenomenonText(c: Pick<Character, "gem" | "phenomenon" | "rays">): string {
-  if (c.phenomenon === "star") return `${c.rays}-ray star`;
-  if (c.phenomenon === "cats-eye" && c.gem !== "cats-eye") return "cat's-eye";
+export function phenomenonText(c: Pick<Character, "gem" | "phenomenon" | "rays"> & { cut?: string }): string {
+  const p = shownPhenomenon(c);
+  if (p === "star") return `${c.rays}-ray star`;
+  if (p === "cats-eye" && c.gem !== "cats-eye") return "cat's-eye";
   return "";
 }
 

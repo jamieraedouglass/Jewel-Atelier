@@ -118,6 +118,42 @@ export function balls(mat: THREE.Material, items: Item[], squash = 1) {
   return im;
 }
 
+/**
+ * Ghungroo: small hollow bells, each with a slit across its underside (local −Y, opened along X) and a pellet inside,
+ * instanced like balls (unit diameter, oriented by each item's `up`, which points from the slit to the top).
+ */
+export function ghungroo(mat: THREE.Material, items: Item[]) {
+  const shell = new THREE.SphereGeometry(0.5, 56, 36).toNonIndexed();
+  // cut the slit: drop the triangles across the bottom, in a narrow band
+  const pos = shell.getAttribute("position") as THREE.BufferAttribute, keep: number[] = [];
+  for (let t = 0; t < pos.count; t += 3) {
+    let cx = 0, cy = 0;
+    for (let k = 0; k < 3; k++) { cx += pos.getX(t + k) / 3; cy += pos.getY(t + k) / 3; }
+    if (!(cy < -0.08 && Math.abs(cx) < 0.09)) for (let k = 0; k < 3; k++) keep.push(pos.getX(t + k), pos.getY(t + k), pos.getZ(t + k));
+  }
+  const bellGeo = new THREE.BufferGeometry();
+  bellGeo.setAttribute("position", new THREE.Float32BufferAttribute(keep, 3));
+  // smooth: on a sphere each point's normal is simply its direction from the centre
+  const nrm: number[] = [];
+  for (let i = 0; i < keep.length; i += 3) { const v = new THREE.Vector3(keep[i], keep[i + 1], keep[i + 2]).normalize(); nrm.push(v.x, v.y, v.z); }
+  bellGeo.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
+  const bellMat = (mat as THREE.MeshPhysicalMaterial).clone(); bellMat.side = THREE.DoubleSide;
+  const n = Math.max(1, items.length);
+  const bells = new THREE.InstancedMesh(bellGeo, bellMat, n);
+  const pellets = new THREE.InstancedMesh(new THREE.SphereGeometry(0.17, 10, 8), new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.6, metalness: 0.4 }), n);
+  const loops = new THREE.InstancedMesh(new THREE.TorusGeometry(0.11, 0.035, 6, 14), mat, n);
+  const o = new THREE.Object3D(), p = new THREE.Object3D(), l = new THREE.Object3D();
+  items.forEach((it, i) => {
+    orient(o, it); bells.setMatrixAt(i, o.matrix);
+    p.position.set(0, -0.2, 0); p.updateMatrix(); pellets.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(o.matrix, p.matrix));
+    l.position.set(0, 0.55, 0); l.updateMatrix(); loops.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(o.matrix, l.matrix));
+  });
+  bells.count = pellets.count = loops.count = items.length;
+  const g = new THREE.Group();
+  g.add(bells, pellets, loops);
+  return g;
+}
+
 /** hanging fringe: from each anchor, a tiny gold link and a drop bead (pearl by default), along `dir` */
 export function fringe(d: Design, m: Mats, anchors: { pos: THREE.Vector3; dir: THREE.Vector3 }[], beadsPer = 1) {
   const g = new THREE.Group();
@@ -183,9 +219,10 @@ export function aroundOutline(fn: OutlineFn, gap: number, dia: number, spacing: 
   return out;
 }
 
+/** a flat plate under a cluster or halo; satin by default, as a broad polished plate flares white under studio lights */
 export function backingPlate(m: Mats, fn: OutlineFn, scale: number, y: number, depth: number, mat?: THREE.Material) {
   const pts = Array.from({ length: 96 }, (_, i) => { const [x, z] = fn(i / 96); return new THREE.Vector2(x * scale, z * scale); });
   const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 2, curveSegments: 8 });
   geo.rotateX(Math.PI / 2); geo.translate(0, y, 0);
-  return new THREE.Mesh(geo, mat ?? m.metal);
+  return new THREE.Mesh(geo, mat ?? m.satin);
 }

@@ -107,6 +107,8 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         "vec3 outC = mix(diffuseColor.rgb, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);",
       );
+      // a stone with inclusions lets them show through (see seeThrough): keep that, and draw it after the metal
+      mat.depthWrite = (mesh.material as THREE.Material).depthWrite;
       made.push(mat);
       swaps.push({ mesh, before: mesh.material, hidden: twin ? [twin] : [] });
       mesh.material = mat;

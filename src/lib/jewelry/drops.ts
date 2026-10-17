@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CenterStone, type Design, type DropPart } from "../design";
+import { NO_CHARACTER, type CenterStone, type Design, type DropPart } from "../design";
 import { outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -20,12 +20,12 @@ function paveDesign(d: Design, p: DropPart): Design {
 function partStone(d: Design, p: DropPart): CenterStone {
   // a faceted stone needs a real crown or its facets all mirror the same light and it reads flat grey
   const domeMm = p.stone.cut === "faceted" ? Math.max(p.stone.domeMm, Math.min(p.stone.widthMm, p.stone.lengthMm) * 0.15) : p.stone.domeMm;
-  return { ...d.center, ...p.stone, domeMm, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
+  return { ...d.center, ...NO_CHARACTER, ...p.stone, domeMm, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
 }
 function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): CenterStone {
   const W = p.small.widthMm, cut = p.small.cut;
   return {
-    ...d.center, gem: p.small.gem, cut, shape, widthMm: W, lengthMm: W * briolRatio(shape, cut), domeMm: cut === "cabochon" ? W * 0.4 : W * 0.16,
+    ...d.center, ...NO_CHARACTER, gem: p.small.gem, cut, shape, widthMm: W, lengthMm: W * briolRatio(shape, cut), domeMm: cut === "cabochon" ? W * 0.4 : W * 0.16,
     color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
   };
 }
