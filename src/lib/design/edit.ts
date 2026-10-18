@@ -18,8 +18,8 @@ export function asRightEar(r: Design): Record<string, unknown> {
 }
 
 export function normalizeDesign(input: unknown): Design {
-  const r = DesignSchema.safeParse(input ?? {});
-  return r.success ? buildable(r.data) : defaultDesign();
+  const r = parseRepaired(input ?? {});
+  return r.data ? buildable(r.data) : defaultDesign();
 }
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
@@ -31,8 +31,52 @@ export function applyPatch(design: Design, patch: DesignPatch): Design {
     const cur = (design as Record<string, unknown>)[k];
     merged[k] = v && typeof v === "object" && !Array.isArray(v) && cur && typeof cur === "object" ? { ...cur, ...v } : v;
   }
-  const r = DesignSchema.safeParse(merged);
-  return r.success ? buildable(r.data) : design;
+  const r = parseRepaired(merged);
+  return r.data ? buildable(r.data) : design;
+}
+
+type Path = (string | number)[];
+const getAt = (o: unknown, path: Path) => path.reduce<unknown>((x, k) => (x && typeof x === "object" ? (x as Record<string | number, unknown>)[k] : undefined), o);
+function setAt(o: unknown, path: Path, value: unknown, remove = false) {
+  const parent = getAt(o, path.slice(0, -1));
+  const k = path[path.length - 1];
+  if (!parent || typeof parent !== "object") return false;
+  if (remove) {
+    if (Array.isArray(parent) && typeof k === "number") parent.splice(k, 1);
+    else delete (parent as Record<string | number, unknown>)[k];
+  } else (parent as Record<string | number, unknown>)[k] = value;
+  return true;
+}
+
+export function parseRepaired(input: unknown): { data: Design | null; fixes: string[] } {
+  const cur: unknown = input && typeof input === "object" ? structuredClone(input) : input;
+  const fixes: string[] = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const r = DesignSchema.safeParse(cur);
+    if (r.success) return { data: r.data, fixes };
+    let changed = false;
+    const seen = new Set<string>();
+    for (const iss of r.error.issues) {
+      const path = iss.path as Path, id = path.join(".");
+      if (!path.length || seen.has(id)) continue;
+      seen.add(id);
+      const here = getAt(cur, path);
+      if ((iss.code === "too_small" || iss.code === "too_big") && typeof here === "number") {
+        const bound = Number(iss.code === "too_small" ? iss.minimum : iss.maximum);
+        const nudge = iss.inclusive ? 0 : (iss.code === "too_small" ? 1e-6 : -1e-6);
+        changed = setAt(cur, path, bound + nudge) || changed;
+      } else if (iss.code === "too_big" && Array.isArray(here)) {
+        here.length = Number(iss.maximum); changed = true;
+      } else if (iss.code === "too_big" && typeof here === "string") {
+        changed = setAt(cur, path, here.slice(0, Number(iss.maximum))) || changed;
+      } else {
+        changed = setAt(cur, path, undefined, true) || changed;
+      }
+      fixes.push(id);
+    }
+    if (!changed) break;
+  }
+  return { data: null, fixes };
 }
 
 const STONE_MAX: Record<PieceType, number> = { ring: 40, earrings: 11, necklace: 22, bracelet: 14, anklet: 6, headpiece: 16, nose: 5, armlet: 16, hand: 12, mens: 12 };

@@ -15,9 +15,11 @@ describe("applyPatch", () => {
     expect(next.center.gem).toBe(d.center.gem);
   });
 
-  it("returns the same design when the patch is invalid", () => {
+  it("clamps an out-of-range value to the nearest allowed one instead of dropping the change", () => {
     const d = defaultDesign();
-    expect(applyPatch(d, { center: { lengthMm: 500 } })).toBe(d);
+    const next = applyPatch(d, { center: { lengthMm: 500 } });
+    expect(next.center.lengthMm).toBeLessThan(500);
+    expect(next.center.lengthMm).toBeGreaterThan(d.center.lengthMm);
   });
 
   it("replaces arrays whole", () => {
@@ -31,13 +33,14 @@ describe("applyPatchLenient", () => {
     const d = defaultDesign();
     const next = applyPatchLenient(d, { metal: "platinum", center: { lengthMm: 500 } } as DesignPatch);
     expect(next.metal).toBe("platinum");
-    expect(next.center.lengthMm).toBe(d.center.lengthMm);
+    expect(next.center.lengthMm).toBeLessThan(500);
   });
 
-  it("keeps the valid drop parts and drops the broken ones", () => {
+  it("keeps every drop part, falling back to defaults for broken fields", () => {
     const d = chooseStyle(defaultDesign(), "earrings", "pendant");
     const next = applyPatchLenient(d, { drop: { parts: [{ kind: "stone" }, { kind: "nonsense" }], top: "hook" } } as unknown as DesignPatch);
-    expect(next.drop.parts).toHaveLength(1);
+    expect(next.drop.parts).toHaveLength(2);
+    expect(next.drop.parts[1].kind).toBe("stone");
     expect(next.drop.top).toBe("hook");
   });
 });

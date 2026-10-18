@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { NO_CHARACTER, type Design, resolveClasp, roundDiameter } from "../design";
+import { type CenterStone, GEM_LOOK, type Gem, NO_CHARACTER, type Design, resolveClasp, roundDiameter } from "../design";
 import { claspAt } from "./clasps";
 import { type Piece, Y, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -122,7 +122,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "line": {
       const kind = resolveClasp(st, o.clasp);
-      const run = kind === "hidden" ? patternRun(d, m, curve, front, front + 1, { gap: 0.18, closed: true }) : patternRun(d, m, curve, front - 0.485, front + 0.485, { gap: 0.18 });
+      const run = kind === "hidden" ? patternRun(d, m, curve, front, front + 1, { editKey: "line", gap: 0.18, closed: true }) : patternRun(d, m, curve, front - 0.485, front + 0.485, { editKey: "line", gap: 0.18 });
       group.add(run.group);
       const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.35, run.maxW * 0.05), 8, true), m.metal);
       rail.position.y = -run.maxW * 0.42;
@@ -136,15 +136,18 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const drilled = o.stoneLink === "drilled";
       const big = Math.max(c.widthMm, 2), small = big * 0.72, ringR = Math.max(0.7, big * 0.17);
       const wire = Math.max(0.28, big * 0.05), inset = wire + 0.35;
-      const stonesBig: Item[] = [], stonesSmall: Item[] = [], rings: { pos: THREE.Vector3; dia: number; axis: THREE.Vector3 }[] = [], holes: Item[] = [];
+      const looks = new Map<string, Item[]>(), rings: { pos: THREE.Vector3; dia: number; axis: THREE.Vector3 }[] = [], holes: Item[] = [];
+      const editOf = new Map(d.stoneEdits.filter((e) => e.key.startsWith("yard")).map((e) => [e.key, e] as const));
       for (let l = 0; l < loops; l++) {
         const { curve: cv } = loopCurve(L / loops + l * 60, 0.85, 0.12 + l * 0.04);
         const total = cv.getLength();
         let at = 0, k = 0, prevHole: THREE.Vector3 | null = null;
         while (at < total - big) {
-          const dia = k % 2 ? small : big;
+          const key = `yard${l}-${k}`, ed = editOf.get(key);
+          const dia = (k % 2 ? small : big) * (ed?.scale ?? 1);
           const u = (at + dia / 2) / total, p = cv.getPointAt(u), t = cv.getTangentAt(u);
-          (k % 2 ? stonesSmall : stonesBig).push({ pos: p, dia, yaw: yawAt(cv, u) });
+          const look = `${ed?.gem ?? c.gem}|${ed?.color ?? (ed?.gem ? GEM_LOOK[ed.gem].color : c.color)}|${ed?.cut ?? (c.cut === "cabochon" ? "cabochon" : c.cut)}|${ed?.shape ?? "round"}`;
+          (looks.get(look) ?? looks.set(look, []).get(look)!).push({ pos: p, dia, yaw: yawAt(cv, u), key });
           if (drilled) {
             const near = p.clone().addScaledVector(t, -(dia / 2 - inset)), far = p.clone().addScaledVector(t, dia / 2 - inset);
             holes.push({ pos: near, dia: wire * 1.5 }, { pos: far, dia: wire * 1.5 });
@@ -163,8 +166,10 @@ export function necklacePiece(d: Design, m: Mats): Piece {
           k++;
         }
       }
-      const cutA = c.cut === "cabochon" ? "cabochon" : c.cut;
-      group.add(accents(m, c.gem, c.color, cutA, stonesBig, "round", 0.42, !drilled), accents(m, c.gem, c.color, cutA, stonesSmall, "round", 0.42, !drilled));
+      looks.forEach((items, look) => {
+        const [gem, color, cut, shape] = look.split("|");
+        group.add(accents(m, gem as Gem, color, cut as CenterStone["cut"], items, shape as CenterStone["shape"], 0.42, !drilled));
+      });
       const ringIm = new THREE.InstancedMesh(new THREE.TorusGeometry(0.5, drilled ? wire / Math.max(0.5, rings[0]?.dia ?? 1) : 0.11, 8, 24), m.metal, rings.length);
       const ob = new THREE.Object3D();
       rings.forEach((r, i) => { ob.position.copy(r.pos); ob.quaternion.setFromUnitVectors(v3(0, 0, 1), r.axis); ob.scale.setScalar(r.dia); ob.updateMatrix(); ringIm.setMatrixAt(i, ob.matrix); });
@@ -220,12 +225,16 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "riviera": {
       const total = curve.getLength(), count = o.count;
-      const sizes = Array.from({ length: count }, (_, i) => { const k = Math.abs(i - (count - 1) / 2) / ((count - 1) / 2 || 1); return 1 - 0.55 * Math.pow(k, 1.3); });
+      const sizes = Array.from({ length: count }, (_, i) => { const k = Math.abs(i - (count - 1) / 2) / ((count - 1) / 2 || 1); return (1 - 0.55 * Math.pow(k, 1.3)) * (d.stoneEdits.find((e) => e.key === `riviera${i}`)?.scale ?? 1); });
       const span = sizes.reduce((a, s) => a + (c.widthMm * s + 0.35), 0);
       let u = front - span / 2 / total;
       for (let i = 0; i < count; i++) {
         const w = c.widthMm * sizes[i] + 0.35, at = wrap(u + w / 2 / total);
-        group.add(place(setStone(c, d.setting.style === "bezel" ? "bezel" : "four-claw", m, sizes[i]), curve.getPointAt(at), yawAt(curve, at)));
+        const ed = d.stoneEdits.find((e) => e.key === `riviera${i}`);
+        const cs = ed ? { ...c, ...(ed.gem ? { gem: ed.gem, ...GEM_LOOK[ed.gem] } : {}), ...(ed.color ? { color: ed.color } : {}), ...(ed.cut ? { cut: ed.cut } : {}), ...(ed.shape ? { shape: ed.shape } : {}) } : c;
+        const stone = place(setStone(cs, d.setting.style === "bezel" ? "bezel" : "four-claw", m, sizes[i]), curve.getPointAt(at), yawAt(curve, at));
+        stone.userData.stoneKey = `riviera${i}`;
+        group.add(stone);
         u += w / total;
       }
       group.add(chainAlong(curve, "box", m, front + span / 2 / total, front + 1 - span / 2 / total));
@@ -254,7 +263,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const spread = 0.5, n = Math.floor((curve.getLength() * spread) / (accentDia + 0.25));
       let bottom: { pos: THREE.Vector3; dir: THREE.Vector3 }[] = [];
       for (let r = 0; r < rows; r++) {
-        group.add(patternRun(d, m, curve, front - spread / 2, front + spread / 2, { offset: (u) => outwardAt(curve, u).multiplyScalar(r * (accentDia + 0.3)), gap: 0.25 }).group);
+        group.add(patternRun(d, m, curve, front - spread / 2, front + spread / 2, { editKey: `choker${r}`, offset: (u) => outwardAt(curve, u).multiplyScalar(r * (accentDia + 0.3)), gap: 0.25 }).group);
         if (r === rows - 1) bottom = spreadParams(front, n, spread).filter((_, i) => i % 2 === 0).map((u) => ({ pos: curve.getPointAt(u).addScaledVector(outwardAt(curve, u), r * (accentDia + 0.3) + accentDia / 2), dir: outwardAt(curve, u) }));
       }
       group.add(chainAlong(curve, "box", m, front + spread / 2, front + 1 - spread / 2));
@@ -264,7 +273,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "collar": {
       const span = 0.42;
-      const line = d.accents.enabled ? patternRun(d, m, curve, front - span / 2 - 0.03, front + span / 2 + 0.03, { gap: 0.15 }) : null;
+      const line = d.accents.enabled ? patternRun(d, m, curve, front - span / 2 - 0.03, front + span / 2 + 0.03, { editKey: "collar", gap: 0.15 }) : null;
       if (line) group.add(line.group);
       const lineW = line ? line.maxW : 0;
       group.add(chainAlong(curve, "box", m, front + span / 2 + 0.03, front + 1 - span / 2 - 0.03));
@@ -297,7 +306,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
         const { curve: cv, front: fr } = r ? layeredLoop(L, r * 22, 0.85, 0.1) : { curve, front };
         group.add(chainAlong(cv, "fine", m, wrap(fr + 0.3), wrap(fr + 0.3) + 0.4));
         const span = 0.6 - r * 0.02;
-        const line = patternRun(d, m, cv, fr - span / 2, fr + span / 2, { gap: 0.2 });
+        const line = patternRun(d, m, cv, fr - span / 2, fr + span / 2, { editKey: `fringe${r}`, gap: 0.2 });
         group.add(line.group);
         spreadParams(fr, n, span * 0.92).forEach((u, i) => {
           const k = 1 - Math.abs(i - (n - 1) / 2) / ((n - 1) / 2 || 1);

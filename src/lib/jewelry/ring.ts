@@ -34,7 +34,7 @@ export function ringPiece(d0: Design): Piece {
     group.add(band);
     const Ro = RIN + 1.75;
     const circle = new THREE.CatmullRomCurve3(Array.from({ length: 128 }, (_, i) => { const a = (i / 128) * Math.PI * 2; return v3(Math.sin(a) * Ro, Math.cos(a) * Ro, 0); }), true);
-    group.add(patternRun(d, m, circle, 0, 1, { closed: true, maxW: Math.max(d.band.widthMm, 2.6) * 0.9, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.05), gap: 0.25 }).group);
+    group.add(patternRun(d, m, circle, 0, 1, { editKey: "eternity", closed: true, maxW: Math.max(d.band.widthMm, 2.6) * 0.9, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.05), gap: 0.25 }).group);
     return { group, focus: v3(0, Ro, 0), focusSize: 18, upright: true };
   }
   if (st === "wide-band") {
@@ -56,7 +56,7 @@ export function ringPiece(d0: Design): Piece {
       ? Array.from({ length: rows }, (_, r) => { const half = Math.ceil(rows / 2); const k = r < half ? r : r - half; const s = r < half ? -1 : 1; return s * (bw / 2 - W / 2 - 0.35 - k * (W + 0.25)); })
       : Array.from({ length: rows }, (_, r) => (r - (rows - 1) / 2) * Math.min(W + 0.25, (bw - W) / Math.max(1, rows - 1)));
     for (const z of zs) {
-      group.add(patternRun(d, m, circle, 0, 1, { closed: true, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.02).add(v3(0, 0, z)), gap: 0.2, maxW: W }).group);
+      group.add(patternRun(d, m, circle, 0, 1, { editKey: `wide${zs.indexOf(z)}`, closed: true, up: (u) => circle.getPointAt(u).normalize(), offset: (u) => circle.getPointAt(u).normalize().multiplyScalar(0.02).add(v3(0, 0, z)), gap: 0.2, maxW: W }).group);
       if (edges) { const rim = new THREE.Mesh(new THREE.TorusGeometry(Ro + 0.15, 0.18, 6, 200), m.metal); rim.position.z = z + Math.sign(z) * (W / 2 + 0.15); group.add(rim); }
     }
     return { group, focus: v3(0, Ro, 0), focusSize: Math.max(18, bw * 2.4), upright: true };
@@ -134,7 +134,7 @@ export function ringPiece(d0: Design): Piece {
   }
   if (st === "cluster") {
     const dia = patternMaxW(d);
-    at(patternRun(d, m, outlineCurve(c, 0.35 + dia / 2, -0.6), 0, 1, { closed: true, gap: 0.15 }).group);
+    at(patternRun(d, m, outlineCurve(c, 0.35 + dia / 2, -0.6), 0, 1, { editKey: "cluster", closed: true, gap: 0.15 }).group);
   }
   if (st === "navratna") {
     const ring: [Gem, string][] = [["diamond", "#f4f6fb"], ["pearl", "#f3ede2"], ["coral", "#e2553a"], ["hessonite", "#c8641c"], ["sapphire", "#0c2394"], ["cats-eye", "#b9a24a"], ["yellow-sapphire", "#f2c230"], ["emerald", "#0b7a4b"]];
@@ -190,7 +190,7 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
-      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, fade: "start", up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, fade: "start", editKey: `band${sideSign}${arm}${r}`, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
       g.userData.part = "accents";
       g.userData.keep = true;
       group.add(g);

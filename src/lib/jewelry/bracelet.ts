@@ -32,7 +32,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     for (let r = 0; r < rows; r++) {
       const off = (r - (rows - 1) / 2) * pitch;
       const run = patternRun(d, m, curve, gapU ? front + 0.5 + gapU : front, gapU ? front + 1.5 - gapU : front + 1, {
-        closed: !gapU, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
+        editKey: `tennis${r}`, closed: !gapU, gap: o.halo ? Math.max(0.55, W0 * 0.17) * 2 + 0.6 : 0.45,
         offset: (u) => outwardAt(curve, u).multiplyScalar(off),
         onPlace: o.halo ? (pos, quat, W, L, shape) => haloRing(pos, quat, W, L, haloItems, shape) : undefined,
       });
@@ -87,7 +87,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     const band = new THREE.Mesh(new THREE.TubeGeometry(arc, 300, thick, 20, false), m.metal);
     band.scale.y = 1.3;
     group.add(band);
-    if (o.pave) group.add(patternRun(d, m, arc, 0.02, 0.32, { offset: () => v3(0, thick * 1.25, 0), maxW: thick * 1.5, gap: 0.2 }).group);
+    if (o.pave) group.add(patternRun(d, m, arc, 0.02, 0.32, { editKey: "bangle", offset: () => v3(0, thick * 1.25, 0), maxW: thick * 1.5, gap: 0.2 }).group);
     for (const u of [0, 1]) {
       const p = arc.getPointAt(u), t = arc.getTangentAt(u).multiplyScalar(u === 0 ? -1 : 1);
       const s = setStone(c, d.setting.style, m, Math.min(1, 14 / Math.max(c.lengthMm, c.widthMm)));
@@ -106,7 +106,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     const faceOut = (u: number, extra = 0) => curve.getPointAt(u).addScaledVector(outwardAt(curve, u), thick + extra);
     if (st === "kada") {
       const params = spreadParams(front, Math.floor((curve.getLength() * 0.55) / (accentDia + 0.6)), 0.55);
-      group.add(patternRun(d, m, curve, front - 0.275, front + 0.275, { offset: () => v3(0, thick * height * 0.92, 0), maxW: thick * 1.6, gap: 0.6 }).group);
+      group.add(patternRun(d, m, curve, front - 0.275, front + 0.275, { editKey: "kada", offset: () => v3(0, thick * height * 0.92, 0), maxW: thick * 1.6, gap: 0.6 }).group);
       if (d.enamel.enabled) group.add(balls(m.enamel, params.map((u) => ({ pos: faceOut(u, -0.4), dia: thick * 0.9 })), 1.2));
       group.add(balls(m.metal, Array.from({ length: 160 }, (_, i) => { const u = i / 160; return { pos: curve.getPointAt(u).add(v3(0, thick * height * 0.55, 0)).addScaledVector(outwardAt(curve, u), thick * 0.75), dia: 0.7 }; })));
     }
@@ -115,7 +115,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       for (let r = 0; r < rows; r++) {
         const lift = (r - (rows - 1) / 2) * (accentDia + 1.2) * 1.6;
         for (const [a, b] of [[front - 0.3, front - 0.04], [front + 0.04, front + 0.3]])
-          group.add(patternRun(d, m, curve, a, b, { up: (u) => outwardAt(curve, u), offset: (u) => outwardAt(curve, u).multiplyScalar(thick).add(v3(0, lift, 0)), gap: 0.3 }).group);
+          group.add(patternRun(d, m, curve, a, b, { editKey: `cuff${r}${a < front ? "l" : "r"}`, up: (u) => outwardAt(curve, u), offset: (u) => outwardAt(curve, u).multiplyScalar(thick).add(v3(0, lift, 0)), gap: 0.3 }).group);
       }
     }
     if (st !== "kada") {

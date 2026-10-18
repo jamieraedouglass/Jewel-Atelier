@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CenterStone, type Design, type Gem, estimateDims } from "../design";
+import { type CenterStone, type Design, GEM_LOOK, type Gem, estimateDims } from "../design";
 import { outlineFn } from "../ringModel";
 import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -28,6 +28,7 @@ export type RunOpts = {
   vary?: number;
   onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, shape: CenterStone["shape"]) => void;
   fade?: "start" | "middle";
+  editKey?: string;
 };
 
 export function ombreAt(stops: string[], t: number) {
@@ -64,7 +65,15 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const a = along(i) ? s.L : s.W, b = along(i) ? s.W : s.L, t = turnOf(i), c = Math.abs(Math.cos(t)), n = Math.abs(Math.sin(t));
     return { line: c * a + n * b, cross: c * b + n * a };
   };
-  const fit = (s: (typeof dims)[number], i: number) => { const x = ext(s, i).cross; return opts.maxW && x > opts.maxW ? opts.maxW / x : 1; };
+  const fit = (s: (typeof dims)[number] & { edited?: boolean }, i: number) => { const x = ext(s, i).cross; return !s.edited && opts.maxW && x > opts.maxW ? opts.maxW / x : 1; };
+  const prefix = opts.editKey ? `${opts.editKey}:` : null;
+  const edits = new Map(prefix ? d.stoneEdits.filter((e) => e.key.startsWith(prefix)).map((e) => [Number(e.key.slice(prefix.length)), e] as const) : []);
+  const withEdit = (s: (typeof dims)[number], i: number) => {
+    const e = edits.get(i);
+    if (!e || (e.shape === undefined && e.scale === undefined)) return s;
+    const shape = e.shape ?? s.shape, W = s.W * fit(s, i) * (e.scale ?? 1);
+    return { shape, W, L: W * ASPECT[shape], edited: true };
+  };
   const layout = d.accents.layout;
   const onSpine = (s: (typeof dims)[number]) => SPINE.has(s.shape) && dims.some((x) => !SPINE.has(x.shape));
   const foot = (s: (typeof dims)[number], i: number) => ext(s, i).line * fit(s, i) * (layout === "garland" && !onSpine(s) ? 0.46 : 1);
@@ -73,7 +82,7 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
   const gap = opts.gap ?? Math.max(0.15, Math.min(...dims.map((x) => x.W)) * 0.08);
   const seq: typeof dims = [];
   for (let used = 0, i = 0; i < 2000; i++) {
-    const s = dims[i % dims.length];
+    const s = withEdit(dims[i % dims.length], i);
     if (used + foot(s, i) + (opts.closed ? gap : 0) > total) break;
     seq.push(s); used += foot(s, i) + gap;
   }
@@ -114,8 +123,12 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const pos01 = seq.length > 1 ? i / (seq.length - 1) : 0;
     const fadeT = opts.fade === "start" ? pos01 : opts.closed ? 2 * Math.min(pos01, 1 - pos01) : Math.abs(pos01 - 0.5) * 2;
     const gm = opts.gemAt?.(i, pos, seq.length) ?? (fadeCols.length ? { gem: d.accents.gem, color: ombreAt(fadeCols, fadeT), cut: d.accents.cut } : cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
-    const shape = gm?.shape ?? s.shape;
-    const key = `${shape}|${gm ? `${gm.gem}|${gm.color}|${gm.cut}` : ""}`;
+    const ed = edits.get(i);
+    const look = ed && (ed.gem || ed.color || ed.cut)
+      ? { gem: ed.gem ?? gm?.gem ?? d.accents.gem, color: ed.color ?? (ed.gem ? GEM_LOOK[ed.gem].color : gm?.color ?? d.accents.color), cut: ed.cut ?? gm?.cut ?? d.accents.cut }
+      : gm;
+    const shape = ed?.shape ?? gm?.shape ?? s.shape;
+    const key = `${shape}|${look ? `${look.gem}|${look.color}|${look.cut}` : ""}`;
     const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);
     const turn = gm && "turn" in gm ? gm.turn : undefined;
     if (turn) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(turn)));
@@ -125,7 +138,7 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const stretch = vary && !turn ? 1 + (rnd() * 2 - 1) * vary : undefined;
     if (d.accents.twins[i % dims.length]) {
       for (const k of [-1, 1]) push({ pos: pos.clone().addScaledVector(X, k * dia * 0.26), dia: dia * 0.48, quat });
-    } else push({ pos, dia, quat, stretch });
+    } else push({ pos, dia, quat, stretch, ...(prefix ? { key: `${prefix}${i}` } : {}) });
     opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape], shape);
     at += f + gap + spare;
   });

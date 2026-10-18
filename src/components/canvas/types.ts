@@ -9,4 +9,4 @@ export type RingCanvasHandle = {
 export type Measure = { widthMm: number; lengthMm: number; depthMm: number; what: string };
 
 export type Part = "center" | "accents" | "sides" | "metal" | "fringe" | "extra" | "motif" | "drop";
-export type Pick = { part: Part; x: number; y: number; index?: number; ear?: "left" | "right" };
+export type Pick = { part: Part; x: number; y: number; index?: number; ear?: "left" | "right"; stoneKey?: string };

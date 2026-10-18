@@ -67,6 +67,12 @@ export const ExtraStoneSchema = z.object({
 });
 export type ExtraStone = z.infer<typeof ExtraStoneSchema>;
 
+const relativeSizes = (v: unknown) => {
+  if (!Array.isArray(v) || !v.length || !v.every((x) => typeof x === "number" && x > 0)) return v;
+  const top = Math.max(...(v as number[]));
+  return top < 0.3 ? (v as number[]).map((x) => Math.round((x / top) * 100) / 100) : v;
+};
+
 export const DROP_KINDS = ["stone", "strands", "frame", "bow"] as const;
 export const DROP_ARRANGE = ["around", "above", "below", "sides"] as const;
 
@@ -82,7 +88,7 @@ export const DropPartSchema = z.object({
     widthMm: z.number().min(0.8).max(20).default(3),
     rotation: z.number().min(-180).max(180).default(0),
     turns: z.array(z.number().min(-180).max(180)).max(8).default([]),
-    sizes: z.array(z.number().min(0.3).max(3)).max(8).default([]),
+    sizes: z.preprocess(relativeSizes, z.array(z.number().min(0.3).max(3)).max(8)).default([]),
   }).default({}),
   count: z.number().int().min(0).max(24).default(0),
   arc: z.object({ centerDeg: z.number().min(-180).max(180).default(90), spanDeg: z.number().min(10).max(360).default(120) }).nullable().default(null),
@@ -178,6 +184,11 @@ export const DesignSchema = z
     }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     extraStones: z.array(ExtraStoneSchema).max(6).default([]),
+    stoneEdits: z.array(z.object({
+      key: z.string().max(40),
+      gem: z.enum(GEMS).optional(), color: hex.optional(), cut: z.enum(CUTS).optional(), shape: z.enum(SHAPES).optional(),
+      scale: z.number().min(0.4).max(2.5).optional(),
+    })).max(300).default([]),
     drop: z.object({
       parts: z.array(DropPartSchema).min(1).max(10).default(DROP_PRESETS[0].parts),
       top: z.enum(["post", "hook"]).default("post"),

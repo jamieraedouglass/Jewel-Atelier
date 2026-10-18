@@ -70,7 +70,7 @@ function hoopEarring(d: Design, m: Mats, huggie: boolean) {
       : face === "outer"
       ? { up: radial, offset: (u) => radial(u).multiplyScalar(T / 2 - 0.05), maxW: D - 0.4, gap: 0.12 }
       : { up: (u) => radial(u).negate(), offset: (u) => radial(u).multiplyScalar(-(T / 2 - 0.05)), maxW: D - 0.4, gap: 0.12 };
-    g.add(patternRun(d, m, arc, span[0], span[1], opts).group);
+    g.add(patternRun(d, m, arc, span[0], span[1], { ...opts, editKey: "hoop" }).group);
   }
   if (!huggie && d.fringe.enabled) {
     const beads: Item[] = [];

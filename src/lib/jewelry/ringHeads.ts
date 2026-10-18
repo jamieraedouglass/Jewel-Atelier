@@ -147,7 +147,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       };
       const gemAt = (i: number, pos: THREE.Vector3, count: number) => (!alt ? main : f.pattern === "vines" ? vineAt(pos, count) ?? main : i % (f.every + 1) === f.every ? alt : main);
       const organic = f.cut === "cabochon" && (f.pattern === "vines" || f.vary > 0);
-      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt, ...(organic ? { dome: 0.27, vary: Math.max(f.vary, 0.15) } : f.vary ? { vary: f.vary } : {}), ...(dome > 0 ? { up: (u: number) => tilt(centre.getPointAt(u)) } : {}) }).group);
+      g.add(patternRun(pd, m, centre, 0, 1, { editKey: `frame${fi}`, closed: true, gap: 0.14, maxW: thick, gemAt, ...(organic ? { dome: 0.27, vary: Math.max(f.vary, 0.15) } : f.vary ? { vary: f.vary } : {}), ...(dome > 0 ? { up: (u: number) => tilt(centre.getPointAt(u)) } : {}) }).group);
     } else if (f.kind === "milgrain") {
       const n = Math.max(12, Math.round(centre.getLength() / 0.5));
       g.add(balls(m.satin, Array.from({ length: n }, (_, k) => ({ pos: centre.getPointAt(k / n).add(v3(0, 0.12, 0)), dia: 0.42 }))));
