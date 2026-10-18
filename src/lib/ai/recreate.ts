@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { STYLES, designForAi, normalizeDesign } from "../design";
+import { STYLES, designForAi, normalizeDesign, showcaseDesign, type Design } from "../design";
 import { callTool } from "./client";
 import { ALL_STYLES, FRAME_PRESETS, SHOWCASE, TYPES } from "../design";
 import { STYLE_GUIDE, designPatchSchema } from "./chat";
@@ -11,6 +11,8 @@ export const recreateDesignTool: Anthropic.Tool = {
   input_schema: {
     type: "object",
     properties: {
+      analysis: { type: "string", description: "Write this first, before choosing anything: a careful read of the photo in 5–8 short lines. Outline of the top seen from above (e.g. pointed lozenge, oval, cushion with rounded sides) and its size; profile (flat, gently or highly domed); the centre stone, which way it lies and its setting; how the stones are organised (bands following the centre? how many? packed mosaic? leaves in cells?) and which stones in which colours; how much metal shows; what the sides and the band do." },
+      start_from: { type: "string", enum: ["none", ...SHOWCASE.map((x) => x.name)], description: "The showcase piece this is closest to, if one is really close in construction; then patch holds only what differs from it. 'none' to build from scratch." },
       title: { type: "string", description: "A short name for the piece, e.g. 'Fleur chandelier with canary cushion'." },
       type: { type: "string", enum: [...TYPES] },
       style: { type: "string", enum: ALL_STYLES, description: "Must belong to the type." },
@@ -18,7 +20,21 @@ export const recreateDesignTool: Anthropic.Tool = {
       description: { type: "string", description: "Two or three sentences describing the piece as a jeweller would: construction, stones, metal." },
       not_modelled: { type: "array", items: { type: "string" }, description: "Details in the photo the app can't build (filigree, engraving, enamel patterns, exact motif shapes), so the person can tell the karigar." },
     },
-    required: ["title", "type", "style", "patch", "description", "not_modelled"],
+    required: ["analysis", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
+  },
+};
+
+export const refineDesignTool: Anthropic.Tool = {
+  name: "check_and_correct",
+  description: "Score how closely the 3D build matches the photo, list what differs, and record the corrected design.",
+  input_schema: {
+    type: "object",
+    properties: {
+      score: { type: "number", description: "0–10: how closely the 3D build (last image) matches the real piece now, before your corrections. 10 = indistinguishable in outline, profile, stone layout, colours and metal." },
+      differences: { type: "array", items: { type: "string" }, description: "The most important ways the build still differs from the photo, worst first, each a short phrase." },
+      ...(recreateDesignTool.input_schema.properties as Record<string, unknown>),
+    },
+    required: ["score", "differences", "analysis", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
   },
 };
 
@@ -66,6 +82,8 @@ How to choose:
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
   * Start from the closest of these layer templates and adapt it (stone sizes, colours, outlines, how many layers):
 ${FRAME_TEMPLATES}
+  * Showcase pieces you can start from (start_from) when one is genuinely close in construction:
+${SHOWCASE.filter((x) => x.type === "ring" || x.type === "earrings" || x.type === "necklace").map((x) => `    - ${x.name} (${x.type}, ${x.style})`).join("\n")}
   * A worked example, a domed marquise cocktail ring in hugging bands of pink sapphire cabochons and emerald leaves, its stones
     carried on down the sides and the band. For a piece like this, copy it closely and change only what the photo shows differently: ${MOSAIC_EXAMPLE}
   * When the stones carry on down the shank, set band.pave ("shoulders", "half" or "full") with paveRows, paveGem, paveColor and
@@ -85,21 +103,32 @@ real piece as this app allows:
   whether gold shows between them;
 - the metal colour, a flat or domed top, and whether the pattern continues down the band;
 - anything missing or extra.
-Return the whole corrected design with recreate_design (not just the changes). If it already matches closely, return it
-unchanged. List anything the app can't build in not_modelled.`;
+First score the build and list the differences. Then correct ONLY those differences: keep the style, outline, layers and
+everything else that already matches exactly as they are (change a value only when it is clearly wrong). Return the whole
+design with start_from "none" (not just the changes). If it already matches closely, return it unchanged. List anything the
+app can't build in not_modelled.`;
 
 const Result = z.object({
+  analysis: z.string().default(""), start_from: z.string().default("none"), score: z.number().nullish(), differences: z.array(z.string()).default([]),
   title: z.string(), type: z.enum(TYPES), style: z.string(), patch: z.record(z.unknown()),
   description: z.string(), not_modelled: z.array(z.string()).default([]),
 });
-export type Recreation = { title: string; type: (typeof TYPES)[number]; style: string; patch: Record<string, unknown>; description: string; notModelled: string[] };
+export type Recreation = {
+  title: string; type: (typeof TYPES)[number]; style: string; patch: Record<string, unknown>; description: string; notModelled: string[];
+  analysis: string; base: Design | null; score: number | null; differences: string[];
+};
 
 function tidy(input: unknown): Recreation | null {
   const r = Result.safeParse(input);
   if (!r.success) return null;
   const d = r.data;
   const style = Object.hasOwn(STYLES[d.type], d.style) ? d.style : Object.keys(STYLES[d.type])[0];
-  return { title: d.title.slice(0, 80), type: d.type, style, patch: d.patch, description: d.description, notModelled: d.not_modelled.slice(0, 8) };
+  const start = SHOWCASE.find((x) => x.name === d.start_from);
+  return {
+    title: d.title.slice(0, 80), type: d.type, style, patch: d.patch, description: d.description, notModelled: d.not_modelled.slice(0, 8),
+    analysis: d.analysis.slice(0, 1500), base: start ? showcaseDesign(start) : null,
+    score: typeof d.score === "number" ? Math.max(0, Math.min(10, d.score)) : null, differences: d.differences.slice(0, 8),
+  };
 }
 
 type Image = Anthropic.ImageBlockParam;
@@ -110,7 +139,7 @@ export async function recreateFromPhotos(photos: Image[], notes?: string, profil
     notes ? `Notes: ${notes}` : null,
     profile ? `Use this only for what the photo can't show, such as karat, an unclear metal, and sizes:\n${profile}` : null,
   ].filter(Boolean).join("\n");
-  return tidy(await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 4000, content: [...photos, { type: "text", text }] }));
+  return tidy(await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 8000, content: [...photos, { type: "text", text }] }));
 }
 
 export async function refineFromRender(photos: Image[], render: Image, design: unknown, round: number, notes?: string): Promise<Recreation | null> {
@@ -120,7 +149,7 @@ export async function refineFromRender(photos: Image[], render: Image, design: u
     notes ? `Notes from the person: ${notes}` : null,
     `The build's design now: ${JSON.stringify({ type: current.type, style: current.style, ...designForAi(current) })}`,
   ].filter(Boolean).join("\n");
-  return tidy(await callTool({ system: REFINE_SYSTEM(), tool: recreateDesignTool, maxTokens: 4000, content: [...photos, render, { type: "text", text }] }));
+  return tidy(await callTool({ system: REFINE_SYSTEM(), tool: refineDesignTool, maxTokens: 8000, content: [...photos, render, { type: "text", text }] }));
 }
 
 export const jpegImage = (dataUrl: string): Image => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: dataUrl.replace(/^data:image\/jpeg;base64,/, "") } });
