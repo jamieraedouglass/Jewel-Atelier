@@ -104,6 +104,8 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
     const specks = inclusionSpecks(c, outlineFn(c.shape, L, W), L, W, dome);
     if (specks) { seeThrough(g); g.add(specks); }
   }
+  g.userData.stone = { L, W };
+  if (c.cut === "bead" || c.cut === "briolette" || BEAD_GEMS.has(c.gem)) g.userData.strung = true;
   return g;
 }
 

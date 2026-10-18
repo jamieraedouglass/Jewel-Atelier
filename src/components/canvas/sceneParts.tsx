@@ -38,7 +38,11 @@ export function ClickPicker({ piece, onPick, onMiss }: { piece: Piece; onPick?: 
       for (let q: THREE.Object3D | null = o; q; q = q.parent) if (typeof q.userData.dropIndex === "number") { index = q.userData.dropIndex; break; }
       let ear: "left" | "right" | undefined;
       for (let q: THREE.Object3D | null = hit.object; q; q = q.parent) if (q.userData.ear) { ear = q.userData.ear; break; }
-      onPick({ part: index !== undefined ? "drop" : ((o?.userData.part as Part) ?? "metal"), index, ear, x: e.clientX - r.left, y: e.clientY - r.top });
+      let stoneKey: string | undefined;
+      const keys = hit.object.userData.keys as string[] | undefined;
+      if (keys && hit.instanceId !== undefined && keys[hit.instanceId]) stoneKey = keys[hit.instanceId];
+      else for (let q: THREE.Object3D | null = hit.object; q; q = q.parent) if (typeof q.userData.stoneKey === "string") { stoneKey = q.userData.stoneKey; break; }
+      onPick({ part: index !== undefined ? "drop" : ((o?.userData.part as Part) ?? "metal"), index, ear, stoneKey, x: e.clientX - r.left, y: e.clientY - r.top });
     };
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointerup", onUp);

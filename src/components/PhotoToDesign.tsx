@@ -108,27 +108,32 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
       setFirst(first);
       let built = apply(first, first.base ?? freshDesign(design));
       const builds: { design: Design; result: Result; score: number | null; differences: string[] }[] = [{ design: built, result: first, score: null, differences: [] }];
-      for (let round = 1; capture && round <= CHECKS; round++) {
-        setBusy(`Comparing the 3D build with your photo (check ${round} of ${CHECKS})…`);
+      for (let round = 1; capture && round <= CHECKS + 1; round++) {
+        const fixing = round <= CHECKS;
+        setBusy(fixing ? `Checking against your photo and fixing what's different (round ${round} of ${CHECKS})…` : "Final check of the corrected build…");
         await wait(2500);
         const shot = await capture();
         if (!shot) break;
         const render = await dataUrl(await compressImage(shot));
-        const r2 = await fetch("/api/from-photo/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notesUsed, design: built, render, round }) });
+        const r2 = await fetch("/api/from-photo/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notesUsed, design: built, render, round: Math.min(round, 3) }) });
         const j2: Result = await r2.json();
         if (!r2.ok) break;
         const last = builds[builds.length - 1];
         last.score = j2.score ?? null; last.differences = j2.differences ?? [];
-        if ((j2.score ?? 0) >= 9 || round === CHECKS) break;
-        built = apply(j2, built);
+        if ((j2.score ?? 0) >= 9 || !fixing) break;
+        const next = apply(j2, built);
+        if (JSON.stringify(next) === JSON.stringify(built)) break;
+        built = next;
         builds.push({ design: built, result: j2, score: null, differences: [] });
       }
       const scored = builds.filter((b) => b.score !== null);
       if (scored.length) {
+        const latest = scored[scored.length - 1];
         const top = scored.reduce((a, b) => ((b.score ?? 0) > (a.score ?? 0) ? b : a));
-        onReplace(top.design);
-        setResult({ ...top.result, analysis: first.analysis });
-        setBest({ score: top.score ?? 0, round: builds.indexOf(top), differences: top.differences });
+        const pick = (top.score ?? 0) >= (latest.score ?? 0) + 2 ? top : latest;
+        onReplace(pick.design);
+        setResult({ ...pick.result, analysis: first.analysis });
+        setBest({ score: pick.score ?? 0, round: builds.indexOf(pick), differences: pick.differences });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't recreate the piece.");
@@ -147,7 +152,8 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
       const res = await fetch("/api/from-photo/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: buildNotes.current || undefined, design, render, round: 1, request }) });
       const json: Result & { error?: string } = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't make that change.");
-      apply(json, design);
+      const next = apply(json, design);
+      if (JSON.stringify(next) === JSON.stringify({ ...design, name: next.name })) throw new Error("The AI's correction didn't change anything the 3D model can show. Try saying it more specifically, or change it in the Design tab.");
       setFixes((f) => [...f, { ask: request, done: json.description }]);
       setBest((b) => (b ? { ...b, differences: request.startsWith("Fix all") ? [] : b.differences.filter((n) => `Fix this: ${n}` !== request) } : b));
       setAsk("");

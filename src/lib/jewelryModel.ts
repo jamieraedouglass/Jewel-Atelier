@@ -10,11 +10,13 @@ import { necklacePiece } from "./jewelry/necklace";
 import { braceletPiece } from "./jewelry/bracelet";
 import { ankletPiece, armletPiece, handPiece, headpiecePiece, nosePiece } from "./jewelry/smallPieces";
 import { mensPiece } from "./jewelry/mens";
+import { resolveOverlaps } from "./buildCheck";
 export type { Piece } from "./jewelry/common";
 
 export function buildPiece(d: Design): Piece {
   const p = buildWhole(d);
   if (accentsOff(d)) withoutAccents(p.group);
+  resolveOverlaps(p.group, new Set(d.stoneEdits.filter((e) => e.scale !== undefined).map((e) => e.key)));
   return p;
 }
 

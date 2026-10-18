@@ -6,7 +6,7 @@ import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { cutGeometry, isColorless } from "./stones";
 
-export type Item = { pos: THREE.Vector3; dia: number; up?: THREE.Vector3; yaw?: number; quat?: THREE.Quaternion; stretch?: number };
+export type Item = { pos: THREE.Vector3; dia: number; up?: THREE.Vector3; yaw?: number; quat?: THREE.Quaternion; stretch?: number; key?: string };
 
 export function orient(o: THREE.Object3D, it: Item) {
   o.position.copy(it.pos);
@@ -48,15 +48,17 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });
     meshes.forEach((x) => g.add(x));
-    return g;
+    return tagKeys(g, items);
   }
   if (cutIn === "bead") {
+    g.userData.strung = true;
     const im = new THREE.InstancedMesh(cutGeometry("bead", shape, ASPECT[shape], 1, 0.5), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: "bead", color, clarity: 0.45 }, 1), items.length);
     items.forEach((it, i) => { orient(o, it); im.setMatrixAt(i, o.matrix); });
     g.add(im);
-    return g;
+    return tagKeys(g, items);
   }
   if (cutIn === "briolette" && !BEAD_GEMS.has(gem)) {
+    g.userData.strung = true;
     const geo = cutGeometry("briolette", shape, ASPECT[shape], 1, 0.5);
     const colorless = isColorless(gem, color);
     const tint = colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
@@ -66,14 +68,15 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });
     meshes.forEach((x) => g.add(x));
-    return g;
+    return tagKeys(g, items);
   }
   const cut: "faceted" | "polki" | "rose-cut" = cutIn === "polki" || cutIn === "rose-cut" ? cutIn : "faceted";
   if (BEAD_GEMS.has(gem)) {
+    g.userData.strung = true;
     const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 20, 14), m.bead(gem, color), items.length);
     items.forEach((it, i) => { orient(o, it); im.setMatrixAt(i, o.matrix); });
     g.add(im);
-    return g;
+    return tagKeys(g, items);
   }
   const asp = ASPECT[shape];
   const geo = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
@@ -97,11 +100,19 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   });
   meshes.forEach((x) => g.add(x));
   if (prongs) g.add(prongs);
+  return tagKeys(g, items);
+}
+
+export function tagKeys(g: THREE.Object3D, items: Item[]) {
+  if (!items.some((it) => it.key)) return g;
+  const keys = items.map((it) => it.key ?? "");
+  g.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).count === items.length) o.userData.keys = keys; });
   return g;
 }
 
 export function balls(mat: THREE.Material, items: Item[], squash = 1) {
   const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 18, 12).scale(1, squash, 1), mat, Math.max(1, items.length));
+  im.userData.strung = true;
   const o = new THREE.Object3D();
   items.forEach((it, i) => { orient(o, it); im.setMatrixAt(i, o.matrix); });
   im.count = items.length;

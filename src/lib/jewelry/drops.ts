@@ -73,12 +73,13 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
       const k = p.small.sizes[slot] ?? 1, base = smallStone(d, p, shape);
       const sc = k === 1 ? base : { ...base, widthMm: base.widthMm * k, lengthMm: base.lengthMm * k, domeMm: base.domeMm * k };
       const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
-      const pos = dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
+      const hangs = sc.cut === "briolette";
+      const pos = dir.clone().multiplyScalar(hangs ? rEdge + sc.lengthMm * 0.32 : rEdge + 0.3 + sc.lengthMm / 2);
       const s = setStoneRaw(sc, setFor(d, sc), m);
-      s.position.copy(pos).setY(-0.15);
-      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
+      s.position.copy(pos).setY(hangs ? -0.6 : -0.15);
+      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own) + (hangs ? Math.PI : 0);
       g.add(s);
-      g.add(tube(m, [v3(0, -0.9, 0), pos.clone().setY(-0.9)], 0.3));
+      g.add(tube(m, [v3(0, -0.9, 0), dir.clone().multiplyScalar(hangs ? rEdge * 0.92 : rEdge + 0.3 + sc.lengthMm / 2).setY(-0.9)], 0.3));
     });
   }
   return { g };
