@@ -272,8 +272,25 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
 
 function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const prof = d.band.profile;
-  if (prof === "raised") return;
   const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
+  // A mosaic dome carried on down the shoulders: the shoulders flare up to meet the dome, widest where they join it,
+  // and narrow to the band, so the mosaic has a sweep of shoulder to run down rather than a thin wire under a cap.
+  const bombe = d.style === "deco" && d.options.decoWrap && d.options.decoDome > 0 && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays");
+  if (bombe && shank && !shank.userData.top) {
+    const RIN = ringInnerDiameter(d.ringSize) / 2;
+    const box = new THREE.Box3();
+    group.updateWorldMatrix(true, true);
+    group.children.forEach((o) => { if (o !== shank && !o.userData.onBand) box.expandByObject(o); });
+    if (!box.isEmpty()) {
+      const hx = Math.max(Math.abs(box.min.x), Math.abs(box.max.x)), hz = Math.max(Math.abs(box.min.z), Math.abs(box.max.z));
+      const top = { topW: Math.min(11, Math.max(d.band.widthMm + 2, hz * 0.9)), topT: 2.2, spread: hx * 0.9 };
+      shank.geometry.dispose();
+      shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
+      shank.userData.top = top;
+    }
+    return;
+  }
+  if (prof === "raised") return;
   if (!shank) return;
   const RIN = ringInnerDiameter(d.ringSize) / 2;
   const rest = group.children.filter((o) => o !== shank && !o.userData.onBand);
