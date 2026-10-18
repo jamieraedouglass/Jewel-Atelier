@@ -37,3 +37,9 @@ describe("withConfirmedCounts", () => {
     expect(out.map((p) => p.count)).toEqual([12, 14]);
   });
 });
+
+describe("factsFromNotes at the end of a sentence", () => {
+  it("reads a ring size followed by a full stop", () => {
+    expect(factsFromNotes("18k yellow gold. Ring size 6. The whole top measures 20.4 mm", "ring").ringSize).toBe(6);
+  });
+});
