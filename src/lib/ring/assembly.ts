@@ -210,7 +210,7 @@ export function buildRing(d: Design): THREE.Group {
       const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
       const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
       const pavF = 0.85, pavD = pav * pavF;
-      const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
+      const top = { topW: Math.max(d.band.widthMm + 0.8, sl * 0.88), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
       shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
       shankMesh.userData.top = top;
@@ -242,8 +242,7 @@ export function buildRing(d: Design): THREE.Group {
         const grp = new THREE.Group();
         grp.userData.part = "sides";
         grp.userData.onBand = true;
-        const seatMetal = handPolished((metal as THREE.MeshPhysicalMaterial).clone()); seatMetal.roughness = Math.max(0.28, seatMetal.roughness);
-        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, seatMetal), new THREE.Mesh(flb, seatMetal));
+        grp.add(new THREE.Mesh(gb, mirror), new THREE.Mesh(gb, diamond), new THREE.Mesh(bzb, metal), new THREE.Mesh(flb, metal));
         for (const [x, zEnd] of [[0, -1], [0, 1], [spanX * 0.92, -0.45], [spanX * 0.92, 0.45]] as const) {
           const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 10), metal);
           tip.position.copy(bend(x, 0.22, zEnd * (sl / 2) * (x ? 1 : 0.94)));

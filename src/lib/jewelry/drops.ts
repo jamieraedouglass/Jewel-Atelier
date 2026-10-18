@@ -56,7 +56,11 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
   if (n > 0) {
     const angles: number[] = [];
     const fan = (centre: number, k: number, step: number) => { for (let i = 0; i < k; i++) angles.push(centre + (i - (k - 1) / 2) * step); };
-    if (p.arrange === "around") for (let i = 0; i < n; i++) angles.push(-Math.PI / 2 + (2 * Math.PI * i) / n);
+    if (p.arc) {
+      const c0 = THREE.MathUtils.degToRad(p.arc.centerDeg), span = THREE.MathUtils.degToRad(p.arc.spanDeg);
+      const full = p.arc.spanDeg >= 359;
+      for (let i = 0; i < n; i++) angles.push(full ? c0 + (2 * Math.PI * i) / n : c0 + (n > 1 ? (i / (n - 1) - 0.5) * span : 0));
+    } else if (p.arrange === "around") for (let i = 0; i < n; i++) angles.push(-Math.PI / 2 + (2 * Math.PI * i) / n);
     else if (p.arrange === "above") fan(-Math.PI / 2, n, Math.min(0.62, (Math.PI * 0.9) / Math.max(1, n - 1)));
     else if (p.arrange === "below") fan(Math.PI / 2, n, Math.min(0.62, (Math.PI * 0.9) / Math.max(1, n - 1)));
     else { const left = Math.ceil(n / 2); fan(Math.PI - 0.5, left, -0.48); fan(0.5, n - left, 0.48); }
@@ -66,7 +70,8 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
       const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
       const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
       const slot = i % p.small.shapes.length, shape = p.small.shapes[slot];
-      const sc = smallStone(d, p, shape);
+      const k = p.small.sizes[slot] ?? 1, base = smallStone(d, p, shape);
+      const sc = k === 1 ? base : { ...base, widthMm: base.widthMm * k, lengthMm: base.lengthMm * k, domeMm: base.domeMm * k };
       const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
       const pos = dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
       const s = setStoneRaw(sc, setFor(d, sc), m);

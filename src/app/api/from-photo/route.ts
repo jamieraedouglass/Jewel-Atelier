@@ -7,9 +7,9 @@ import { aiFailure } from "@/lib/apiError";
 import { profileText } from "@/lib/style/context";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 300;
 
-const Body = z.object({ paths: z.array(z.string()).min(1).max(4), notes: z.string().max(3000).optional() });
+const Body = z.object({ paths: z.array(z.string()).min(1).max(4), notes: z.string().max(8000).optional() });
 
 export async function POST(req: Request) {
   const { supabase, user } = await requireUser();
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) {
     const tooLong = body.error.issues.some((i) => i.path[0] === "notes");
-    return NextResponse.json({ error: tooLong ? "The notes are too long: keep them under 3,000 characters." : "Send 1–4 uploaded photos." }, { status: 400 });
+    return NextResponse.json({ error: tooLong ? "The notes are too long: keep them under 8,000 characters." : "Send 1–4 uploaded photos." }, { status: 400 });
   }
   const { paths, notes } = body.data;
   if (paths.some((p) => !p.startsWith(`${user.id}/`))) return NextResponse.json({ error: "Those files aren't yours." }, { status: 403 });

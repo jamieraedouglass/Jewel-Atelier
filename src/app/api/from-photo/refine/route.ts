@@ -6,11 +6,11 @@ import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 const Body = z.object({
   paths: z.array(z.string()).min(1).max(4),
-  notes: z.string().max(3000).optional(),
+  notes: z.string().max(8000).optional(),
   design: z.unknown(),
   render: z.string().startsWith("data:image/jpeg;base64,").max(3_000_000),
   round: z.number().int().min(1).max(3),

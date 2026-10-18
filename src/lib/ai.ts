@@ -4,3 +4,4 @@ export * from "./ai/chat";
 export * from "./ai/motif";
 export * from "./ai/recreate";
 export * from "./ai/photoRead";
+export * from "./ai/readPiece";

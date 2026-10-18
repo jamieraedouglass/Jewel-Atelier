@@ -9,7 +9,7 @@ const ARRANGE_LABEL: Record<DropPart["arrange"], string> = { around: "All round"
 
 export const NEW_PART: Record<DropPart["kind"], Partial<DropPart>> = {
   stone: { kind: "stone", gapMm: 0.8 },
-  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
+  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [], sizes: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
   frame: { kind: "frame", showStone: false, halo: true, stone: { ...DropPartSchema.parse({}).stone, shape: "octagon", lengthMm: 14, widthMm: 12 }, gapMm: 0.8 },
   bow: { kind: "bow", halo: true, haloMm: 1.1, spreadMm: 18, stone: { ...DropPartSchema.parse({}).stone, shape: "baguette", lengthMm: 4, widthMm: 2 }, gapMm: 0.8 },
 };
