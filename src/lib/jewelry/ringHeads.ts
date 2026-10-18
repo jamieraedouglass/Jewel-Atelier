@@ -30,7 +30,11 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const fit = !pointed && centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
   const frames = fit < 1 ? d.frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * fit), gapMm: f.gapMm * fit })) : d.frames;
   const dome = d.options.decoDome;
-  const Rd = dome > 0 ? 70 - 54 * dome : 0;
+  // A dome covered in a sprays mosaic is a true bombé: steeper, rolling over at its edges into walls that drop straight
+  // down to the shoulders, rather than a flat cap that tucks in underneath.
+  const bombe = dome > 0 && d.options.decoWrap && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays");
+  const Rd = dome > 0 ? (bombe ? Math.min(70 - 54 * dome, 13) : 70 - 54 * dome) : 0;
+  rounding = bombe ? 0.05 : ROUNDING;
   const r0 = centreHalf - 0.5;
   const domeY = (r: number) => y0 - Math.max(0, r * r - r0 * r0) / (2 * Rd);
   const tilt = (p: THREE.Vector3) => v3(p.x / Rd, 1, p.z / Rd).normalize();
@@ -121,12 +125,12 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       if (sprays) {
         // Every free spot between the leaves is filled with a tight honeycomb of cabochons, so no gold shows.
         const room = Array.from({ length: 16 }, (_, j) => { const a = (j / 16) * Math.PI * 2; return outerAt(a) - innerAt(a); }).sort((p, q) => p - q)[8];
-        const cell = Math.min(sz, Math.max(1.1, room / 2.3));
+        const cell = Math.min(sz, Math.max(1.1, Math.min(room / 2.3, 1.55)));
         const reach = Math.max(...Array.from({ length: 64 }, (_, j) => outerAt((j / 64) * Math.PI * 2)));
         // Mosaic stones are cut close to square to fill their cells (sugarloaf), so an oval or long shape packs as a cushion.
         const fillShape = ASPECT[f.shape] > 1.1 ? "cushion" : f.shape;
         // The same packed stones carry on down the dome's walls, several rows deep.
-        wallStone = { shape: fillShape, size: cell * 0.95 };
+        wallStone = { shape: fillShape, size: Math.min(cell * 0.9, 1.35) };
         const key = `${f.gem}|${f.color}|${f.cut}|${fillShape}`;
         // Stones packed into every free spot (tried in random order on a fine grid), then each grown to fill the
         // space round it, as a setter cuts sugarloaf stones to the gaps.
@@ -140,7 +144,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const k of bucket.get(`${cx + i},${cz + j}`) ?? []) if (Math.hypot(got[k].x - x, got[k].z - z) < d) return true;
           return false;
         };
-        const inside = (x: number, z: number, m: number) => { const r = Math.hypot(x, z), th = theta(x, z); return r >= innerAt(th) + cell * m && r <= outerAt(th) - cell * 0.28; };
+        const inside = (x: number, z: number, m: number) => { const r = Math.hypot(x, z), th = theta(x, z); return r >= innerAt(th) + cell * m && r <= outerAt(th) - cell * (bombe ? 0.02 : 0.28); };
         const take = (x: number, z: number) => { (bucket.get(cellKey(x, z)) ?? bucket.set(cellKey(x, z), []).get(cellKey(x, z))!).push(got.length); got.push({ x, z }); };
         // A honeycomb for the open field, then smaller stones dropped into what's left round the leaves and edges.
         const rowH = cell * 0.74;
@@ -294,7 +298,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const shaped = (p: THREE.Vector2) => { const across = (p.x * p.x) / Math.max(1e-6, p.x * p.x + p.y * p.y); return bend > 0 ? Math.max(1.2, full * (1 - 0.85 * bend * across)) : full; };
     const clear = (p: THREE.Vector2) => {
       if (!finger) return Infinity;
-      const x = Math.abs(p.x) * (1 - ROUNDING);
+      const x = Math.abs(p.x) * (1 - rounding);
       if (x >= finger.r) return Infinity;
       return topY(Math.hypot(p.x, p.y)) + finger.gy - Math.sqrt(finger.r * finger.r - x * x);
     };
@@ -436,8 +440,8 @@ function wallMosaic(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
   const rowH = cell * 0.76, maxArc = Math.max(...arcs);
   let seed = 29;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let ri = 0; (ri + 0.5) * rowH < maxArc; ri++) {
-    const v = (ri + 0.5) * rowH;
+  for (let ri = 0; (ri + 0.4) * rowH < maxArc; ri++) {
+    const v = (ri + 0.4) * rowH;
     for (let u = (ri % 2) * cell * 0.44; u < perim; u += cell * 0.88) {
       const f = frame(u, v);
       if (v > f.arc - cell * 0.3 || blocked(u, v, cell * 0.3)) continue;
@@ -453,12 +457,14 @@ function wallMosaic(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
 }
 
 export const ROUNDING = 0.32;
+// How far a dome's walls tuck in under it; decoFrames sets it for each top it builds.
+let rounding = ROUNDING;
 
 export type Depth = number | ((p: THREE.Vector2) => number);
 const depthAt = (depth: Depth, p: THREE.Vector2) => (typeof depth === "number" ? depth : depth(p));
 
 export function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: Depth, phi: number) {
-  const rr = Math.hypot(p.x, p.y), k = 1 - ROUNDING + ROUNDING * Math.cos(phi);
+  const rr = Math.hypot(p.x, p.y), k = 1 - rounding + rounding * Math.cos(phi);
   return v3(p.x * k, topY(rr) - depthAt(depth, p) * Math.sin(phi), p.y * k);
 }
 
@@ -471,7 +477,7 @@ function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth
     rows.push(outline.map((p) => { const x = p.x * t, z = p.y * t; return vert(v3(x, topY(Math.hypot(x, z)), z)); }));
   }
   for (let e = 1; e <= E; e++) rows.push(outline.map((p) => vert(wallPoint(p, topY, depth, (e / E) * (Math.PI / 2)))));
-  const k = 1 - ROUNDING, bottom: number[][] = [];
+  const k = 1 - rounding, bottom: number[][] = [];
   for (let r = R; r >= 0; r--) {
     const t = r / R;
     bottom.push(outline.map((p) => {
