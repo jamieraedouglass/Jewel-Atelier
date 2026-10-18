@@ -135,7 +135,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const loops = Math.max(1, Math.min(4, o.layers));
       const drilled = o.stoneLink === "drilled";
       const big = Math.max(c.widthMm, 2), small = big * 0.72, ringR = Math.max(0.7, big * 0.17);
-      const wire = Math.max(0.28, big * 0.05), inset = wire + 0.35;
+      const wire = Math.max(0.2, big * 0.035), inset = wire + 0.3;
       const looks = new Map<string, Item[]>(), rings: { pos: THREE.Vector3; dia: number; axis: THREE.Vector3 }[] = [], holes: Item[] = [];
       const editOf = new Map(d.stoneEdits.filter((e) => e.key.startsWith("yard")).map((e) => [e.key, e] as const));
       for (let l = 0; l < loops; l++) {
@@ -153,10 +153,10 @@ export function necklacePiece(d: Design, m: Mats): Piece {
             holes.push({ pos: near, dia: wire * 1.5 }, { pos: far, dia: wire * 1.5 });
             if (prevHole) {
               const mid = prevHole.clone().add(near).multiplyScalar(0.5), span = prevHole.distanceTo(near);
-              rings.push({ pos: mid.add(v3(0, 0.05, 0)), dia: span + wire * 2, axis: new THREE.Vector3().crossVectors(Y, t).normalize() });
+              rings.push({ pos: mid.add(v3(0, big * 0.02, 0)), dia: span + wire * 2, axis: new THREE.Vector3().crossVectors(Y, t).normalize() });
             }
             prevHole = far;
-            at += dia + Math.max(0.6, ringR * 2 - inset * 2 + 0.3);
+            at += dia + wire * 2 + 0.3;
           } else {
             at += dia + 0.2;
             const ru = Math.min(0.999, (at + ringR) / total);
@@ -176,7 +176,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       group.add(ringIm);
       if (holes.length) {
         const hole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 12), new THREE.MeshStandardMaterial({ color: 0x15130f, roughness: 0.6 }), holes.length);
-        holes.forEach((h, i) => { ob.position.copy(h.pos).add(v3(0, -0.2, 0)); ob.quaternion.identity(); ob.scale.set(h.dia, Math.max(1.2, big * 0.35), h.dia); ob.updateMatrix(); hole.setMatrixAt(i, ob.matrix); });
+        holes.forEach((h, i) => { ob.position.copy(h.pos).add(v3(0, big * 0.02, 0)); ob.quaternion.identity(); ob.scale.set(h.dia, big * 0.16, h.dia); ob.updateMatrix(); hole.setMatrixAt(i, ob.matrix); });
         group.add(hole);
       }
       focusSize = 30;
