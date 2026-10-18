@@ -65,7 +65,8 @@ export function ringPiece(d00: Design): Piece {
 
 function ringPieceOnce(d0: Design): Piece {
   const mosaic = mosaicFrame(d0);
-  const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 7), shape: "flat", pave: d0.band.pave === "none" ? "full" : d0.band.pave } } : d0;
+  // A mosaic top carries its stones down the shoulders; the band behind stays as designed (often slim and plain).
+  const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 2.5), pave: d0.band.pave === "none" || d0.band.pave === "full" ? "shoulders" : d0.band.pave } } : d0;
   const m = makeMaterials(d);
   const st = d.style;
   if (st === "eternity") {
@@ -150,9 +151,11 @@ function ringPieceOnce(d0: Design): Piece {
     decoTop = decoFrames(d, m, c, -0.15, 0, { r: ringInnerDiameter(d.ringSize) / 2 + 0.6, gy }).group;
     const t = THREE.MathUtils.degToRad(c.rotation), across = v3(Math.cos(t), 0, -Math.sin(t)), along = v3(Math.sin(t), 0, Math.cos(t));
     const fromW = c.widthMm / 2 + 0.6, fromL = c.lengthMm / 2 + 0.6;
-    if (d.options.decoSpread > 0) stretchAxis(decoTop, across, 1 + 0.7 * d.options.decoSpread, fromW);
     const o = d.options;
-    for (const [axis, from, want, cap] of [[along, fromL, o.decoLengthMm, 34], [across, fromW, o.decoWidthMm, 32]] as const) {
+    // An outer fill already reaches the measured size itself; stretching it again would pull its stones apart.
+    const selfSized = d.frames[d.frames.length - 1]?.kind === "fill" && (o.decoLengthMm > 0 || o.decoWidthMm > 0);
+    if (d.options.decoSpread > 0 && !selfSized) stretchAxis(decoTop, across, 1 + 0.7 * d.options.decoSpread, fromW);
+    if (!selfSized) for (const [axis, from, want, cap] of [[along, fromL, o.decoLengthMm, 34], [across, fromW, o.decoWidthMm, 32]] as const) {
       for (let pass = 0; pass < 3; pass++) {
         const now = reach(decoTop, axis), target = (want > 0 ? want : Math.min(now * 2, cap)) / 2;
         if (!(now > from + 1 && Math.abs(target - now) > 0.2)) break;

@@ -115,6 +115,13 @@ How to choose:
 - Split shanks (the band divides into two arms that open around the head): band.split, the gap in mm at the top (2–5).
   Stones on the gallery under the centre stone: gallery.under "hidden-halo", with gallery.color for coloured stones.
 - Cocktail rings with layers or a mosaic of stones round a centre stone: ring "deco" with frames, inside out.
+  * A dome covered edge to edge in one mosaic with leaves on stems through it (emerald leaves on milgrain stems among pink
+    sugarloaf cabochons, the same stones right up to the bezel): frames = one milgrain, then ONE fill with pattern
+    "sprays", the filling stones as the main gem (e.g. pink sapphire cabochon) and the leaves as alt (emerald marquise
+    cabochon); outline cushion, ratio 1, and turn 45 when the top is a rounded lozenge pointing along the finger. Set
+    decoLengthMm and decoWidthMm from the measurements, decoDome 0.8–1, decoWrap true, and leave decoSpread 0. Do not
+    split such a mosaic into rings of different stones round the centre.
+  * A mosaic top carries on down the shoulders; keep the band itself as it is in the photo (often slim and plain behind).
   * Keep it to real sizes: the whole top of a ring is usually 15–28 mm across, so with a 10–14 mm centre stone there is room for only
     2–4 layers of small stones (1.5–3 mm each, widthMm), packed tight (gapMm 0–0.2). Don't add more layers than you can see.
   * A mosaic of mixed stones packed solid (e.g. pink cabochons with green marquise leaves): one frame of kind "fill" with the main
@@ -256,7 +263,7 @@ export function factsFromNotes(notes: string | undefined, type: string): { ringS
   const n = (notes ?? "").toLowerCase().replace(/,/g, " ");
   const out: { ringSize?: number; carat?: number; karat?: 14 | 18 | 22 | 24 } = {};
   if (type === "ring") {
-    const m = n.match(/(?<!indian |uk |eu )\b(?:ring )?size\s*(?:us\s*)?(\d{1,2}\s+\d\/\d|\d{1,2}(?:\.\d{1,2})?)(?![\d.]|\s*(?:mm|cm))/);
+    const m = n.match(/(?<!indian |uk |eu )\b(?:ring )?size\s*(?:us\s*)?(\d{1,2}\s+\d\/\d|\d{1,2}(?:\.\d{1,2})?)(?!\d|\.\d|\s*(?:mm|cm))/);
     if (m) {
       const [whole, frac] = m[1].split(/\s+/);
       const v = frac ? Number(whole) + Number(frac.split("/")[0]) / Number(frac.split("/")[1]) : Number(whole);

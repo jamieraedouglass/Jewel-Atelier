@@ -132,9 +132,13 @@ export const FrameSchema = z.object({
   every: z.number().int().min(1).max(8).default(1),
   gapMm: z.number().min(0).max(4).default(0.25),
   ratio: z.number().min(0.4).max(2.5).nullable().default(null),
-  pattern: z.enum(["even", "vines"]).default("even"),
+  // sprays (fill layers): the alt stones grow as leaves in pairs along stems running out from the centre to the
+  // corners, and the main stones fill every space between them.
+  pattern: z.enum(["even", "vines", "sprays"]).default("even"),
   fit: z.enum(["scale", "hug", "point"]).default("scale"),
   vary: z.number().min(0).max(0.4).default(0),
+  // Turns this layer's outline, in degrees: 45 stands a cushion on its corner (a rounded lozenge).
+  turn: z.number().min(-180).max(180).default(0),
 });
 export type Frame = z.infer<typeof FrameSchema>;
 export type FrameIn = z.input<typeof FrameSchema>;
