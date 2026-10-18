@@ -138,34 +138,37 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   // in pairs along them.
   const leafShape = f.alt.shape, leafL = Math.min(3.4, Math.max(2.2, (f.widthMm || 2.5) * 1.1)), leafW = leafL / ASPECT[leafShape];
   const leafKey = `${f.alt.gem}|${f.alt.color}|${f.alt.cut}|${leafShape}`;
-  const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [], leaves: THREE.Vector3[] = [];
+  const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [], leafBeads: Item[] = [], leaves: THREE.Vector3[] = [];
   const stems = 8;
   for (let jn = 0; jn < stems; jn++) {
     const u0 = ((jn + 0.5) / stems) * NT, drift = (jn % 2 ? 1 : -1) * NT * 0.05;
     const path = Array.from({ length: 160 }, (_, q) => { const s = (q / 159) * (NK - 1.6); return at(u0 + drift * (s / (NK - 1)), s); });
-    let run = 0, nextBead = 0, nextLeaf = leafL * 0.45;
+    let run = 0, nextBead = 0, nextLeaf = leafL * 0.45, leafCount = jn;
     for (let q = 1; q < path.length; q++) {
       run += path[q].p.distanceTo(path[q - 1].p);
       const { p: pt, n } = path[q], tan = pt.clone().sub(path[q - 1].p).normalize();
-      // The branch itself is only a path: on the piece the leaves' own beaded cells trace it.
-      if (run >= nextBead) nextBead += 0.4;
+      // The branch is a fine milgrain line, beaded like the leaves' borders.
+      if (run >= nextBead) { leafBeads.push({ pos: pt.clone().addScaledVector(n, 0.04), dia: 0.32 }); blocks.push({ p: pt, r: 0.16 }); nextBead += 0.33; }
       if (run >= nextLeaf) {
-        nextLeaf += leafL * 1.25;
+        // Leaves alternate from one side of the branch to the other, as on the piece.
+        nextLeaf += leafL * 0.72;
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
         const pair: THREE.Vector3[] = [];
-        for (const sgn of [-1, 1]) {
-          const c0 = pt.clone().addScaledVector(side, sgn * leafW * 0.8).addScaledVector(tan, leafL * 0.12);
+        for (const sgn of [(leafCount++ % 2) * 2 - 1]) {
+          const c0 = pt.clone().addScaledVector(side, sgn * (leafW * 0.8 + 0.3)).addScaledVector(tan, leafL * 0.12);
           // Where a branch turns steeply down the side, leaves can bunch up; one that would touch a leaf of another
           // pair is left out (the two leaves of a pair sit side by side by design).
-          if (leaves.some((q) => q.distanceTo(c0) < leafL * 0.98)) continue;
+          if (leaves.some((q) => q.distanceTo(c0) < leafL * 0.98 + 0.4)) continue;
           pair.push(c0);
           const facing = tan.clone().applyAxisAngle(n, sgn * 0.62);
-          put(leafKey, { pos: c0.clone().addScaledVector(n, 0.3), dia: leafW, quat: orient(n, facing), up: n });
+          put(leafKey, { pos: c0.clone().addScaledVector(n, 0.04), dia: leafW, quat: orient(n, facing), up: n });
           // Each leaf sits in its own cell edged with milgrain that follows the leaf's outline.
           const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
-          const rim = leafOutline(leafL * 1.12, leafW * 1.18);
-          for (const [x, z] of rim) beads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.22), dia: 0.26 });
-          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * r + 0.08 });
+          const rim = leafOutline(leafL + 0.62, leafW + 0.62);
+          // Dropped by the dome's curvature (about 12 mm radius) so every bead sits on the metal, not above it.
+          for (const [x, z] of rim) leafBeads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.06 - (x * x + z * z) / 20), dia: 0.36 });
+          // The leaf's cell, with its beaded border, keeps the pink stones clear.
+          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * r + 0.24 });
         }
         leaves.push(...pair);
       }
@@ -174,34 +177,41 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
 
   // The mosaic: candidates over the whole surface in random order, kept where they don't crowd a neighbour, a leaf or
   // a stem, then each grown to fill the room round it.
-  const cell = Math.min(1.6, Math.max(1.1, (f.widthMm || 2.5) * 0.6));
+  // Sugarloaf stones at their real size first (about the frame's stone width), then smaller ones cut to fill the gaps
+  // between them, as a setter fills a mosaic. Each is sized to its room so none touches a neighbour.
+  const big = Math.min(2.6, Math.max(1.4, (f.widthMm || 2.5) * 0.85)), cell = big;
   const fillShape = ASPECT[f.shape] > 1.1 ? "cushion" : f.shape;
   const key = `${f.gem}|${f.color}|${f.cut}|${fillShape}`;
   const cands: { p: THREE.Vector3; n: THREE.Vector3 }[] = [];
-  for (let i = 0; i < NT * 2; i++) for (let s = 0.35; s <= NK - 1.15; s += 0.2) cands.push(at(i / 2, s));
+  for (let i = 0; i < NT * 3; i++) for (let s = 0.35; s <= NK - 1.15; s += 0.14) cands.push(at(i / 3, s));
   for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cands[i], cands[j]] = [cands[j], cands[i]]; }
-  const hash = new Map<string, number[]>(), kept: { p: THREE.Vector3; n: THREE.Vector3 }[] = [];
+  const hash = new Map<string, number[]>(), kept: { p: THREE.Vector3; n: THREE.Vector3; r: number }[] = [];
   const keyOf = (v: THREE.Vector3) => [Math.floor(v.x / cell), Math.floor(v.y / cell), Math.floor(v.z / cell)];
-  const near = (v: THREE.Vector3, dist: number) => {
+  // Room round a point: up to the nearest placed stone's edge, a leaf or stem, or the given cap.
+  const roomAt = (v: THREE.Vector3, cap: number) => {
+    let room = cap;
     const [x, y, z] = keyOf(v);
-    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let e = -1; e <= 1; e++) for (const k of hash.get(`${x + a},${y + b},${z + e}`) ?? []) if (kept[k].p.distanceTo(v) < dist) return true;
-    return false;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let e = -1; e <= 1; e++) for (const k of hash.get(`${x + a},${y + b},${z + e}`) ?? []) room = Math.min(room, kept[k].p.distanceTo(v) - kept[k].r);
+    for (const b of blocks) room = Math.min(room, b.p.distanceTo(v) - b.r);
+    return room;
   };
-  const blocked = (v: THREE.Vector3, r: number) => blocks.some((b) => b.p.distanceTo(v) < b.r + r);
-  for (const cnd of cands) {
-    if (blocked(cnd.p, cell * 0.25) || near(cnd.p, cell * 0.78)) continue;
+  const place = (cnd: { p: THREE.Vector3; n: THREE.Vector3 }, r: number) => {
     const kk = keyOf(cnd.p).join(",");
     (hash.get(kk) ?? hash.set(kk, []).get(kk)!).push(kept.length);
-    kept.push(cnd);
+    kept.push({ ...cnd, r });
+  };
+  // Clearance between neighbouring stones, for the milgrain wall of each cell.
+  const wall = 0.1;
+  for (const [cap, least] of [[big / 2, big * 0.3], [big * 0.36, big * 0.2], [big * 0.24, big * 0.14]] as const) {
+    for (const cnd of cands) {
+      const room = roomAt(cnd.p, cap + wall) - wall;
+      if (room >= least) place(cnd, Math.min(cap, room));
+    }
   }
   for (const st of kept) {
-    let room = cell * 0.7;
-    for (const o2 of kept) if (o2 !== st) room = Math.min(room, o2.p.distanceTo(st.p) / 2);
-    for (const b of blocks) room = Math.min(room, b.p.distanceTo(st.p) - b.r);
-    if (room < cell * 0.25) continue;
     const facing = v3(Math.cos(rnd() * 6.283), 0, Math.sin(rnd() * 6.283));
     // A cushion's corners reach past its width, so it is sized to sit inside its room without touching a neighbour.
-    put(key, { pos: st.p.clone().addScaledVector(st.n, 0.28), dia: (room * 2 * 0.9) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
+    put(key, { pos: st.p.clone().addScaledVector(st.n, 0.1), dia: (st.r * 2 * 0.86) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
   }
 
   // Milgrain beading round the bezel, and along the dome's edge where it rolls over into the sides.
@@ -215,5 +225,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     g.add(set);
   });
   g.add(balls(m.satin, beads));
+  // Bright polished milgrain round each leaf, as on the piece.
+  g.add(balls(m.metal, leafBeads));
   return { group: g };
 }

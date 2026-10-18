@@ -143,10 +143,14 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
         if (rebuilt && solid) report.rebuilt++;
       }
       const base = cache.get(key)!;
+      // Milgrain grains sit on a wire soldered to the metal; in the solid each grain reaches a little deeper so it
+      // joins the metal under it instead of floating a hair above a curved surface.
+      const grain = inst && mesh.geometry.type === "SphereGeometry";
+      const deeper = new THREE.Matrix4().makeScale(1.45, 1.45, 1.45);
       each((mm) => {
         report.pieces++;
         if (!base) { report.skipped.push(mesh.geometry.type); return; }
-        metal.push(base.transform(toMat4(mm)));
+        metal.push(base.transform(toMat4(grain ? mm.clone().multiply(deeper) : mm)));
         report.joined++;
       });
     } else if (opts.seats !== false && !drilled.has(o)) {
