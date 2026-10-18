@@ -18,7 +18,7 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : n
 export function readingSummary(r: Reading, counts: Record<number, number>, removed: Set<number>, answers: Record<number, string>) {
   const lines: string[] = ["Confirmed reading of the piece (from the person; use these as facts):"];
   if (r.piece?.kind) lines.push(`- Piece: ${r.piece.kind}${r.piece.pair ? " (a pair; build one, mirrored)" : ""}.`);
-  if (r.main?.what) lines.push(`- Main stone: ${r.main.what}${r.main.size_mm ? `, about ${r.main.size_mm}` : ""}.`);
+  if (r.main?.what) lines.push(`- Main stone (it must be in the design as the centre stone): ${r.main.what}${r.main.shape ? `, ${r.main.shape}` : ""}${r.main.cut ? `, ${r.main.cut}` : ""}${r.main.color ? `, ${r.main.color}` : ""}${r.main.size_mm ? `, about ${r.main.size_mm}` : ""}.`);
   if (r.main?.direction && r.main.direction !== "not a ring or round stone") lines.push(`- The main stone points ${r.main.direction}.`);
   (r.groups ?? []).forEach((g, i) => {
     if (removed.has(i) || !g.what) return;

@@ -17,7 +17,7 @@ const haloLabel = (style: string) =>
 const paveLabel = (style: string) =>
   style === "flowers" || style === "posy" ? "A diamond in each flower" : style === "open-bangle" ? "A channel of stones along the bangle" : "Set with stones";
 const countLabel = (style: string) =>
-  style === "half-flower" ? "Petals" : style === "swirl" ? "Ribbons" : style === "flowers" || style === "posy" ? "Flowers" : style === "tassel" ? "Strands" : style === "payal" ? "Bells" : "Stones";
+  style === "half-flower" ? "Petals" : style === "swirl" ? "Ribbons" : style === "flowers" || style === "posy" ? "Flowers" : style === "tassel" ? "Strands" : style === "payal" ? "Bells" : style === "bar" ? "Side stones" : "Stones";
 const countMax = (style: string) => (style === "half-flower" ? 9 : style === "swirl" ? 5 : style === "flowers" || style === "posy" ? 12 : 80);
 const layersLabel = (style: string) => (style === "tennis" || style === "wide-band" ? "Rows" : style === "by-the-yard" ? "Times round the neck" : "Rows / strands");
 

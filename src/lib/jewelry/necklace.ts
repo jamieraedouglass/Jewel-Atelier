@@ -8,6 +8,7 @@ import { type Item, accents, chainAlong, fringe, jumpRing } from "./elements";
 import { coin, flower, halo, patternRun } from "./patterns";
 import { beadStrand, layeredLoop, loopCurve, outwardAt, place, spreadParams, wrap, yawAt } from "./curves";
 import { dropStack } from "./drops";
+import { graduatedBar } from "./bar";
 
 export function necklacePiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
@@ -241,6 +242,14 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       focusSize = c.widthMm * 4;
       break;
     }
+    case "bar": {
+      const bar = graduatedBar(d, m, curve, front);
+      group.add(bar.group);
+      const end = bar.halfMm / curve.getLength();
+      group.add(chainAlong(curve, o.chain, m, front + end, front + 1 - end));
+      focusSize = Math.max(30, bar.halfMm * 2.6);
+      break;
+    }
     case "station": {
       group.add(chainAlong(curve, o.chain, m));
       for (const u of spreadParams(front, o.count, 0.62)) group.add(place(setStone(c, d.setting.style, m), curve.getPointAt(u).add(v3(0, 0.2, 0)), yawAt(curve, u)));
@@ -412,4 +421,4 @@ export function necklacePiece(d: Design, m: Mats): Piece {
   return { group, focus, focusSize, upright: false };
 }
 
-const CHAIN_STYLES_WITH_CLASP = new Set(["pendant", "drop-pendant", "three-stone-pendant", "station"]);
+const CHAIN_STYLES_WITH_CLASP = new Set(["bar", "pendant", "drop-pendant", "three-stone-pendant", "station"]);
