@@ -20,7 +20,7 @@ function toMesh(r: Rhino, g: THREE.BufferGeometry) {
 
 const rgba = (hex: string) => { const c = new THREE.Color(hex); return { r: Math.round(c.r * 255), g: Math.round(c.g * 255), b: Math.round(c.b * 255), a: 255 }; };
 
-export async function rhinoFile(parts: Part[], title: string): Promise<Uint8Array> {
+export async function rhinoFile(parts: Part[], title: string, solid?: THREE.BufferGeometry | null): Promise<Uint8Array> {
   const r = await rhino();
   const file = new r.File3dm();
   file.settings().modelUnitSystem = r.UnitSystem.Millimeters;
@@ -33,6 +33,7 @@ export async function rhinoFile(parts: Part[], title: string): Promise<Uint8Arra
     file.layers().add(layer);
     const attrs = (name: string) => { const a = new r.ObjectAttributes(); a.layerIndex = li; a.name = name; return a; };
     if (part.metal) {
+      if (solid) { file.objects().add(toMesh(r, solid), attrs("Metal (one solid, stone seats cut)")); return; }
       const merged = mergeGeometries(part.geos, false);
       if (merged) file.objects().add(toMesh(r, merged), attrs("Metal (union before casting)"));
     } else part.geos.forEach((g, i) => file.objects().add(toMesh(r, g), attrs(`${layer.name} ${i + 1}`)));

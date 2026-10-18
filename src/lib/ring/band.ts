@@ -56,12 +56,12 @@ function armGeo(rin: number, width: number, finish: Design["band"]["finish"], to
   const segs = 220, prof = shape === "flat" ? 40 : 28, pos: number[] = [], uv: number[] = [], idx: number[] = [];
   const eu = shape === "flat" ? 0.12 : shape === "cigar" ? 0.4 : 0.55, ev = shape === "flat" ? 0.12 : shape === "cigar" ? 0.3 : 0.55;
   for (let i = 0; i <= segs; i++) {
-    const th = (i / segs) * Math.PI * 2;
+    const th = ((i % segs) / segs) * Math.PI * 2;
     const { t, w, flat } = bandSection(width, th, top, shape, rin);
     const eU = eu + (0.16 - eu) * flat, eV = ev + (0.2 - ev) * flat;
     const dx = Math.sin(th), dy = Math.cos(th);
     for (let j = 0; j <= prof; j++) {
-      const p = (j / prof) * Math.PI * 2, c = Math.cos(p), sn = Math.sin(p);
+      const p = ((j % prof) / prof) * Math.PI * 2, c = Math.cos(p), sn = Math.sin(p);
       const u = Math.sign(c) * Math.pow(Math.abs(c), eU), v = Math.sign(sn) * Math.pow(Math.abs(sn), eV);
       let r = rin + t / 2 + (u * t) / 2;
       if (finish === "knife-edge" && u > 0) r = rin + t / 2 + ((u * t) / 2) * (1.25 - 0.75 * Math.pow(Math.abs(v), 1.3));

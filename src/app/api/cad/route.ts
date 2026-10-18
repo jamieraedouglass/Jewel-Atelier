@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizeDesign } from "@/lib/design";
-import { cadZip, modelParts } from "@/lib/cadExport";
+import { cadZip, modelParts, pieceRoot } from "@/lib/cadExport";
+import { solidMetal } from "@/lib/cadSolid";
 import { rhinoFile } from "@/lib/cad3dm";
 import { requireUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const Body = z.object({ design: z.unknown() });
 const WEEK = 7 * 24 * 3600;
@@ -20,7 +21,16 @@ export async function POST(req: Request) {
   const d = normalizeDesign(body.data.design);
   try {
     const parts = modelParts(d);
-    const zip = cadZip(d, { "model.3dm": await rhinoFile(parts, d.name) }, parts);
+    let solid: Awaited<ReturnType<typeof solidMetal>> = null;
+    try { solid = await solidMetal(pieceRoot(d)); }
+    catch (e) { console.error("Joining the metal failed; sending the parts", e); }
+    let extra: Record<string, Uint8Array> = {};
+    try { extra = { "model.3dm": await rhinoFile(parts, d.name, solid?.geometry) }; }
+    catch (e) {
+      console.error("Rhino file failed; sending STLs only", e);
+      extra = { "NO-RHINO-FILE.txt": new TextEncoder().encode("The Rhino (.3dm) file couldn't be made this time. The STL files here are complete; Rhino and MatrixGold import STL directly.") };
+    }
+    const zip = cadZip(d, extra, parts, solid);
     const name = `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}-CAD.zip`;
     const path = `${user.id}/${Date.now()}-${name}`;
     const admin = createAdminClient();

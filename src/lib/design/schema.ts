@@ -205,6 +205,7 @@ export const DesignSchema = z
         decoLengthMm: z.number().min(0).max(60).default(0),
         decoWidthMm: z.number().min(0).max(60).default(0),
         lighting: z.enum(["studio", "daylight", "warm"]).default("studio"),
+        stoneLink: z.enum(["bezel", "drilled"]).default("bezel"),
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         hoopFace: z.enum(["front", "outer", "inner"]).default("front"),
         charmTurn: z.number().min(-180).max(180).default(0),
