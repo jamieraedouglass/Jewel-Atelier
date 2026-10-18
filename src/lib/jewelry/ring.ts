@@ -224,8 +224,33 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
     : { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [], ombre: b.paveOmbre, layout: "line" } };
   const arms = b.split > 0 && !mosaic ? [1, -1] : [0];
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
+  // A mosaic keeps its stones the same size and spacing, adding rows where the shoulders flare wider, so the whole
+  // shoulder is set rather than a few rows spread thin across it.
+  const pz = (b.widthMm - 0.3) / rows;
   for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
     const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
+    if (mosaic) {
+      let widest = 0;
+      for (let i = 0; i <= 60; i++) widest = Math.max(widest, surf(a0 + ((a1 - a0) * i) / 60).w);
+      const rowsM = Math.max(rows, Math.floor((widest - 0.3) / pz));
+      for (let r = 0; r < rowsM; r++) {
+        const z = (r - (rowsM - 1) / 2) * pz, N = 120;
+        let run: THREE.Vector3[] = [], best: THREE.Vector3[] = [];
+        for (let i = 0; i <= N; i++) {
+          const th = a0 + ((a1 - a0) * i) / N, { r: R, w } = surf(th);
+          if (Math.abs(z) <= (w - 0.3) / 2 - pz * 0.35) { run.push(v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z)); if (run.length > best.length) best = run; }
+          else run = [];
+        }
+        if (best.length < 4) continue;
+        const curve = new THREE.CatmullRomCurve3(best, false);
+        if (curve.getLength() < pz * 1.5) continue;
+        const g = patternRun(pd, m, curve, (r % 2) * 0.012, 1, { maxW: W * ASPECT[mosaic.shape], gap: 0.08, fade: "start", editKey: `band${sideSign}0${r}`, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+        g.userData.part = "accents";
+        g.userData.keep = true;
+        group.add(g);
+      }
+      continue;
+    }
     for (const arm of arms) for (let r = 0; r < rows; r++) {
       const N = 120;
       const pts = Array.from({ length: N + 1 }, (_, i) => {
@@ -233,11 +258,11 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
         const { r: R, w: w0 } = surf(th);
         const sp = arm ? splitArms(w0, th, b.split) : null;
         const w = sp ? sp.hi - sp.lo : w0;
-        const z = (sp ? arm * (sp.lo + sp.hi) / 2 : 0) + (rows === 1 ? 0 : mosaic ? (r - (rows - 1) / 2) * ((w - 0.3) / rows) : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1))));
+        const z = (sp ? arm * (sp.lo + sp.hi) / 2 : 0) + (rows === 1 ? 0 : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1))));
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
-      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, fade: "start", editKey: `band${sideSign}${arm}${r}`, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+      const g = patternRun(pd, m, curve, 0, 1, { maxW: W, gap: 0.2, fade: "start", editKey: `band${sideSign}${arm}${r}`, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
       g.userData.part = "accents";
       g.userData.keep = true;
       group.add(g);

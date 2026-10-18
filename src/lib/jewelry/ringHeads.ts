@@ -20,6 +20,9 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = turned(fn(k / 720)); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
   for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
   const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
+  // The bezel's own edge, before any layers: a sprays mosaic runs right up to it.
+  const bezelEdge = Float32Array.from(prev);
+  const bezelAt = (a: number) => bezelEdge[Math.floor((a / (Math.PI * 2)) * N) % N] + 0.45;
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
   const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12);
   const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * ASPECT[f.shape] : f.widthMm), 0);
@@ -70,12 +73,16 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
       // Sprays: leaves in pairs along milgrain stems from the centre out to the edge; the fill stones go everywhere else.
       const sprays = f.pattern === "sprays" && !!f.alt;
+      // With only milgrain between it and the bezel, the mosaic starts at the bezel (the beading sits among its stones).
+      const innerAt = sprays && frames.slice(0, fi).every((q) => q.kind === "milgrain") ? bezelAt : (a: number) => prevAt(a) + f.gapMm;
       const blocks: { x: number; z: number; r: number }[] = [];
+      let sprayInfo: Sprays | null = null;
       if (sprays) {
         // Leaves are sized to the room between the centre and the edge, as a setter would cut them.
         const stems = 8, base = THREE.MathUtils.degToRad(f.turn ?? 0) + Math.PI / stems;
-        const room = Array.from({ length: stems }, (_, j) => { const a = (j / stems) * Math.PI * 2 + base; return outerAt(a) - prevAt(a) - f.gapMm - 0.3; }).sort((p, q) => p - q);
+        const room = Array.from({ length: stems }, (_, j) => { const a = (j / stems) * Math.PI * 2 + base; return outerAt(a) - innerAt(a) - 0.3; }).sort((p, q) => p - q);
         const leafShape = f.alt!.shape, leafL = Math.min(Math.max(1.8, sz * 1.5), Math.max(1.8, room[Math.floor(stems / 2)] * 0.6)), leafW = leafL / ASPECT[leafShape];
+        sprayInfo = { stems, base, leafL, leafW };
         const lookKey = `${f.alt!.gem}|${f.alt!.color}|${f.alt!.cut}|${leafShape}`;
         const stemDots: Item[] = [];
         const surface = (x: number, z: number) => v3(x, dome > 0 ? domeY(Math.hypot(x, z)) : y, z);
@@ -86,11 +93,11 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           const X = new THREE.Vector3().crossVectors(up, dir).normalize();
           put(lookKey, { pos: p.addScaledVector(up, 0.2), dia: leafW, quat: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir)), up });
           // A leaf is long and narrow: it blocks three small circles along its length, not one big one.
-          for (const k of [-0.3, 0, 0.3]) blocks.push({ x: x + dir.x * leafL * k, z: z + dir.z * leafL * k, r: leafW * (k ? 0.42 : 0.55) });
+          for (const k of [-0.3, 0, 0.3]) blocks.push({ x: x + dir.x * leafL * k, z: z + dir.z * leafL * k, r: leafW * (k ? 0.34 : 0.48) });
         };
         for (let j = 0; j < stems; j++) {
           const a = (j / stems) * Math.PI * 2 + base;
-          const r0s = prevAt(a) + f.gapMm + 0.3, r1s = outerAt(a) - leafL * 0.35, len = r1s - r0s;
+          const r0s = innerAt(a) + 0.05, r1s = outerAt(a) - leafL * 0.35, len = r1s - r0s;
           if (len < leafL * 0.7) continue;
           const sway = (j % 2 ? 1 : -1) * 0.12 * len;
           const at = (t: number) => {
@@ -99,7 +106,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           };
           for (let t = 0; t <= 1.0001; t += 0.4 / len) { const q = at(t); const p = surface(q.x, q.z); stemDots.push({ pos: p.add(v3(0, 0.1, 0)), dia: 0.34 }); blocks.push({ x: q.x, z: q.z, r: 0.17 }); }
           const step = leafL * 0.8;
-          for (let s0 = Math.min(leafL * 0.55, len * 0.4); s0 < Math.max(len - leafL * 0.3, len * 0.45); s0 += step) {
+          for (let s0 = Math.min(leafL * 0.38, len * 0.3); s0 < Math.max(len - leafL * 0.3, len * 0.45); s0 += step) {
             const t = s0 / len, q = at(t), q2 = at(Math.min(1, t + 0.02));
             const along = v3(q2.x - q.x, 0, q2.z - q.z).normalize(), side = v3(-along.z, 0, along.x);
             for (const sgn of [-1, 1]) leafAt(q.x + side.x * sgn * leafW * 0.75 + along.x * leafL * 0.1, q.z + side.z * sgn * leafW * 0.75 + along.z * leafL * 0.1, along, sgn * 0.62);
@@ -113,7 +120,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       let wallStone: { shape: Frame["shape"]; size: number } | null = null;
       if (sprays) {
         // Every free spot between the leaves is filled with a tight honeycomb of cabochons, so no gold shows.
-        const room = Array.from({ length: 16 }, (_, j) => { const a = (j / 16) * Math.PI * 2; return outerAt(a) - prevAt(a) - f.gapMm; }).sort((p, q) => p - q)[8];
+        const room = Array.from({ length: 16 }, (_, j) => { const a = (j / 16) * Math.PI * 2; return outerAt(a) - innerAt(a); }).sort((p, q) => p - q)[8];
         const cell = Math.min(sz, Math.max(1.1, room / 2.3));
         const reach = Math.max(...Array.from({ length: 64 }, (_, j) => outerAt((j / 64) * Math.PI * 2)));
         // Mosaic stones are cut close to square to fill their cells (sugarloaf), so an oval or long shape packs as a cushion.
@@ -133,29 +140,44 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const k of bucket.get(`${cx + i},${cz + j}`) ?? []) if (Math.hypot(got[k].x - x, got[k].z - z) < d) return true;
           return false;
         };
-        const inside = (x: number, z: number, m: number) => { const r = Math.hypot(x, z), th = theta(x, z); return r >= prevAt(th) + f.gapMm + cell * m && r <= outerAt(th) - cell * 0.28; };
+        const inside = (x: number, z: number, m: number) => { const r = Math.hypot(x, z), th = theta(x, z); return r >= innerAt(th) + cell * m && r <= outerAt(th) - cell * 0.28; };
         const take = (x: number, z: number) => { (bucket.get(cellKey(x, z)) ?? bucket.set(cellKey(x, z), []).get(cellKey(x, z))!).push(got.length); got.push({ x, z }); };
         // A honeycomb for the open field, then smaller stones dropped into what's left round the leaves and edges.
-        const rowH = cell * 0.87;
+        const rowH = cell * 0.74;
         for (let zi = -Math.ceil(reach / rowH); zi <= Math.ceil(reach / rowH); zi++)
           for (let xi = -Math.ceil(reach / cell) - 1; xi <= Math.ceil(reach / cell) + 1; xi++) {
-            const x = (xi + (zi % 2 ? 0.5 : 0)) * cell, z = zi * rowH;
-            if (inside(x, z, 0.45) && !blocked(x, z, cell * 0.42)) take(x, z);
+            const x = (xi + (zi % 2 ? 0.5 : 0)) * cell * 0.85, z = zi * rowH;
+            if (inside(x, z, 0.3) && !blocked(x, z, cell * 0.3)) take(x, z);
           }
-        for (const [x, z] of cands) if (inside(x, z, 0.2) && !blocked(x, z, cell * 0.25) && !near(x, z, cell * 0.62)) take(x, z);
-        for (const q of got) {
-          let gap = cell * 1.3;
-          for (const o2 of got) if (o2 !== q) gap = Math.min(gap, Math.hypot(o2.x - q.x, o2.z - q.z));
-          for (const b of blocks) gap = Math.min(gap, (Math.hypot(b.x - q.x, b.z - q.z) - b.r) * 2);
+        const honey = got.length;
+        for (const [x, z] of cands) if (inside(x, z, 0.2) && !blocked(x, z, cell * 0.22) && !near(x, z, cell * 0.6)) take(x, z);
+        // Sizes: the honeycomb stones first, at full size; then each gap-filler as big as the room left round it.
+        const rad: number[] = [];
+        const roomAt = (q: { x: number; z: number }, upTo: number) => {
           const r = Math.hypot(q.x, q.z), th = theta(q.x, q.z);
-          gap = Math.min(gap, (r - prevAt(th) - f.gapMm + 0.1) * 2);
+          let room = Math.min(cell * 0.65, r - innerAt(th) + 0.05);
+          for (let k = 0; k < upTo; k++) if (got[k] !== q) room = Math.min(room, Math.hypot(got[k].x - q.x, got[k].z - q.z) - (rad[k] ?? 0));
+          for (const b of blocks) room = Math.min(room, Math.hypot(b.x - q.x, b.z - q.z) - b.r);
+          return room;
+        };
+        got.forEach((q, i) => {
+          if (i >= honey) { rad[i] = 0; return; }
+          const r = Math.hypot(q.x, q.z), th = theta(q.x, q.z);
+          let half = Math.min(cell * 0.52, r - innerAt(th) + 0.05);
+          for (let k = 0; k < honey; k++) if (k !== i) half = Math.min(half, Math.hypot(got[k].x - q.x, got[k].z - q.z) / 2);
+          for (const b of blocks) half = Math.min(half, Math.hypot(b.x - q.x, b.z - q.z) - b.r);
+          rad[i] = half * 1.04;
+        });
+        for (let i = honey; i < got.length; i++) rad[i] = roomAt(got[i], i) * 0.97;
+        got.forEach((q, i) => {
+          if (rad[i] < cell * 0.26) return;
+          const r = Math.hypot(q.x, q.z);
           const p = v3(q.x, dome > 0 ? domeY(r) : y, q.z), up = dome > 0 ? tilt(p) : Y.clone();
           const facing = v3(Math.cos(rnd() * 6.283), 0, Math.sin(rnd() * 6.283));
           const dir = facing.addScaledVector(up, -facing.dot(up)).normalize();
           const X = new THREE.Vector3().crossVectors(up, dir).normalize();
-          const across = Math.max(cell * 0.5, Math.min(cell * 1.1, gap * 0.94));
-          put(key, { pos: p, dia: across / ASPECT[fillShape], quat: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir)), up });
-        }
+          put(key, { pos: p, dia: (rad[i] * 2) / ASPECT[fillShape], quat: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir)), up });
+        });
       }
       const A = sprays ? 0 : 1440;
       let n = 0;
@@ -204,7 +226,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         const [gem, color, cut, shape] = key.split("|");
         g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
       });
-      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: wallStone?.shape ?? f.shape, size: wallStone?.size ?? sz, alt: f.alt, every: wallStone ? f.every + 3 : f.every };
+      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: wallStone?.shape ?? f.shape, size: wallStone?.size ?? sz, alt: f.alt, every: f.every, ...(sprayInfo && wallStone ? { sprays: sprayInfo } : {}) };
       outer = ringPts.map((p) => v3(p.x, y, p.z));
       for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], outerR[b]);
       if (!(dome > 0)) y -= 0.12;
@@ -280,7 +302,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const plate = new THREE.Mesh(domedPlate(rim, topY, depth, finger), plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
-    if (wrap) g.add(wrapStones(m, rim, topY, depth, sideStone!));
+    if (wrap) g.add(sideStone!.sprays ? wallMosaic(m, rim, topY, depth, sideStone!) : wrapStones(m, rim, topY, depth, sideStone!));
   } else if (outer.length) {
     const shape = new THREE.Shape(outer.map((p) => new THREE.Vector2(p.x, p.z)));
     const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
@@ -318,7 +340,8 @@ function plateMetal(m: Mats) {
   return satin;
 }
 
-type SideStone = { gem: Frame["gem"]; color: string; cut: Frame["cut"]; shape: Frame["shape"]; size: number; alt: Frame["alt"]; every: number };
+type Sprays = { stems: number; base: number; leafL: number; leafW: number };
+type SideStone = { gem: Frame["gem"]; color: string; cut: Frame["cut"]; shape: Frame["shape"]; size: number; alt: Frame["alt"]; every: number; sprays?: Sprays };
 
 function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: Depth, st: SideStone) {
   const g = new THREE.Group();
@@ -358,6 +381,74 @@ function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
     const [gem, color, cut, shape] = key.split("|");
     g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
   });
+  return g;
+}
+
+// The sprays mosaic carried on down the dome's walls: the same stones packed edge to edge over the whole wall, and each
+// leaf stem running on from the top's edge down the side, as on a domed mosaic ring.
+function wallMosaic(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: Depth, st: SideStone) {
+  const g = new THREE.Group(), sp = st.sprays!, N = rim.length, cell = st.size;
+  const SUB = 10;
+  const arcOf = (p: THREE.Vector2) => { let a = 0, last = wallPoint(p, topY, depth, 0); for (let k = 1; k <= SUB; k++) { const q = wallPoint(p, topY, depth, (k / SUB) * (Math.PI / 2)); a += q.distanceTo(last); last = q; } return a; };
+  const arcs = rim.map(arcOf);
+  const along = [0];
+  for (let i = 1; i <= N; i++) along.push(along[i - 1] + wallPoint(rim[i % N], topY, depth, 0).distanceTo(wallPoint(rim[i - 1], topY, depth, 0)));
+  const perim = along[N];
+  // (u, v): u runs round the rim, v down the wall from its top edge; both in mm along the surface.
+  const rimAt = (u: number) => { const uu = ((u % perim) + perim) % perim; let i = 0; while (i < N - 1 && along[i + 1] < uu) i++; const t = (uu - along[i]) / Math.max(1e-6, along[i + 1] - along[i]); return { a: rim[i].clone().lerp(rim[(i + 1) % N], t), arc: arcs[i] + (arcs[(i + 1) % N] - arcs[i]) * t }; };
+  const frame = (u: number, v: number) => {
+    const { a, arc } = rimAt(u), phi = Math.min(1, v / Math.max(0.1, arc)) * (Math.PI / 2);
+    const p = wallPoint(a, topY, depth, phi);
+    const around = wallPoint(rimAt(u + 0.2).a, topY, depth, phi).sub(p).normalize();
+    const down = wallPoint(a, topY, depth, Math.min(Math.PI / 2, phi + 0.05)).sub(p).normalize();
+    const up = new THREE.Vector3().crossVectors(down, around).normalize();
+    if (up.dot(v3(p.x, 0, p.z)) < 0) up.negate();
+    return { p, around, down, up, arc };
+  };
+  const groups = new Map<string, Item[]>();
+  const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
+  const orient = (up: THREE.Vector3, facing: THREE.Vector3) => {
+    const dir = facing.clone().addScaledVector(up, -facing.dot(up)).normalize();
+    return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(up, dir).normalize(), up, dir));
+  };
+  // Leaf stems continue down the wall below where each top stem meets the edge.
+  const blocks: { u: number; v: number; r: number }[] = [], dots: Item[] = [];
+  const leafKey = `${st.alt!.gem}|${st.alt!.color}|${st.alt!.cut}|${st.alt!.shape}`;
+  for (let j = 0; j < sp.stems; j++) {
+    const ang = (j / sp.stems) * Math.PI * 2 + sp.base;
+    let best = 0, bd = Infinity;
+    rim.forEach((p, i) => { const d = Math.abs(Math.atan2(Math.sin(Math.atan2(p.y, p.x) - ang), Math.cos(Math.atan2(p.y, p.x) - ang))); if (d < bd) { bd = d; best = i; } });
+    const u0 = along[best], arc = arcs[best], sway = (j % 2 ? 1 : -1) * Math.min(3, arc * 0.35);
+    for (let v = 0; v <= arc; v += 0.4) { const u = u0 + sway * (v / arc); const f = frame(u, v); dots.push({ pos: f.p.clone().addScaledVector(f.up, 0.12), dia: 0.34 }); blocks.push({ u, v, r: 0.17 }); }
+    for (let v = sp.leafL * 0.5; v < arc - sp.leafL * 0.3; v += sp.leafL * 0.8) {
+      const u = u0 + sway * (v / arc), f = frame(u, v);
+      const stemDir = f.down.clone().addScaledVector(f.around, sway / arc).normalize();
+      for (const sgn of [-1, 1]) {
+        const du = sgn * sp.leafW * 0.75, f2 = frame(u + du, v + sp.leafL * 0.1);
+        put(leafKey, { pos: f2.p.clone().addScaledVector(f2.up, 0.2), dia: sp.leafW, quat: orient(f2.up, stemDir.clone().applyAxisAngle(f2.up, sgn * 0.62)), up: f2.up });
+        for (const k of [-0.3, 0, 0.3]) blocks.push({ u: u + du + sgn * sp.leafL * k * 0.5, v: v + sp.leafL * (0.1 + k * 0.8), r: sp.leafW * (k ? 0.42 : 0.55) });
+      }
+    }
+  }
+  const blocked = (u: number, v: number, r: number) => blocks.some((b) => { const du = Math.abs(b.u - u) % perim; return Math.hypot(Math.min(du, perim - du), b.v - v) < b.r + r; });
+  // Fill: a honeycomb in (u, v) over the whole wall.
+  const key = `${st.gem}|${st.color}|${st.cut}|${st.shape}`;
+  const rowH = cell * 0.76, maxArc = Math.max(...arcs);
+  let seed = 29;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let ri = 0; (ri + 0.5) * rowH < maxArc; ri++) {
+    const v = (ri + 0.5) * rowH;
+    for (let u = (ri % 2) * cell * 0.44; u < perim; u += cell * 0.88) {
+      const f = frame(u, v);
+      if (v > f.arc - cell * 0.3 || blocked(u, v, cell * 0.3)) continue;
+      put(key, { pos: f.p.clone().addScaledVector(f.up, 0.3), dia: (cell * 0.9) / ASPECT[st.shape], quat: orient(f.up, f.around.clone().applyAxisAngle(f.up, rnd() * Math.PI)), up: f.up });
+    }
+  }
+  groups.forEach((items, k) => {
+    const [gem, color, cut, shape] = k.split("|");
+    g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
+  });
+  g.add(balls(m.satin, dots));
   return g;
 }
 
