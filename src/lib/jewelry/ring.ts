@@ -42,11 +42,10 @@ export function ringPiece(d0: Design): Piece {
     const RIN = ringInnerDiameter(d.ringSize) / 2;
     const bw = Math.max(d.band.widthMm, 3);
     const innerMat = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone()); innerMat.side = THREE.DoubleSide;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(RIN + 1.9, RIN + 1.9, bw, 160, 1, true), innerMat);
+    const ring = new THREE.LatheGeometry([new THREE.Vector2(RIN, -bw / 2), new THREE.Vector2(RIN + 1.9, -bw / 2), new THREE.Vector2(RIN + 1.9, bw / 2), new THREE.Vector2(RIN, bw / 2), new THREE.Vector2(RIN, -bw / 2)], 160);
+    const band = new THREE.Mesh(ring, innerMat);
     band.rotation.x = Math.PI / 2;
-    const inner = new THREE.Mesh(new THREE.CylinderGeometry(RIN, RIN, bw, 160, 1, true), innerMat);
-    inner.rotation.x = Math.PI / 2;
-    group.add(band, inner);
+    group.add(band);
     for (const z of [-bw / 2, bw / 2]) { const lip = new THREE.Mesh(new THREE.TorusGeometry(RIN + 0.95, 0.95, 12, 160), m.metal); lip.position.z = z; lip.scale.z = 0.5; group.add(lip); }
     const W = patternMaxW(d);
     const rows = Math.max(1, Math.min(6, d.options.layers));

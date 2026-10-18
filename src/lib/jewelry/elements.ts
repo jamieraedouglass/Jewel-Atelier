@@ -35,7 +35,7 @@ function prongAt(shape: CenterStone["shape"], asp: number, k: number): [number, 
 
 export const ASPECT = SHAPE_RATIO;
 
-export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round", dome = 0.42) {
+export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round", dome = 0.42, rim = true) {
   const g = new THREE.Group();
   g.userData.part = "accents";
   if (!items.length) return g;
@@ -82,9 +82,9 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   const meshes = [
     new THREE.InstancedMesh(geo, m.mirror(tint, cut === "polki" ? 2.4 : 3.6), items.length),
     new THREE.InstancedMesh(geo, colorless ? m.skin : m.stone({ gem, cut, color, clarity: 0.5 }, 1), items.length),
-    new THREE.InstancedMesh(shapedRim(shape, asp, cut === "faceted" ? 0.07 : 0.11), m.metal, items.length),
+    ...(rim ? [new THREE.InstancedMesh(shapedRim(shape, asp, cut === "faceted" ? 0.07 : 0.11), m.metal, items.length)] : []),
   ];
-  const prongs = cut === "faceted" ? new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 8, 6), m.metal, items.length * 4) : null;
+  const prongs = cut === "faceted" && rim ? new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 8, 6), m.metal, items.length * 4) : null;
   const M = new THREE.Matrix4();
   items.forEach((it, i) => {
     orient(o, it);

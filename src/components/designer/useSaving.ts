@@ -99,8 +99,18 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
       setStatus(null);
       flash(copied ? `CAD files downloading (${json.sizeMb} MB). A link to send your jeweller is copied; it works for 7 days.` : "CAD files downloading.");
       if (!copied) setStatus(`Link for your jeweller (works for 7 days): ${json.url}`);
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : "Couldn't make the CAD files.");
+    } catch {
+      try {
+        const { cadZip } = await import("@/lib/cadExport");
+        const url = URL.createObjectURL(new Blob([cadZip(designRef.current) as BlobPart], { type: "application/zip" }));
+        const a = document.createElement("a");
+        a.href = url; a.download = fileName(designRef.current).replace(/\.png$/, "-CAD.zip"); a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus(null);
+        flash("CAD files (STL) downloading. The server couldn't make the Rhino file or a share link this time.");
+      } catch (e) {
+        setStatus(e instanceof Error ? e.message : "Couldn't make the CAD files.");
+      }
     }
   }
 

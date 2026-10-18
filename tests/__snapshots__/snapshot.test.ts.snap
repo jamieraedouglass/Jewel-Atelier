@@ -2502,9 +2502,9 @@ exports[`geometry snapshots > showcase Gold band with diamond edges 1`] = `
       0,
     ],
     "focusSize": 18,
-    "hash": "5f2e4df3",
-    "instances": 342,
-    "meshes": 14,
+    "hash": "d103232a",
+    "instances": 341,
+    "meshes": 13,
     "nonFinite": 0,
     "size": [
       22.36,
@@ -2512,7 +2512,7 @@ exports[`geometry snapshots > showcase Gold band with diamond edges 1`] = `
       8.45,
     ],
     "upright": true,
-    "vertices": 107628,
+    "vertices": 107789,
   },
   "worn": null,
 }
@@ -2763,7 +2763,7 @@ exports[`geometry snapshots > showcase Marquise mosaic cocktail ring 1`] = `
       0,
     ],
     "focusSize": 26,
-    "hash": "9a82a5f3",
+    "hash": "176f5f9b",
     "instances": 1179,
     "meshes": 64,
     "nonFinite": 0,
@@ -3389,7 +3389,7 @@ exports[`geometry snapshots > showcase Rose-cut diamonds by the yard 1`] = `
       157.8,
     ],
     "focusSize": 30,
-    "hash": "0ec451fd",
+    "hash": "66853175",
     "instances": 544,
     "meshes": 7,
     "nonFinite": 0,
@@ -3399,7 +3399,7 @@ exports[`geometry snapshots > showcase Rose-cut diamonds by the yard 1`] = `
       174.6,
     ],
     "upright": false,
-    "vertices": 196384,
+    "vertices": 201280,
   },
   "worn": {
     "focus": [
@@ -3408,7 +3408,7 @@ exports[`geometry snapshots > showcase Rose-cut diamonds by the yard 1`] = `
       121.32,
     ],
     "focusSize": 30,
-    "hash": "e20c8f74",
+    "hash": "c9edd8f0",
     "instances": 544,
     "meshes": 7,
     "nonFinite": 0,
@@ -3418,7 +3418,7 @@ exports[`geometry snapshots > showcase Rose-cut diamonds by the yard 1`] = `
       128.58,
     ],
     "upright": false,
-    "vertices": 196384,
+    "vertices": 201280,
   },
 }
 `;
@@ -5096,7 +5096,7 @@ exports[`geometry snapshots > style necklace/by-the-yard 1`] = `
       157.8,
     ],
     "focusSize": 30,
-    "hash": "0ec451fd",
+    "hash": "66853175",
     "instances": 544,
     "meshes": 7,
     "nonFinite": 0,
@@ -5106,7 +5106,7 @@ exports[`geometry snapshots > style necklace/by-the-yard 1`] = `
       174.6,
     ],
     "upright": false,
-    "vertices": 196384,
+    "vertices": 201280,
   },
   "worn": {
     "focus": [
@@ -5115,7 +5115,7 @@ exports[`geometry snapshots > style necklace/by-the-yard 1`] = `
       121.32,
     ],
     "focusSize": 30,
-    "hash": "e20c8f74",
+    "hash": "c9edd8f0",
     "instances": 544,
     "meshes": 7,
     "nonFinite": 0,
@@ -5125,7 +5125,7 @@ exports[`geometry snapshots > style necklace/by-the-yard 1`] = `
       128.58,
     ],
     "upright": false,
-    "vertices": 196384,
+    "vertices": 201280,
   },
 }
 `;
@@ -6245,9 +6245,9 @@ exports[`geometry snapshots > style ring/wide-band 1`] = `
       0,
     ],
     "focusSize": 18,
-    "hash": "2a0974e5",
-    "instances": 342,
-    "meshes": 14,
+    "hash": "c1cca9e7",
+    "instances": 341,
+    "meshes": 13,
     "nonFinite": 0,
     "size": [
       22.36,
@@ -6255,7 +6255,7 @@ exports[`geometry snapshots > style ring/wide-band 1`] = `
       7.95,
     ],
     "upright": true,
-    "vertices": 107628,
+    "vertices": 107789,
   },
   "worn": null,
 }

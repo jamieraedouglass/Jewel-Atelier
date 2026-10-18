@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { NO_CHARACTER, type Design, resolveClasp, roundDiameter } from "../design";
 import { claspAt } from "./clasps";
-import { type Piece, v3 } from "./common";
+import { type Piece, Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStone, tube } from "./stones";
 import { type Item, accents, chainAlong, fringe, jumpRing } from "./elements";
@@ -133,27 +133,47 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "by-the-yard": {
       const loops = Math.max(1, Math.min(4, o.layers));
+      const drilled = o.stoneLink === "drilled";
       const big = Math.max(c.widthMm, 2), small = big * 0.72, ringR = Math.max(0.7, big * 0.17);
-      const stonesBig: Item[] = [], stonesSmall: Item[] = [], rings: Item[] = [];
+      const wire = Math.max(0.28, big * 0.05), inset = wire + 0.35;
+      const stonesBig: Item[] = [], stonesSmall: Item[] = [], rings: { pos: THREE.Vector3; dia: number; axis: THREE.Vector3 }[] = [], holes: Item[] = [];
       for (let l = 0; l < loops; l++) {
         const { curve: cv } = loopCurve(L / loops + l * 60, 0.85, 0.12 + l * 0.04);
         const total = cv.getLength();
-        let at = 0, k = 0;
+        let at = 0, k = 0, prevHole: THREE.Vector3 | null = null;
         while (at < total - big) {
           const dia = k % 2 ? small : big;
-          const u = (at + dia / 2) / total;
-          (k % 2 ? stonesSmall : stonesBig).push({ pos: cv.getPointAt(u), dia, yaw: yawAt(cv, u) });
-          at += dia + 0.2;
-          rings.push({ pos: cv.getPointAt(Math.min(0.999, (at + ringR) / total)), dia: ringR * 2, up: cv.getTangentAt(Math.min(0.999, (at + ringR) / total)) });
-          at += ringR * 2 + 0.2; k++;
+          const u = (at + dia / 2) / total, p = cv.getPointAt(u), t = cv.getTangentAt(u);
+          (k % 2 ? stonesSmall : stonesBig).push({ pos: p, dia, yaw: yawAt(cv, u) });
+          if (drilled) {
+            const near = p.clone().addScaledVector(t, -(dia / 2 - inset)), far = p.clone().addScaledVector(t, dia / 2 - inset);
+            holes.push({ pos: near, dia: wire * 1.5 }, { pos: far, dia: wire * 1.5 });
+            if (prevHole) {
+              const mid = prevHole.clone().add(near).multiplyScalar(0.5), span = prevHole.distanceTo(near);
+              rings.push({ pos: mid.add(v3(0, 0.05, 0)), dia: span + wire * 2, axis: new THREE.Vector3().crossVectors(Y, t).normalize() });
+            }
+            prevHole = far;
+            at += dia + Math.max(0.6, ringR * 2 - inset * 2 + 0.3);
+          } else {
+            at += dia + 0.2;
+            const ru = Math.min(0.999, (at + ringR) / total);
+            rings.push({ pos: cv.getPointAt(ru), dia: ringR * 2, axis: cv.getTangentAt(ru) });
+            at += ringR * 2 + 0.2;
+          }
+          k++;
         }
       }
       const cutA = c.cut === "cabochon" ? "cabochon" : c.cut;
-      group.add(accents(m, c.gem, c.color, cutA, stonesBig, "round"), accents(m, c.gem, c.color, cutA, stonesSmall, "round"));
-      const ringIm = new THREE.InstancedMesh(new THREE.TorusGeometry(0.5, 0.11, 8, 20), m.metal, rings.length);
+      group.add(accents(m, c.gem, c.color, cutA, stonesBig, "round", 0.42, !drilled), accents(m, c.gem, c.color, cutA, stonesSmall, "round", 0.42, !drilled));
+      const ringIm = new THREE.InstancedMesh(new THREE.TorusGeometry(0.5, drilled ? wire / Math.max(0.5, rings[0]?.dia ?? 1) : 0.11, 8, 24), m.metal, rings.length);
       const ob = new THREE.Object3D();
-      rings.forEach((r, i) => { ob.position.copy(r.pos); ob.quaternion.setFromUnitVectors(v3(0, 0, 1), r.up!); ob.scale.setScalar(r.dia); ob.updateMatrix(); ringIm.setMatrixAt(i, ob.matrix); });
+      rings.forEach((r, i) => { ob.position.copy(r.pos); ob.quaternion.setFromUnitVectors(v3(0, 0, 1), r.axis); ob.scale.setScalar(r.dia); ob.updateMatrix(); ringIm.setMatrixAt(i, ob.matrix); });
       group.add(ringIm);
+      if (holes.length) {
+        const hole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 12), new THREE.MeshStandardMaterial({ color: 0x15130f, roughness: 0.6 }), holes.length);
+        holes.forEach((h, i) => { ob.position.copy(h.pos).add(v3(0, -0.2, 0)); ob.quaternion.identity(); ob.scale.set(h.dia, Math.max(1.2, big * 0.35), h.dia); ob.updateMatrix(); hole.setMatrixAt(i, ob.matrix); });
+        group.add(hole);
+      }
       focusSize = 30;
       break;
     }
