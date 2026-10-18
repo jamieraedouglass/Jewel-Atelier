@@ -79,7 +79,8 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
     return tagKeys(g, items);
   }
   const asp = ASPECT[shape];
-  const geo = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
+  const single = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
+  const geo = !rim && cut === "rose-cut" ? doubled(single) : single;
   const colorless = isColorless(gem, color);
   const tint = cut === "polki" ? 0xfff0c8 : colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);
   const meshes = [
@@ -101,6 +102,29 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   meshes.forEach((x) => g.add(x));
   if (prongs) g.add(prongs);
   return tagKeys(g, items);
+}
+
+const doubles = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+function doubled(g: THREE.BufferGeometry) {
+  let d = doubles.get(g);
+  if (!d) {
+    const top = g.index ? g.toNonIndexed() : g.clone();
+    top.computeBoundingBox();
+    const base = top.boundingBox!.min.y;
+    const under = top.clone();
+    const p = under.getAttribute("position") as THREE.BufferAttribute;
+    for (let i = 0; i < p.count; i++) p.setY(i, 2 * base - p.getY(i));
+    for (let i = 0; i < p.count; i += 3) for (let k = 0; k < 3; k++) { const a = p.getComponent(i + 1, k); p.setComponent(i + 1, k, p.getComponent(i + 2, k)); p.setComponent(i + 2, k, a); }
+    const both = new THREE.BufferGeometry();
+    const a = top.getAttribute("position").array as Float32Array, b = p.array as Float32Array;
+    const all = new Float32Array(a.length + b.length); all.set(a); all.set(b, a.length);
+    both.setAttribute("position", new THREE.BufferAttribute(all, 3));
+    both.translate(0, -base, 0);
+    both.computeVertexNormals();
+    d = both;
+    doubles.set(g, d);
+  }
+  return d;
 }
 
 export function tagKeys(g: THREE.Object3D, items: Item[]) {
