@@ -54,6 +54,7 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
         <Range id="deco-dome" label="Top" value={o.decoDome} min={0} max={1} step={0.05}
           format={(n) => (n === 0 ? "Flat (Art Deco plaque)" : n < 0.5 ? "Gently domed" : "Domed (bombé cocktail)")} onChange={(decoDome) => setOpt({ decoDome })} />
       )}
+      {d.style === "deco" && <Toggle id="deco-wrap" checked={o.decoWrap} onChange={(decoWrap) => setOpt({ decoWrap })}>Stones wrap down the rounded sides</Toggle>}
       {d.style === "two-stone" && d.type === "ring" && (
         <>
           <span className="small muted">The two stones</span>

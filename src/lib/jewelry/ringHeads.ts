@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type CenterStone, type Design } from "../design";
+import { type CenterStone, type Design, type Frame } from "../design";
 import { outlineFn } from "../ringModel";
 import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -20,7 +20,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
   const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12);
-  const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm), 0);
+  const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * 2 : f.widthMm), 0);
   const fit = centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
   const frames = fit < 1 ? d.frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * fit), gapMm: f.gapMm * fit })) : d.frames;
   const dome = d.options.decoDome;
@@ -28,18 +28,80 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const r0 = centreHalf - 0.5;
   const domeY = (r: number) => y0 - Math.max(0, r * r - r0 * r0) / (2 * Rd);
   const tilt = (p: THREE.Vector3) => v3(p.x / Rd, 1, p.z / Rd).normalize();
+  const bin = (a: number) => Math.floor((a / (Math.PI * 2)) * N) % N;
   let y = y0, outer: THREE.Vector3[] = [];
+  let sideStone: SideStone | null = null;
   frames.forEach((f) => {
     const stoneL = f.widthMm * ASPECT[f.shape];
     const thick = f.kind === "stones" ? (f.direction === "radial" ? stoneL : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm;
-    const unit = outlineFn(f.outline, c.lengthMm + 1, c.widthMm + 1);
+    const unit = f.ratio != null ? outlineFn(f.outline, (c.widthMm + 1) * f.ratio, c.widthMm + 1) : outlineFn(f.outline, c.lengthMm + 1, c.widthMm + 1);
     const S = 240, raw = Array.from({ length: S }, (_, k) => unit(k / S));
+    if (f.kind === "fill") {
+      const sz = f.widthMm, radial = f.direction === "radial";
+      const slotAlong = (radial ? sz : sz * ASPECT[f.shape]) + 0.12, slotAcross = (radial ? sz * ASPECT[f.shape] : sz) + 0.12;
+      let k2 = 0;
+      for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross) / (Math.hypot(x, z) || 1));
+      const ringPts = raw.map(([x, z]) => v3(x * k2, 0, z * k2));
+      const outerR = new Float32Array(N);
+      for (const p of ringPts) { const b = bin(theta(p.x, p.z)); outerR[b] = Math.max(outerR[b], Math.hypot(p.x, p.z)); }
+      for (let b = 0; b < N; b++) if (!outerR[b]) outerR[b] = outerR[(b + N - 1) % N] || outerR[(b + 1) % N];
+      const outerAt = (a: number) => outerR[bin(a)];
+      const groups = new Map<string, Item[]>();
+      const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
+      const A = 1440;
+      let n = 0;
+      for (let row = 0; row < 60; row++) {
+        let any = false, acc = slotAlong / 2, last: THREE.Vector3 | null = null;
+        const rowsAt = (th: number) => Math.max(1, Math.round((outerAt(th) - prevAt(th) - f.gapMm) / slotAcross));
+        const rAt = (th: number) => { const inner = prevAt(th) + f.gapMm; return inner + ((row + 0.5) * (outerAt(th) - inner)) / rowsAt(th); };
+        for (let a = 0; a < A; a++) {
+          const th = (a / A) * Math.PI * 2, r = rAt(th);
+          if (row >= rowsAt(th)) { last = null; continue; }
+          any = true;
+          const p = v3(Math.cos(th) * r, 0, Math.sin(th) * r);
+          if (last) acc += p.distanceTo(last);
+          last = p;
+          if (acc < slotAlong) continue;
+          acc = 0;
+          const th2 = th + (Math.PI * 2) / A, r2 = rAt(th2);
+          const tan = v3(Math.cos(th2) * r2 - p.x, 0, Math.sin(th2) * r2 - p.z).normalize();
+          p.y = dome > 0 ? domeY(r) : y;
+          const up = dome > 0 ? tilt(p) : Y.clone();
+          const isAlt = !!f.alt && n % (f.every + 1) === f.every;
+          const shape = isAlt ? f.alt!.shape : f.shape;
+          const out = v3(p.x, 0, p.z).normalize();
+          const facing = isAlt ? tan : radial ? out : tan;
+          const dir = facing.clone().addScaledVector(up, -facing.dot(up)).normalize();
+          const X = new THREE.Vector3().crossVectors(up, dir).normalize();
+          const quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir));
+          if (isAlt) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(n % 2 ? 35 : -35)));
+          const rowGap = (outerAt(th) - prevAt(th) - f.gapMm) / rowsAt(th);
+          const room = radial ? Math.min(slotAlong - 0.06, (rowGap - 0.06) / ASPECT[f.shape]) : Math.min(rowGap - 0.06, (slotAlong - 0.06) / ASPECT[f.shape]);
+          const fitted = Math.min(sz * 1.35, Math.max(sz * 0.85, room));
+          const dia = isAlt ? Math.min(fitted, Math.max(slotAlong, rowGap) / ASPECT[shape]) : fitted;
+          const look = isAlt ? f.alt! : f;
+          put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: p, dia, quat, up });
+          n++;
+        }
+        if (!any) break;
+      }
+      groups.forEach((items, key) => {
+        const [gem, color, cut, shape] = key.split("|");
+        g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"]));
+      });
+      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape, size: sz, alt: f.alt, every: f.every };
+      outer = ringPts.map((p) => v3(p.x, y, p.z));
+      for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], outerR[b]);
+      if (!(dome > 0)) y -= 0.12;
+      return;
+    }
     let kScale = 0;
     for (const [x, z] of raw) kScale = Math.max(kScale, (prevAt(theta(x, z)) + f.gapMm) / (Math.hypot(x, z) || 1));
     if (dome > 0) y = domeY(raw.reduce((a, [x, z]) => a + Math.hypot(x, z), 0) / S * kScale + thick / 2);
     const ring = (extra: number) => raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
     const centre = new THREE.CatmullRomCurve3(ring(thick / 2), true, "centripetal");
     if (f.kind === "stones") {
+      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape, size: f.widthMm, alt: f.alt, every: f.every };
       const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: (f.cut === "polki" || f.cut === "rose-cut" || f.cut === "briolette" || f.cut === "bead" ? f.cut : "faceted") as Design["accents"]["cut"], sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [], colors: [] } };
       const main = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape };
       const alt = f.alt ? { gem: f.alt.gem, color: f.alt.color, cut: f.alt.cut, shape: f.alt.shape } : null;
@@ -57,10 +119,16 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], Math.min(prev[(b + 1) % N], prev[(b + N - 1) % N]));
     if (!(dome > 0)) y -= 0.12;
   });
-  if (outer.length && dome > 0) {
-    const plate = new THREE.Mesh(domedPlate(outer.map((p) => new THREE.Vector2(p.x, p.z)), (r) => domeY(r) - 0.75, 1.6), plateMetal(m));
+  const wrap = d.options.decoWrap && !!sideStone;
+  if (outer.length && (dome > 0 || wrap)) {
+    const rim = outer.map((p) => new THREE.Vector2(p.x, p.z));
+    const flatY = y;
+    const topY = dome > 0 ? (r: number) => domeY(r) - 0.75 : () => flatY - 0.75;
+    const depth = wrap ? 1.6 + 2.4 * sideStone!.size : 1.6;
+    const plate = new THREE.Mesh(domedPlate(rim, topY, depth), plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
+    if (wrap) g.add(wrapStones(m, rim, topY, depth, sideStone!));
   } else if (outer.length) {
     const shape = new THREE.Shape(outer.map((p) => new THREE.Vector2(p.x, p.z)));
     const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.25, bevelSegments: 3, curveSegments: 8 });
@@ -97,27 +165,78 @@ function plateMetal(m: Mats) {
   return satin;
 }
 
-function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth: number) {
-  const N = outline.length, R = 10, pos: number[] = [], idx: number[] = [];
-  const vert = (x: number, y: number, z: number) => { pos.push(x, y, z); return pos.length / 3 - 1; };
-  const top: number[][] = [], bot: number[][] = [];
-  for (let r = 0; r <= R; r++) {
-    const t = r / R, row: number[] = [], brow: number[] = [];
-    for (let i = 0; i < N; i++) {
-      const p = outline[i], x = p.x * t, z = p.y * t, rr = Math.hypot(x, z);
-      row.push(vert(x, topY(rr), z));
-      brow.push(vert(x * 0.62, topY(rr) - depth, z * 0.62));
+type SideStone = { gem: Frame["gem"]; color: string; cut: Frame["cut"]; shape: Frame["shape"]; size: number; alt: Frame["alt"]; every: number };
+
+function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: number, st: SideStone) {
+  const g = new THREE.Group();
+  const pitch = st.size + 0.15;
+  const far = rim.reduce((a, p) => (p.length() > a.length() ? p : a), rim[0]);
+  const phis: number[] = [];
+  let arc = 0, last = wallPoint(far, topY, depth, 0.02);
+  for (let phi = 0.02; phi < Math.PI / 2 - 0.1; phi += 0.01) {
+    const p = wallPoint(far, topY, depth, phi);
+    arc += p.distanceTo(last); last = p;
+    if (arc >= pitch * (phis.length ? 1 : 0.5)) { phis.push(phi); arc = 0; }
+  }
+  const groups = new Map<string, Item[]>();
+  const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
+  let n = 0;
+  phis.forEach((phi, row) => {
+    const N = rim.length;
+    let acc = (row % 2) * pitch / 2;
+    let prevP = wallPoint(rim[0], topY, depth, phi);
+    for (let i = 1; i <= N; i++) {
+      const a = rim[i % N], p = wallPoint(a, topY, depth, phi);
+      acc += p.distanceTo(prevP); prevP = p;
+      if (acc < pitch) continue;
+      acc = 0;
+      const around = wallPoint(rim[(i + 1) % N], topY, depth, phi).sub(p).normalize();
+      const down = wallPoint(a, topY, depth, Math.min(Math.PI / 2, phi + 0.05)).sub(p).normalize();
+      const up = new THREE.Vector3().crossVectors(down, around).normalize();
+      if (up.dot(v3(p.x, 0, p.z)) < 0) up.negate();
+      const isAlt = !!st.alt && n % (st.every + 1) === st.every;
+      const shape = isAlt ? st.alt!.shape : st.shape;
+      const dir = around.clone().addScaledVector(up, -around.dot(up)).normalize();
+      const X = new THREE.Vector3().crossVectors(up, dir).normalize();
+      const quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir));
+      if (isAlt) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(n % 2 ? 35 : -35)));
+      const look = isAlt ? st.alt! : st;
+      put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: p.clone().addScaledVector(up, 0.35), dia: isAlt ? Math.min(st.size, pitch / ASPECT[shape] * 1.6) : st.size, quat, up });
+      n++;
     }
-    top.push(row); bot.push(brow);
+  });
+  groups.forEach((items, key) => {
+    const [gem, color, cut, shape] = key.split("|");
+    g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"]));
+  });
+  return g;
+}
+
+export const ROUNDING = 0.32;
+
+export function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: number, phi: number) {
+  const rr = Math.hypot(p.x, p.y), k = 1 - ROUNDING + ROUNDING * Math.cos(phi);
+  return v3(p.x * k, topY(rr) - depth * Math.sin(phi), p.y * k);
+}
+
+function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth: number) {
+  const N = outline.length, R = 10, E = 10, pos: number[] = [], idx: number[] = [];
+  const vert = (v: THREE.Vector3) => { pos.push(v.x, v.y, v.z); return pos.length / 3 - 1; };
+  const rows: number[][] = [];
+  for (let r = 0; r <= R; r++) {
+    const t = r / R;
+    rows.push(outline.map((p) => { const x = p.x * t, z = p.y * t; return vert(v3(x, topY(Math.hypot(x, z)), z)); }));
   }
-  for (let r = 0; r < R; r++) for (let i = 0; i < N; i++) {
+  for (let e = 1; e <= E; e++) rows.push(outline.map((p) => vert(wallPoint(p, topY, depth, (e / E) * (Math.PI / 2)))));
+  const k = 1 - ROUNDING, bottom: number[][] = [];
+  for (let r = R; r >= 0; r--) {
+    const t = r / R;
+    bottom.push(outline.map((p) => vert(v3(p.x * k * t, topY(Math.hypot(p.x, p.y)) - depth, p.y * k * t))));
+  }
+  const all = [...rows, ...bottom.slice(1)];
+  for (let r = 0; r < all.length - 1; r++) for (let i = 0; i < N; i++) {
     const j = (i + 1) % N;
-    idx.push(top[r][i], top[r + 1][i], top[r + 1][j], top[r][i], top[r + 1][j], top[r][j]);
-    idx.push(bot[r][i], bot[r + 1][j], bot[r + 1][i], bot[r][i], bot[r][j], bot[r + 1][j]);
-  }
-  for (let i = 0; i < N; i++) { // the tapering side
-    const j = (i + 1) % N, a = top[R][i], b = top[R][j], c2 = bot[R][i], e = bot[R][j];
-    idx.push(a, c2, e, a, e, b);
+    idx.push(all[r][i], all[r + 1][i], all[r + 1][j], all[r][i], all[r + 1][j], all[r][j]);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));

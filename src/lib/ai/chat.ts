@@ -61,7 +61,8 @@ export const designPatchSchema = {
       type: "array",
       description: "ring/earring style deco: layers round the centre stone, inside out. Replaces the whole list.",
       items: { type: "object", properties: {
-        kind: { type: "string", enum: ["stones", "milgrain", "metal"] }, outline: { type: "string", enum: [...SHAPES], description: "the layer's shape: round, octagon, hexagon, cushion…" },
+        kind: { type: "string", enum: ["stones", "milgrain", "metal", "fill"], description: "fill = a mosaic packed solid with stones from the layer inside out to this outline (e.g. a square cushion of cabochons round a long marquise)" }, outline: { type: "string", enum: [...SHAPES], description: "the layer's shape: round, octagon, hexagon, cushion…" },
+        ratio: { type: "number", description: "the outline's length to width (1 = square or round); leave out to follow the centre stone's proportions" },
         gem: gemProp, color: hexProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES], description: "stone shape: round pavé, princess/baguette calibré, pear/oval petals" },
         widthMm: { type: "number" }, direction: { type: "string", enum: ["along", "radial"], description: "radial = fanning out from the centre (calibré, ballerina, petals)" },
         alt: { type: "object", properties: { gem: gemProp, color: hexProp, shape: { type: "string", enum: [...SHAPES] }, cut: { type: "string", enum: [...CUTS] } }, required: ["gem", "color", "shape"], description: "stripes of a second gem" },
@@ -83,6 +84,7 @@ export const designPatchSchema = {
         hoopDiameterMm: { type: "number" }, hoopShape: { type: "string", enum: ["round", "oval", "paperclip"] }, linkStyle: { type: "string", enum: ["x", "chevron"], description: "gold collar links" }, lengthIn: { type: "number", description: "necklace length in inches, 12–40" },
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
+        decoWrap: { type: "boolean", description: "deco style: the top's stones carry on over its rounded sides, down towards the band (cushion cocktail rings covered all over)" },
         decoDome: { type: "number", description: "deco style: 0 a flat Art Deco plaque, 0.5–1 a domed (bombé) cocktail ring whose layers curve down and out" },
       },
     },
