@@ -47,7 +47,7 @@ export const designPatchSchema = {
               perStrand: { type: "integer" }, taper: { type: "string", enum: ["even", "v", "u"] }, openMiddle: { type: "boolean" }, barStones: { type: "boolean" },
               spreadMm: { type: "number", description: "strands: bar width; bow: bow width; frame: gap round the stone" }, curveMm: { type: "number" },
               gapMm: { type: "number" }, link: { type: "string", enum: ["ring", "chain", "direct"] },
-              anchor: { type: "string", enum: ["below", "beside"], description: "hang below a part (default) or sit beside it" },
+              anchor: { type: "string", enum: ["below", "beside", "on"], description: "below = hang under the part; beside = sit next to it, joined by a short bar; on = sit on the SAME spot as the part it refers to (from), for a second ring or row of small stones round the same stone: use showStone false with its own arc" },
               from: { type: "integer", description: "0-based index of the part it hangs from / sits beside; -1 = the previous part" },
               side: { type: "string", enum: ["left", "right"] },
               offsetX: { type: "number", description: "mm, + to the right" }, offsetZ: { type: "number", description: "mm, + downward" },

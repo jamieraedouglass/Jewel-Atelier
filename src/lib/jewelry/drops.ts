@@ -74,10 +74,12 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
       const sc = k === 1 ? base : { ...base, widthMm: base.widthMm * k, lengthMm: base.lengthMm * k, domeMm: base.domeMm * k };
       const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
       const hangs = sc.cut === "briolette";
-      const pos = dir.clone().multiplyScalar(hangs ? rEdge + sc.lengthMm * 0.32 : rEdge + 0.3 + sc.lengthMm / 2);
+      const down = v3(0, 0, 1);
+      const fall = hangs ? dir.clone().multiplyScalar(0.45).add(down).normalize() : dir;
+      const pos = hangs ? dir.clone().multiplyScalar(rEdge * 0.97).addScaledVector(fall, sc.lengthMm * 0.45) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
       const s = setStoneRaw(sc, setFor(d, sc), m);
       s.position.copy(pos).setY(hangs ? -0.6 : -0.15);
-      s.rotation.y = Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own) + (hangs ? Math.PI : 0);
+      s.rotation.y = hangs ? Math.atan2(fall.x, fall.z) + Math.PI : Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
       g.add(s);
       g.add(tube(m, [v3(0, -0.9, 0), dir.clone().multiplyScalar(hangs ? rEdge * 0.92 : rEdge + 0.3 + sc.lengthMm / 2).setY(-0.9)], 0.3));
     });
@@ -181,7 +183,7 @@ function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
 
 export function dropStack(d: Design, m: Mats) {
   const group = new THREE.Group();
-  const placed: { x: number; top: number; hang: number; half: number }[] = [];
+  const placed: { x: number; top: number; hang: number; half: number; origin: number }[] = [];
   const link = (p: DropPart, ax: number, az: number, bx: number, bz: number) => {
     const A = v3(ax, -0.3, az), B = v3(bx, -0.3, bz), len = A.distanceTo(B);
     if (p.link === "ring" && len < 3 && Math.abs(ax - bx) < 0.5) group.add(jumpRing(m, Math.max(0.7, len / 2 + 0.55), 0.2, A.clone().lerp(B, 0.5)));
@@ -206,7 +208,10 @@ export function dropStack(d: Design, m: Mats) {
     const tilt = THREE.MathUtils.degToRad(p.tilt);
     const put = (g: THREE.Group, dir: 1 | -1) => {
       let x = 0, z0 = 0;
-      if (par && p.anchor === "beside") {
+      if (par && p.anchor === "on") {
+        x = par.x + p.offsetX * dir;
+        z0 = par.origin + top + p.offsetZ;
+      } else if (par && p.anchor === "beside") {
         const s = (p.side === "right" ? 1 : -1) * dir;
         x = par.x + s * (par.half + p.gapMm + half) + p.offsetX * dir;
         z0 = par.top + p.offsetZ;
@@ -223,7 +228,7 @@ export function dropStack(d: Design, m: Mats) {
       if (dir === -1) pivot.scale.x = -1;
       pivot.add(g);
       group.add(pivot);
-      return { x, top: z0, hang: z0 + (hang - top) * Math.cos(tilt), half };
+      return { x, top: z0, hang: z0 + (hang - top) * Math.cos(tilt), half, origin: z0 - top };
     };
     placed[i] = put(b.g, 1);
     if (p.pair && i > 0) put(build().g, -1);
