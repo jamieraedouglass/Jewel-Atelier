@@ -104,7 +104,7 @@ export const DropPartSchema = z.object({
   curveMm: z.number().min(0).max(20).default(2),
   gapMm: z.number().min(0).max(40).default(1),
   link: z.enum(["ring", "chain", "direct"]).default("ring"),
-  anchor: z.enum(["below", "beside"]).default("below"),
+  anchor: z.enum(["below", "beside", "on"]).default("below"),
   from: z.number().int().min(-1).max(9).default(-1),
   side: z.enum(["left", "right"]).default("right"),
   offsetX: z.number().min(-40).max(40).default(0),
