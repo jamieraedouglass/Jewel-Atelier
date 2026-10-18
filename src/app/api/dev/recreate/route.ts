@@ -7,7 +7,7 @@ export const maxDuration = 120;
 
 const Body = z.object({
   photos: z.array(z.string().startsWith("data:image/jpeg;base64,")).min(1).max(4),
-  notes: z.string().max(1000).optional(),
+  notes: z.string().max(3000).optional(),
   design: z.unknown().optional(),
   render: z.string().startsWith("data:image/jpeg;base64,").optional(),
   round: z.number().int().min(1).max(5).optional(),

@@ -10,11 +10,11 @@ export const maxDuration = 90;
 
 const Body = z.object({
   paths: z.array(z.string()).min(1).max(4),
-  notes: z.string().max(1000).optional(),
+  notes: z.string().max(3000).optional(),
   design: z.unknown(),
   render: z.string().startsWith("data:image/jpeg;base64,").max(3_000_000),
   round: z.number().int().min(1).max(3),
-  request: z.string().max(1000).optional(),
+  request: z.string().max(3000).optional(),
 });
 
 export async function POST(req: Request) {

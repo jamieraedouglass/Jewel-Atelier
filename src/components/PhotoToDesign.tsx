@@ -138,7 +138,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         {previews.length > 0 && <div className="thumbs">{previews.map((u) => <figure key={u}><img src={u} alt="The piece" /></figure>)}</div>}
         <label className="field" htmlFor="piece-notes">
           <span>Notes (optional)</span>
-          <textarea id="piece-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What the photo can't show: size, stones, how high the top is, what the band looks like…" />
+          <textarea id="piece-notes" maxLength={3000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What the photo can't show: size, stones, how high the top is, what the band looks like…" />
         </label>
         <button className="btn primary" type="button" disabled={!files.length || !!busy} onClick={recreate}>{busy ?? "Recreate in 3D"}</button>
         {error && <p className="error">{error}</p>}
