@@ -144,12 +144,14 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     const u0 = ((jn + 0.5) / stems) * NT, drift = (jn % 2 ? 1 : -1) * NT * 0.05;
     const path = Array.from({ length: 160 }, (_, q) => { const s = (q / 159) * (NK - 1.6); return at(u0 + drift * (s / (NK - 1)), s); });
     let run = 0, nextBead = 0, nextLeaf = leafL * 0.45, leafCount = jn;
+    const total = path.reduce((a, pp, q) => (q ? a + pp.p.distanceTo(path[q - 1].p) : 0), 0);
     for (let q = 1; q < path.length; q++) {
       run += path[q].p.distanceTo(path[q - 1].p);
       const { p: pt, n } = path[q], tan = pt.clone().sub(path[q - 1].p).normalize();
-      // The branch is a fine milgrain line, beaded like the leaves' borders.
-      if (run >= nextBead) { leafBeads.push({ pos: pt.clone().addScaledVector(n, 0.04), dia: 0.32 }); blocks.push({ p: pt, r: 0.16 }); nextBead += 0.33; }
-      if (run >= nextLeaf) {
+      // The branch is only the path the leaves follow; on the piece there is no beaded line along it.
+      if (run >= nextBead) nextBead += 0.33;
+      // Leaves stop a leaf's length short of where the branch runs off the foot of the dome.
+      if (run >= nextLeaf && total - run > leafL * 0.75 + 0.4) {
         // Leaves alternate from one side of the branch to the other, as on the piece.
         nextLeaf += leafL * 0.72;
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
@@ -183,7 +185,11 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const fillShape = ASPECT[f.shape] > 1.1 ? "cushion" : f.shape;
   const key = `${f.gem}|${f.color}|${f.cut}|${fillShape}`;
   const cands: { p: THREE.Vector3; n: THREE.Vector3 }[] = [];
-  for (let i = 0; i < NT * 3; i++) for (let s = 0.35; s <= NK - 1.15; s += 0.14) cands.push(at(i / 3, s));
+  const toFoot = new Map<{ p: THREE.Vector3; n: THREE.Vector3 }, number>();
+  for (let i = 0; i < NT * 3; i++) {
+    const foot = at(i / 3, NK - 1).p;
+    for (let s = 0.35; s <= NK - 1.15; s += 0.14) { const c0 = at(i / 3, s); toFoot.set(c0, c0.p.distanceTo(foot)); cands.push(c0); }
+  }
   for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cands[i], cands[j]] = [cands[j], cands[i]]; }
   const hash = new Map<string, number[]>(), kept: { p: THREE.Vector3; n: THREE.Vector3; r: number }[] = [];
   const keyOf = (v: THREE.Vector3) => [Math.floor(v.x / cell), Math.floor(v.y / cell), Math.floor(v.z / cell)];
@@ -204,7 +210,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const wall = 0.1;
   for (const [cap, least] of [[big / 2, big * 0.3], [big * 0.36, big * 0.2], [big * 0.24, big * 0.14]] as const) {
     for (const cnd of cands) {
-      const room = roomAt(cnd.p, cap + wall) - wall;
+      const room = Math.min(roomAt(cnd.p, cap + wall) - wall, (toFoot.get(cnd) ?? 9) - 0.35);
       if (room >= least) place(cnd, Math.min(cap, room));
     }
   }
@@ -214,9 +220,8 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     put(key, { pos: st.p.clone().addScaledVector(st.n, 0.1), dia: (st.r * 2 * 0.86) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
   }
 
-  // Milgrain beading round the bezel, and along the dome's edge where it rolls over into the sides.
+  // Milgrain beading round the bezel.
   beads.push(...Array.from({ length: NT }, (_, i) => ({ pos: grid[i][1].clone().addScaledVector(normals[i][1], 0.08), dia: 0.42 })));
-  beads.push(...Array.from({ length: NT }, (_, i) => ({ pos: grid[i][11].clone().addScaledVector(normals[i][11], 0.12), dia: 0.32 })));
   groups.forEach((items, k) => {
     const [gem, color, cut, shape] = k.split("|");
     const set = accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27);
