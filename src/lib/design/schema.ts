@@ -89,6 +89,9 @@ export const DropPartSchema = z.object({
     rotation: z.number().min(-180).max(180).default(0),
     turns: z.array(z.number().min(-180).max(180)).max(8).default([]),
     sizes: z.preprocess(relativeSizes, z.array(z.number().min(0.3).max(3)).max(24)).default([]),
+    // Traced from a photo: each stone's centre in mm from the big stone's centre (x right, z down, seen from the front)
+    // and its size as a multiple of widthMm. When set, these place the stones exactly and arc/count are ignored.
+    spots: z.array(z.object({ x: z.number().min(-60).max(60), z: z.number().min(-60).max(60), s: z.number().min(0.2).max(4).default(1) })).max(40).default([]),
   }).default({}),
   count: z.number().int().min(0).max(24).default(0),
   arc: z.object({ centerDeg: z.number().min(-180).max(180).default(90), spanDeg: z.number().min(10).max(360).default(120) }).nullable().default(null),
