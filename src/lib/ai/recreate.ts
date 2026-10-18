@@ -45,8 +45,11 @@ How to choose:
 - Cocktail rings with layers or a mosaic of stones round a centre stone: ring "deco" with frames, inside out.
   * Keep it to real sizes: the whole top of a ring is usually 15–28 mm across, so with a 10–14 mm centre stone there is room for only
     2–4 layers of small stones (1.5–3 mm each, widthMm), packed tight (gapMm 0–0.2). Don't add more layers than you can see.
-  * A mosaic of mixed stones (e.g. pink cabochons with green marquise leaves): a layer of the main stones with the second gem as alt
-    every few stones, rather than separate rings of each.
+  * A mosaic of mixed stones packed solid (e.g. pink cabochons with green marquise leaves): one frame of kind "fill" with the main
+    stone and the second gem as alt every few stones. It packs everything from the layers inside it out to its outline, so a
+    square or cushion top round a long marquise has no bare metal. Set the outline's ratio (1 = square) when the top's shape
+    doesn't follow the centre stone's proportions.
+  * When the stones carry on over the rounded sides of the top, set options.decoWrap true.
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
   * Start from the closest of these layer templates and adapt it (stone sizes, colours, outlines, how many layers):
 ${FRAME_TEMPLATES}

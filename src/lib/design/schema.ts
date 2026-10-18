@@ -106,7 +106,7 @@ export const DropPartSchema = z.object({
 });
 export type DropPart = z.infer<typeof DropPartSchema>;
 
-export const FRAME_KINDS = ["stones", "milgrain", "metal"] as const;
+export const FRAME_KINDS = ["stones", "milgrain", "metal", "fill"] as const;
 export const FrameSchema = z.object({
   kind: z.enum(FRAME_KINDS).default("stones"),
   outline: z.enum(SHAPES).default("round"),
@@ -119,6 +119,7 @@ export const FrameSchema = z.object({
   alt: z.object({ gem: z.enum(GEMS), color: hex, shape: z.enum(SHAPES), cut: z.enum(CUTS).default("faceted") }).nullable().default(null),
   every: z.number().int().min(1).max(8).default(1),
   gapMm: z.number().min(0).max(4).default(0.25),
+  ratio: z.number().min(0.4).max(2.5).nullable().default(null),
 });
 export type Frame = z.infer<typeof FrameSchema>;
 export type FrameIn = z.input<typeof FrameSchema>;
@@ -187,6 +188,7 @@ export const DesignSchema = z
         flowerPlace: z.enum(["finger", "band"]).default("finger"),
         pairSpacing: z.enum(["apart", "touching"]).default("apart"),
         decoDome: z.number().min(0).max(1).default(0),
+        decoWrap: z.boolean().default(false),
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         hoopFace: z.enum(["front", "outer", "inner"]).default("front"),
         charmTurn: z.number().min(-180).max(180).default(0),

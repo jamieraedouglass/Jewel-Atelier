@@ -8,7 +8,7 @@ import {
 
 type Props = { design: Design; onChange: (patch: DesignPatch) => void };
 
-const KIND: Record<Frame["kind"], string> = { stones: "Stones", milgrain: "Milgrain border", metal: "Plain gold band" };
+const KIND: Record<Frame["kind"], string> = { stones: "Stones", milgrain: "Milgrain border", metal: "Plain gold band", fill: "Mosaic of stones" };
 const OUTLINES = ["round", "oval", "cushion", "octagon", "hexagon", "emerald", "asscher", "marquise", "pear", "heart", "princess", "kite", "shield"] as const;
 
 function Sel<T extends string>({ id, text, value, options, fmt, onPick }: { id: string; text: string; value: T; options: readonly T[]; fmt?: (v: T) => string; onPick: (v: T) => void }) {
@@ -59,12 +59,15 @@ export default function FramesEditor({ design: d, onChange }: Props) {
                 <input id={id("gap")} type="range" min={0} max={4} step={0.05} value={f.gapMm} onChange={(e) => set(i, { gapMm: Number(e.target.value) })} />
               </label>
             </div>
+            <label className="field" htmlFor={id("ratio")}><span>Layer proportions · {f.ratio === null ? "follow the centre stone" : f.ratio === 1 ? "square" : `${f.ratio.toFixed(2)} : 1`}</span>
+              <input id={id("ratio")} type="range" min={0} max={2.5} step={0.05} value={f.ratio ?? 0} onChange={(e) => { const v = Number(e.target.value); set(i, { ratio: v < 0.4 ? null : v }); }} />
+            </label>
             {f.kind !== "milgrain" && (
-              <label className="field" htmlFor={id("w")}><span>{f.kind === "stones" ? "Each stone, width" : "Band width"} · {+f.widthMm.toFixed(2)} mm</span>
+              <label className="field" htmlFor={id("w")}><span>{f.kind === "stones" || f.kind === "fill" ? "Each stone, width" : "Band width"} · {+f.widthMm.toFixed(2)} mm</span>
                 <input id={id("w")} type="range" min={0.6} max={8} step={0.1} value={f.widthMm} onChange={(e) => set(i, { widthMm: Number(e.target.value) })} />
               </label>
             )}
-            {f.kind === "stones" && (
+            {(f.kind === "stones" || f.kind === "fill") && (
               <>
                 <div className="row2">
                   <label className="field" htmlFor={id("gem")}><span>Gem</span>
@@ -109,6 +112,7 @@ export default function FramesEditor({ design: d, onChange }: Props) {
       })}
       <div className="chips" role="group" aria-label="Add a layer">
         <button type="button" className="btn" disabled={frames.length >= 8} onClick={() => setFrames([...frames, FrameSchema.parse({})])}>+ Stones</button>
+        <button type="button" className="btn" disabled={frames.length >= 8} onClick={() => setFrames([...frames, FrameSchema.parse({ kind: "fill", outline: "cushion", ratio: 1, widthMm: 2, gapMm: 0.1 })])}>+ Mosaic</button>
         <button type="button" className="btn" disabled={frames.length >= 8} onClick={() => setFrames([...frames, FrameSchema.parse({ kind: "milgrain", outline: frames[frames.length - 1]?.outline ?? "round" })])}>+ Milgrain</button>
         <button type="button" className="btn" disabled={frames.length >= 8} onClick={() => setFrames([...frames, FrameSchema.parse({ kind: "metal", widthMm: 0.6, outline: frames[frames.length - 1]?.outline ?? "round" })])}>+ Gold band</button>
       </div>

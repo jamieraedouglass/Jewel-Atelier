@@ -227,12 +227,10 @@ export const FRAME_PRESETS: { name: string; blurb: string; frames: FrameIn[]; ce
   { name: "Ruby labyrinth", blurb: "Alternating bands of calibré rubies and pavé in a cushion shape.", frames: [
     fr({ kind: "milgrain" }), fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, direction: "radial" }), fr({ outline: "cushion", widthMm: 1 }),
     fr({ ...look("ruby"), shape: "princess", widthMm: 1.3, outline: "cushion" }), fr({ outline: "cushion", widthMm: 1 }), fr({ kind: "milgrain", outline: "cushion" }) ] },
-  { name: "Marquise mosaic", blurb: "A marquise diamond in a cushion of pink sapphire cabochons and emerald marquise leaves.", frames: [
+  { name: "Marquise mosaic", blurb: "A marquise diamond in a cushion packed with pink sapphire cabochons and emerald marquise leaves.", frames: [
     fr({ kind: "milgrain", outline: "marquise", gapMm: 0.1 }),
-    fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.4, direction: "radial", outline: "marquise", gapMm: 0, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 2 }),
-    fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.4, direction: "radial", outline: "oval", gapMm: 0, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 3 }),
-    fr({ ...look("morganite"), color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.4, direction: "radial", outline: "cushion", gapMm: 0, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 2 }),
-    fr({ kind: "milgrain", outline: "cushion", gapMm: 0 }) ],
+    fr({ ...look("morganite"), kind: "fill", color: "#e7a6c8", cut: "cabochon", shape: "oval", widthMm: 2.2, direction: "radial", outline: "cushion", ratio: 1, gapMm: 0.1, alt: { gem: "emerald", color: GEM_LOOK.emerald.color, shape: "marquise", cut: "cabochon" }, every: 2 }),
+    fr({ kind: "milgrain", outline: "cushion", ratio: 1, gapMm: 0 }) ],
     center: { gem: "diamond", cut: "faceted", shape: "marquise", lengthMm: 13, widthMm: 6.5, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95 } },
   { name: "Asscher in a pavé octagon", blurb: "A step-cut centre in two octagon rows of pavé.", frames: [
     fr({ outline: "octagon", widthMm: 1.1 }), fr({ kind: "milgrain", outline: "octagon" }), fr({ outline: "octagon", widthMm: 1.2 }), fr({ kind: "milgrain", outline: "octagon" }) ],
