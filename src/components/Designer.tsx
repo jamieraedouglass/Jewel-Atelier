@@ -17,6 +17,7 @@ import { useSaving } from "./designer/useSaving";
 import VersionsPanel, { type Version } from "./designer/VersionsPanel";
 import PairBar from "./designer/PairBar";
 import StatusChips from "./designer/StatusChips";
+import PhotoStyle from "./designer/PhotoStyle";
 import type { Status } from "@/lib/inventory";
 
 const RingCanvas = dynamic(() => import("./RingCanvas"), { ssr: false, loading: () => <div className="muted" style={{ padding: 24 }}>Loading 3D…</div> });
@@ -35,6 +36,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   useEffect(() => { try { const q = localStorage.getItem("render-quality"); if (q === "standard" || q === "high") setQualityState(q); } catch {} }, []);
   const setQuality = (q: "high" | "standard") => { setQualityState(q); try { localStorage.setItem("render-quality", q); } catch {} };
   const [statusMsg, setStatus] = useState<string | null>(null);
+  const [photoStyle, setPhotoStyle] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [pick, setPick] = useState<Pick | null>(null);
   const stageEl = useRef<HTMLDivElement>(null);
@@ -126,6 +128,8 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
               <button key={v} type="button" className="chip" aria-pressed={view === v} onClick={() => setView(v)}>{VIEW_LABEL[v]}</button>
             ))}
             <button type="button" className="chip" aria-pressed={spin} onClick={() => { setSpin(!spin); setPick(null); }}>{spin ? "Pause" : "Spin"}</button>
+            <button type="button" className="chip" title="Lighting: studio light box, daylight from a window, or warm indoor light"
+              onClick={() => pair.change({ options: { lighting: ({ studio: "daylight", daylight: "warm", warm: "studio" } as const)[design.options.lighting] } })}>{`Light: ${design.options.lighting}`}</button>
             <button type="button" className="chip" aria-pressed={quality === "high"} title="Ray-traced diamonds and soft shadows; switch to Standard if stones look wrong or it feels slow"
               onClick={() => setQuality(quality === "high" ? "standard" : "high")}>{quality === "high" ? "Quality: high" : "Quality: standard"}</button>
           </div>
@@ -152,10 +156,12 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           <div className="tab-pane" hidden={tab !== "stone"}><StoneUploader userId={userId} onApply={(stone) => { pair.change({ center: stone }); setTab("design"); }} /></div>
           <div className="tab-pane" hidden={tab !== "chat"}><DesignChat userId={userId} designId={saving.id} design={design} onApply={pair.change} /></div>
         </div>
+        {photoStyle && <PhotoStyle design={design} capture={async () => (await canvas.current?.snapshot("image/png")) ?? null} onClose={() => setPhotoStyle(false)} />}
         <div className="panel-foot">
           <button className="btn primary" type="button" onClick={saving.save}>{dirty || !saving.id ? "Save" : "Saved"}</button>
           <button className="btn" type="button" onClick={saving.downloadImage}>Download image</button>
-          <button className="btn" type="button" onClick={saving.downloadCad} title="STL files at real size in millimetres, for Rhino, MatrixGold or JewelCAD and for printing">Download for CAD</button>
+          <button className="btn" type="button" onClick={() => { setSpin(false); setPhotoStyle(true); }} title="A photo-like picture of this piece, made from the 3D view">Photo-style image</button>
+          <button className="btn" type="button" onClick={saving.downloadCad} title="Rhino (.3dm) and STL files at real size in millimetres, plus a link you can send your jeweller">Download for CAD</button>
           <button className="btn" type="button" onClick={saving.whatsapp}>WhatsApp</button>
           <button className="btn" type="button" onClick={saving.copyLink}>Copy link</button>
           <button className="btn" type="button" onClick={saving.makeCopy} title="Try a variation without changing this one">Make a copy</button>

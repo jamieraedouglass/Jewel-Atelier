@@ -87,12 +87,21 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
   }
 
   async function downloadCad() {
-    const { cadZip } = await import("@/lib/cadExport");
-    const bytes = cadZip(designRef.current);
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/zip" }));
-    const a = document.createElement("a");
-    a.href = url; a.download = fileName(designRef.current).replace(/\.png$/, "-CAD.zip"); a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("Making the CAD files…");
+    try {
+      const res = await fetch("/api/cad", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ design: designRef.current }) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't make the CAD files.");
+      const a = document.createElement("a");
+      a.href = json.url; a.download = json.name; a.click();
+      let copied = false;
+      try { await navigator.clipboard.writeText(json.url); copied = true; } catch {}
+      setStatus(null);
+      flash(copied ? `CAD files downloading (${json.sizeMb} MB). A link to send your jeweller is copied; it works for 7 days.` : "CAD files downloading.");
+      if (!copied) setStatus(`Link for your jeweller (works for 7 days): ${json.url}`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Couldn't make the CAD files.");
+    }
   }
 
   async function whatsapp() {

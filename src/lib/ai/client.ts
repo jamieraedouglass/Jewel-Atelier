@@ -6,7 +6,7 @@ export function anthropic() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing. Add it under Vercel → Settings → Environment Variables (or .env.local locally), then redeploy.");
   return (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
 }
-export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
+export const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 
 type ImageBlock = Anthropic.ImageBlockParam;
 const MEDIA = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;

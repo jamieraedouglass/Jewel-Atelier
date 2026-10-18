@@ -11,17 +11,25 @@ export function useStudio() {
   return tex;
 }
 
-export function StudioLights() {
+export type Lighting = "studio" | "daylight" | "warm";
+export const LIGHT_LOOK: Record<Lighting, { top: string; side: string; strip: string; key: number; strips: number; env: number; sun: string; sunI: number }> = {
+  studio: { top: "#ffffff", side: "#ffffff", strip: "#ffffff", key: 1, strips: 1, env: 0.32, sun: "#fff4e6", sunI: 1.2 },
+  daylight: { top: "#e6efff", side: "#ffffff", strip: "#dce8ff", key: 1.9, strips: 0.55, env: 0.42, sun: "#f4f8ff", sunI: 1.6 },
+  warm: { top: "#ffd9ad", side: "#ffc98a", strip: "#ffdcb8", key: 0.9, strips: 0.8, env: 0.26, sun: "#ffcf96", sunI: 1.1 },
+};
+
+export function StudioLights({ lighting = "studio" }: { lighting?: Lighting }) {
   const hdr = useStudio();
+  const L = LIGHT_LOOK[lighting];
   const strips = Array.from({ length: 14 }, (_, k) => {
-    const a = (k / 14) * Math.PI * 2, h = (k % 3) * 7 - 6, I = [8, 3.5, 5.5][k % 3];
-    return <Lightformer key={k} form="rect" intensity={I} position={[Math.cos(a) * 27, h, Math.sin(a) * 27]} scale={[1.6, 9, 1]} target={[0, 0, 0]} />;
+    const a = (k / 14) * Math.PI * 2, h = (k % 3) * 7 - 6, I = [8, 3.5, 5.5][k % 3] * L.strips;
+    return <Lightformer key={k} form="rect" color={L.strip} intensity={I} position={[Math.cos(a) * 27, h, Math.sin(a) * 27]} scale={[1.6, 9, 1]} target={[0, 0, 0]} />;
   });
   return (
-    <EnvironmentPortal map={hdr} resolution={512} background={false} environmentIntensity={0.32}>
-      <Lightformer form="rect" intensity={9} position={[0, 19, 0]} rotation-x={Math.PI / 2} scale={[22, 4, 1]} />
-      <Lightformer form="rect" intensity={4} position={[-24, 4, 10]} scale={[3, 20, 1]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={3.5} position={[24, 4, -6]} scale={[3, 20, 1]} target={[0, 0, 0]} />
+    <EnvironmentPortal map={hdr} resolution={512} background={false} environmentIntensity={L.env}>
+      <Lightformer form="rect" color={L.top} intensity={9} position={[0, 19, 0]} rotation-x={Math.PI / 2} scale={[22, 4, 1]} />
+      <Lightformer form="rect" color={L.side} intensity={4 * L.key} position={[-24, 4, 10]} scale={[lighting === "daylight" ? 10 : 3, 20, 1]} target={[0, 0, 0]} />
+      <Lightformer form="rect" color={L.side} intensity={3.5 * (lighting === "daylight" ? 0.4 : 1)} position={[24, 4, -6]} scale={[3, 20, 1]} target={[0, 0, 0]} />
       {strips}
     </EnvironmentPortal>
   );

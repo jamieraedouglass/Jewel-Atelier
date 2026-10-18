@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { applyPatchLenient, chooseStyle, freshDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
 import { compressImage, uid } from "@/lib/media";
+import { photoPixels, withPhotoColours, type Sample } from "@/lib/colourSample";
 import { createClient } from "@/lib/supabase/client";
 
-type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[]; analysis?: string; base?: Design | null; score?: number | null; differences?: string[] };
+type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[]; analysis?: string; samples?: Sample[]; base?: Design | null; score?: number | null; differences?: string[] };
 type Props = {
   userId: string | null; design: Design; onReplace: (d: Design) => void;
   capture?: () => Promise<Blob | null>;
@@ -29,6 +30,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   const [paths, setPaths] = useState<string[]>([]);
   const [ask, setAsk] = useState("");
   const [fixes, setFixes] = useState<{ ask: string; done: string }[]>([]);
+  const pixels = useRef<{ files: Blob[]; px: Awaited<ReturnType<typeof photoPixels>> } | null>(null);
 
   if (!userId) return <p className="muted">Sign in to recreate a piece from a photo.</p>;
 
@@ -56,6 +58,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         paths.push(path);
       }
       setPaths(paths); setFixes([]);
+      try { pixels.current = { files, px: await photoPixels(files) }; } catch { pixels.current = null; }
       setBusy("Studying the piece… (up to a minute)");
       const res = await fetch("/api/from-photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notes || undefined }) });
       const json = await res.json();
@@ -112,7 +115,8 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   }
 
   function apply(r: Result, from: Design) {
-    const d = { ...applyPatchLenient(chooseStyle(from, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch), name: r.title };
+    let d = { ...applyPatchLenient(chooseStyle(from, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch), name: r.title };
+    if (r.samples?.length && pixels.current?.files === files) d = { ...withPhotoColours(d, r.samples, pixels.current.px).design, name: r.title };
     onReplace(d);
     return d;
   }

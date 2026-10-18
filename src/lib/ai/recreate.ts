@@ -13,6 +13,14 @@ export const recreateDesignTool: Anthropic.Tool = {
     properties: {
       analysis: { type: "string", description: "Write this first, before choosing anything: a careful read of the photo in 5–8 short lines. Outline of the top seen from above (e.g. pointed lozenge, oval, cushion with rounded sides) and its size; profile (flat, gently or highly domed); the centre stone, which way it lies and its setting; how the stones are organised (bands following the centre? how many? packed mosaic? leaves in cells?) and which stones in which colours; how much metal shows; what the sides and the band do." },
       stone_direction: { type: "string", enum: ["along the finger", "across the finger", "diagonal", "not a ring or round stone"], description: "Rings: answer only after finding the band in the photo (the gold hoop the finger goes through; on a ring held in the fingers, it runs down to where the fingers grip, and the top slopes away towards it). Which way does the centre stone's LONG axis run compared with the finger? Along the finger = the long axis runs the same way as the finger, its points aiming towards the hand and the fingertip, at right angles to the band where the band meets the top. Across the finger = the long axis runs from one side of the band to the other, parallel to the band. Almost every ring is set along or across; a photo taken at an angle, or a stone tilted in the hand, makes it look diagonal. If the long axis is nearer the finger than the band, answer along; nearer the band, across. Answer diagonal only when the setting itself is deliberately turned 45° (rare). Ignore how the photo is tilted." },
+      colour_samples: {
+        type: "array",
+        description: "For each coloured gem in the piece (the centre stone, each layer's stones and its alt stones, accents, band stones, drop stones), one point in a photo at the middle of the body of a typical stone of that colour, so the app can read its true colour from the pixels. Pick a spot that shows the stone's own colour: not a sparkle, reflection, shadow, edge or metal. x and y run 0–1 from the photo's top-left.",
+        items: { type: "object", properties: {
+          target: { type: "string", description: "center | accents | band | fringe | frame:<index> | frame:<index>:alt | part:<index> (0-based index into frames or drop.parts, as in your design)" },
+          photo: { type: "integer", description: "0-based photo index" }, x: { type: "number" }, y: { type: "number" },
+        }, required: ["target", "photo", "x", "y"] },
+      },
       start_from: { type: "string", enum: ["none", ...SHOWCASE.map((x) => x.name)], description: "The showcase piece this is closest to, if one is really close in construction; then patch holds only what differs from it. 'none' to build from scratch." },
       title: { type: "string", description: "A short name for the piece, e.g. 'Fleur chandelier with canary cushion'." },
       type: { type: "string", enum: [...TYPES] },
@@ -119,6 +127,8 @@ prongs, double-claw only when the prongs come in pairs, six-claw for six); a con
 part.setting; otherwise setting.style. Cabochons are domed, never flat.
 Carat weights in the notes set the size: a round diamond is about 6.5 mm at 1 ct, 8.1 mm at 2 ct, 9.3 mm at 3 ct, 10.2 mm at 4 ct
 and 11 mm at 5 ct across; other shapes and gems scale the same way by weight.
+Match the photo's light with options.lighting: daylight for outdoors or by a window, warm for indoor lamp light, studio for
+a white product shot.
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.
 If the stones in a line change colour (rainbow, ombré, alternating gems), list them in accents.colors in order, one hex per stone, repeating; don't flatten them to one colour.
 The person's notes override what you think you see: if the notes give a size, direction, shape or stone, use it. Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
@@ -142,6 +152,7 @@ design with start_from "none" (not just the changes). If it already matches clos
 app can't build in not_modelled.`;
 
 const Result = z.object({
+  colour_samples: z.array(z.object({ target: z.string(), photo: z.number().int().min(0), x: z.number().min(0).max(1), y: z.number().min(0).max(1) })).max(24).catch([]).default([]),
   analysis: z.string().default(""), stone_direction: z.string().default(""), start_from: z.string().default("none"), score: z.number().nullish(), differences: z.array(z.string()).default([]),
   title: z.string(), type: z.enum(TYPES), style: z.string(), patch: z.record(z.unknown()),
   description: z.string(), not_modelled: z.array(z.string()).default([]),
@@ -149,6 +160,7 @@ const Result = z.object({
 export type Recreation = {
   title: string; type: (typeof TYPES)[number]; style: string; patch: Record<string, unknown>; description: string; notModelled: string[];
   analysis: string; base: Design | null; score: number | null; differences: string[];
+  samples: { target: string; photo: number; x: number; y: number }[];
 };
 
 export function directionFromNotes(notes?: string): number | null {
@@ -176,6 +188,7 @@ function tidy(input: unknown, notes?: string): Recreation | null {
     title: d.title.slice(0, 80), type: d.type, style, patch: d.patch, description: d.description, notModelled: d.not_modelled.slice(0, 8),
     analysis: d.analysis.slice(0, 1500), base: start ? showcaseDesign(start) : null,
     score: typeof d.score === "number" ? Math.max(0, Math.min(10, d.score)) : null, differences: d.differences.slice(0, 8),
+    samples: d.colour_samples,
   };
 }
 
