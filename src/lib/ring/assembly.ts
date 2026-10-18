@@ -176,8 +176,8 @@ export function buildRing(d: Design): THREE.Group {
     const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
     const hug = fitted;
-    const shape = new THREE.Shape(sc(hug ? 1.035 : 1.09));
-    shape.holes.push(new THREE.Path(sc(hug ? 0.985 : 0.965).reverse()));
+    const shape = new THREE.Shape(sc(1.035));
+    shape.holes.push(new THREE.Path(sc(0.985).reverse()));
     const bz = new THREE.ExtrudeGeometry(shape, { depth: hug ? Math.min(0.7, pav * 0.25) : d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear" ? Math.min(0.9, pav * 0.3) : Math.min(1.9, pav * 0.7), bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.08, bevelSegments: 3, curveSegments: 24 });
     bz.rotateX(Math.PI / 2); bz.translate(0, 0.18, 0); bz.computeVertexNormals();
     const edgeX = Math.max(...Array.from({ length: 180 }, (_, i) => fn(i / 180)[0]));
@@ -256,6 +256,22 @@ export function buildRing(d: Design): THREE.Group {
       const clawSet = !hug && (d.sides.kind === "round" || d.sides.kind === "oval" || d.sides.kind === "pear");
       grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond));
       if (!clawSet) grp.add(new THREE.Mesh(bz, metal));
+      if (!clawSet && !hug) {
+        // the seat under the stone carries on down, narrowing, until it meets the band
+        const across = gap + 0.13 + cx;
+        const bandY = Math.sqrt(Math.max(0, (RIN + 2.1) ** 2 - across * across));
+        const drop = Math.max(1, GY - 0.05 - bandY + 0.6);
+        const seat = new THREE.ExtrudeGeometry(new THREE.Shape(sc(1.0)), { depth: drop, bevelEnabled: false, curveSegments: 24 });
+        seat.rotateX(Math.PI / 2); seat.translate(0, -0.2, 0);
+        const sp = seat.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < sp.count; i++) {
+          const t = Math.min(1, Math.max(0, -(sp.getY(i) + 0.2) / drop));
+          const k = 1 - 0.45 * t;
+          sp.setX(i, cx + (sp.getX(i) - cx) * k - t * Math.min(2, across * 0.12)); sp.setZ(i, sp.getZ(i) * k);
+        }
+        sp.needsUpdate = true; seat.computeVertexNormals();
+        grp.add(new THREE.Mesh(seat, metal));
+      }
       else for (const f of [0.125, 0.375, 0.625, 0.875]) {
         const [x, z] = ol[Math.floor(f * ol.length) % ol.length];
         const out = new THREE.Vector3(cx + (x - cx) * 1.05, 0, z * 1.05);
