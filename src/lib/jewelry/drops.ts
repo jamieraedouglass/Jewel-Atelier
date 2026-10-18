@@ -26,11 +26,21 @@ function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): Center
     color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
   };
 }
+// sizes run with the shapes (one per shape in the repeat); a longer list gives each stone its own size, spread over the count.
+function sizeAt(p: DropPart, i: number, n: number, slot: number) {
+  const z = p.small.sizes;
+  if (!z.length) return 1;
+  if (z.length <= p.small.shapes.length) return z[slot] ?? 1;
+  const t = n > 1 ? (i / (n - 1)) * (z.length - 1) : 0, a = Math.floor(t), b = Math.min(z.length - 1, a + 1);
+  return z[a] + (z[b] - z[a]) * (t - a);
+}
 const setFor = (d: Design, c: CenterStone, p?: DropPart) => (p && p.setting !== "auto" ? p.setting : c.cut === "cabochon" ? "bezel" : Math.max(c.lengthMm, c.widthMm) < 4.5 ? "four-claw" : d.setting.style);
 
 type Built = { g: THREE.Group; top?: number; hang?: number };
 
-function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
+// skirt: room left round the stone's edge for a row of small stones set on it by a later part, so drops hang outside that row.
+type Skirt = { from: number; to: number; room: number }[];
+function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Built {
   const g = new THREE.Group();
   const cs = partStone(d, p);
   const theta = THREE.MathUtils.degToRad(p.stone.rotation);
@@ -48,6 +58,8 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
     }
   } else {
     core.add(new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), m.metal));
+    // Stones set "on" a stone drawn by another part still sit round that stone's outline.
+    Lh = cs.lengthMm / 2; Wh = cs.widthMm / 2;
   }
   core.rotation.y = theta;
   g.add(core);
@@ -70,18 +82,21 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
       const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
       const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
       const slot = i % p.small.shapes.length, shape = p.small.shapes[slot];
-      const k = p.small.sizes[slot] ?? 1, base = smallStone(d, p, shape);
+      const k = sizeAt(p, i, n, slot), base = smallStone(d, p, shape);
       const sc = k === 1 ? base : { ...base, widthMm: base.widthMm * k, lengthMm: base.lengthMm * k, domeMm: base.domeMm * k };
       const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
       const hangs = sc.cut === "briolette";
       const down = v3(0, 0, 1);
       const fall = hangs ? dir.clone().multiplyScalar(0.45).add(down).normalize() : dir;
-      const pos = hangs ? dir.clone().multiplyScalar(rEdge * 0.97).addScaledVector(fall, sc.lengthMm * 0.45) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
+      const turn = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+      const room = Math.max(0, ...skirt.map((k) => (k.to - k.from > 6.2 || (turn(phi - k.from) >= 0 && turn(k.to - phi) >= 0) ? k.room : 0)));
+      const hangFrom = rEdge * 0.97 + room;
+      const pos = hangs ? dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, sc.lengthMm * 0.45) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
       const s = setStoneRaw(sc, setFor(d, sc), m);
       s.position.copy(pos).setY(hangs ? -0.6 : -0.15);
       s.rotation.y = hangs ? Math.atan2(fall.x, fall.z) + Math.PI : Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
       g.add(s);
-      g.add(tube(m, [v3(0, -0.9, 0), dir.clone().multiplyScalar(hangs ? rEdge * 0.92 : rEdge + 0.3 + sc.lengthMm / 2).setY(-0.9)], 0.3));
+      g.add(tube(m, [v3(0, -0.9, 0), dir.clone().multiplyScalar(hangs ? hangFrom - rEdge * 0.05 : rEdge + 0.3 + sc.lengthMm / 2).setY(-0.9)], 0.3));
     });
   }
   return { g };
@@ -193,9 +208,17 @@ export function dropStack(d: Design, m: Mats) {
       if (len > 1.2) group.add(chainAlong(new THREE.LineCurve3(A, B), "fine", m));
     }
   };
+  const parentOf = (p: DropPart, i: number) => (i === 0 ? -1 : p.from >= 0 && p.from < i ? p.from : i - 1);
+  const skirt: Skirt[] = d.drop.parts.map((_, i) => d.drop.parts.flatMap((q, j) => {
+    if (!(j > i && q.kind === "stone" && q.anchor === "on" && !q.showStone && q.count > 0 && q.small.cut !== "briolette" && parentOf(q, j) === i)) return [];
+    const room = q.small.widthMm * Math.max(1, ...q.small.sizes) + 0.6;
+    if (!q.arc || q.arc.spanDeg >= 359) return [{ from: -Math.PI, to: Math.PI, room }];
+    const c = THREE.MathUtils.degToRad(q.arc.centerDeg), half = THREE.MathUtils.degToRad(q.arc.spanDeg / 2 + 12);
+    return [{ from: c - half, to: c + half, room }];
+  }));
   d.drop.parts.forEach((p, i) => {
     const build = () => {
-      const b = p.kind === "strands" ? dropStrandsPart(d, m, p) : p.kind === "frame" ? dropFramePart(d, m, p) : p.kind === "bow" ? dropBowPart(d, m, p) : dropStonePart(d, m, p);
+      const b = p.kind === "strands" ? dropStrandsPart(d, m, p) : p.kind === "frame" ? dropFramePart(d, m, p) : p.kind === "bow" ? dropBowPart(d, m, p) : dropStonePart(d, m, p, skirt[i]);
       b.g.userData.part = "drop";
       b.g.userData.dropIndex = i;
       return b;
@@ -203,7 +226,7 @@ export function dropStack(d: Design, m: Mats) {
     const b = build();
     const box = new THREE.Box3().setFromObject(b.g);
     const top = b.top ?? box.min.z, hang = b.hang ?? box.max.z, half = (box.max.x - box.min.x) / 2;
-    const parentIdx = i === 0 ? -1 : p.from >= 0 && p.from < i ? p.from : i - 1;
+    const parentIdx = parentOf(p, i);
     const par = parentIdx >= 0 ? placed[parentIdx] : null;
     const tilt = THREE.MathUtils.degToRad(p.tilt);
     const put = (g: THREE.Group, dir: 1 | -1) => {
