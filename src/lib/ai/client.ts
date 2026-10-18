@@ -39,11 +39,12 @@ export async function storageImages(supabase: SupabaseClient, bucket: string, pa
   return out;
 }
 
-export async function callTool(opts: { system: string; tool: Anthropic.Tool; content: Anthropic.MessageParam["content"]; maxTokens?: number }): Promise<unknown | null> {
+export async function callTool(opts: { system: string; tool: Anthropic.Tool; content: Anthropic.MessageParam["content"]; maxTokens?: number; effort?: "low" | "medium" | "high" | "xhigh" | "max" }): Promise<unknown | null> {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: opts.content }];
   for (let attempt = 0; attempt < 2; attempt++) {
     const msg = await createMessage({
       max_tokens: opts.maxTokens ?? 2000,
+      ...(opts.effort ? { output_config: { effort: opts.effort } } : {}),
       system: `${opts.system}\n\nReply by calling the ${opts.tool.name} tool exactly once.`,
       tools: [opts.tool],
       tool_choice: { type: "auto" },

@@ -12,6 +12,17 @@ export const recreateDesignTool: Anthropic.Tool = {
     type: "object",
     properties: {
       analysis: { type: "string", description: "Write this first, before choosing anything: a careful read of the photo in 5–8 short lines. Outline of the top seen from above (e.g. pointed lozenge, oval, cushion with rounded sides) and its size; profile (flat, gently or highly domed); the centre stone, which way it lies and its setting; how the stones are organised (bands following the centre? how many? packed mosaic? leaves in cells?) and which stones in which colours; how much metal shows; what the sides and the band do." },
+      inventory: {
+        type: "array",
+        description: "Write this before choosing anything else: every group of stones you can actually see in the photos, one entry per group (the main stone, each ring of accents, a cluster, a fringe, leaves, beads...). Count what is there; do not guess or round up. If you can't see part of the piece, say so in 'where' rather than inventing it.",
+        items: { type: "object", properties: {
+          what: { type: "string", description: "e.g. 'main pear diamond', 'briolette drops', 'small round diamonds'" },
+          count: { type: "integer", description: "how many you can count in ONE piece (one earring of a pair)" },
+          shape: { type: "string" }, cut: { type: "string" },
+          size: { type: "string", description: "size compared with the main stone, e.g. 'about 1/4 of the pear's length', or mm if known; say if they vary (e.g. '3 large and 4 small')" },
+          where: { type: "string", description: "exactly where they sit, e.g. 'tight cluster under the pear's rounded end only, from about 4 to 8 o'clock; nothing along the sides or the tip'" },
+        }, required: ["what", "count", "shape", "size", "where"] },
+      },
       stone_direction: { type: "string", enum: ["along the finger", "across the finger", "diagonal", "not a ring or round stone"], description: "Rings: answer only after finding the band in the photo (the gold hoop the finger goes through; on a ring held in the fingers, it runs down to where the fingers grip, and the top slopes away towards it). Which way does the centre stone's LONG axis run compared with the finger? Along the finger = the long axis runs the same way as the finger, its points aiming towards the hand and the fingertip, at right angles to the band where the band meets the top. Across the finger = the long axis runs from one side of the band to the other, parallel to the band. Almost every ring is set along or across; a photo taken at an angle, or a stone tilted in the hand, makes it look diagonal. If the long axis is nearer the finger than the band, answer along; nearer the band, across. Answer diagonal only when the setting itself is deliberately turned 45° (rare). Ignore how the photo is tilted." },
       colour_samples: {
         type: "array",
@@ -29,7 +40,7 @@ export const recreateDesignTool: Anthropic.Tool = {
       description: { type: "string", description: "Two or three sentences describing the piece as a jeweller would: construction, stones, metal." },
       not_modelled: { type: "array", items: { type: "string" }, description: "Details in the photo the app can't build (filigree, engraving, enamel patterns, exact motif shapes), so the person can tell the karigar." },
     },
-    required: ["analysis", "stone_direction", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
+    required: ["inventory", "analysis", "stone_direction", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
   },
 };
 
@@ -43,7 +54,7 @@ export const refineDesignTool: Anthropic.Tool = {
       differences: { type: "array", items: { type: "string" }, description: "The most important ways the build still differs from the photo, worst first, each a short phrase." },
       ...(recreateDesignTool.input_schema.properties as Record<string, unknown>),
     },
-    required: ["score", "differences", "analysis", "stone_direction", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
+    required: ["score", "differences", "inventory", "analysis", "stone_direction", "start_from", "title", "type", "style", "patch", "description", "not_modelled"],
   },
 };
 
@@ -131,6 +142,11 @@ for an old European). Use "rose-cut" only for a flat-backed rose cut. A diamond 
 photo or notes say it is coloured.
 Facts in the notes are exact, not hints: ring size (ringSize, US), karat (purity.karat), carat weight (center.carat, and size
 the stone from it), the whole top's measurements (options.decoLengthMm and decoWidthMm), and metal.
+BUILD ONLY WHAT YOU INVENTORIED. Every stone in the design must come from the inventory, with the same count, the same
+shape, the same relative size and in the same place. Never add stones, rings of stones or fans that aren't there, and never
+spread a cluster that sits under one end of a stone all the way round it (use the drop part's arc for a cluster on part of the
+outline, and small.sizes when the stones in it differ in size). If the app can't place something exactly, build the nearest
+honest version and list the difference in not_modelled; don't fill the gap with invented detail.
 How each stone is held matters: separate metal prongs round a stone (even a cabochon) are a claw setting (four-claw for single
 prongs, double-claw only when the prongs come in pairs, six-claw for six); a continuous metal rim is a bezel. For drop parts set
 part.setting; otherwise setting.style. Cabochons are domed, never flat.
@@ -161,6 +177,7 @@ design with start_from "none" (not just the changes). If it already matches clos
 app can't build in not_modelled.`;
 
 const Result = z.object({
+  inventory: z.array(z.object({ what: z.string(), count: z.number().catch(0), size: z.string().catch(""), where: z.string().catch("") }).passthrough()).max(30).catch([]).default([]),
   colour_samples: z.array(z.object({ target: z.string(), photo: z.number().int().min(0), x: z.number().min(0).max(1), y: z.number().min(0).max(1) })).max(24).catch([]).default([]),
   analysis: z.string().default(""), stone_direction: z.string().default(""), start_from: z.string().default("none"), score: z.number().nullish(), differences: z.array(z.string()).default([]),
   title: z.string(), type: z.enum(TYPES), style: z.string(), patch: z.record(z.unknown()),
@@ -170,13 +187,14 @@ export type Recreation = {
   title: string; type: (typeof TYPES)[number]; style: string; patch: Record<string, unknown>; description: string; notModelled: string[];
   analysis: string; base: Design | null; score: number | null; differences: string[];
   samples: { target: string; photo: number; x: number; y: number }[];
+  inventory: { what: string; count: number; size: string; where: string }[];
 };
 
 export function directionFromNotes(notes?: string): number | null {
   const n = (notes ?? "").toLowerCase();
   if (/along the (finger|hand)|north[- ]south|lengthwise|points? (up|down) the finger|towards? the (fingertip|knuckle|nail|hand)/.test(n)) return 0;
   if (/across the (finger|hand)|east[- ]west|side to side|parallel (to|with) the band|sideways/.test(n)) return 90;
-  if (/(stone|diamond|centre|center|it)[^.]{0,40}\b(set |sits |turned |lies )?diagonal(ly)?\b|\b45 ?(°|deg)/.test(n)) return 45;
+  if (/\b(stone|diamond|centre|center)\b[^.;,]{0,20}\b(is |sits |set |turned |lies |points )?diagonal(ly)?\b|points diagonal to the band|\b45 ?(°|deg)/.test(n)) return 45;
   return null;
 }
 
@@ -198,6 +216,7 @@ function tidy(input: unknown, notes?: string): Recreation | null {
     analysis: d.analysis.slice(0, 1500), base: start ? showcaseDesign(start) : null,
     score: typeof d.score === "number" ? Math.max(0, Math.min(10, d.score)) : null, differences: d.differences.slice(0, 8),
     samples: d.colour_samples,
+    inventory: d.inventory.map((x) => ({ what: x.what, count: x.count, size: x.size, where: x.where })),
   };
 }
 
@@ -209,7 +228,7 @@ export async function recreateFromPhotos(photos: Image[], notes?: string, profil
     notes ? `Notes: ${notes}` : null,
     profile ? `Use this only for what the photo can't show, such as karat, an unclear metal, and sizes:\n${profile}` : null,
   ].filter(Boolean).join("\n");
-  return tidy(await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 8000, content: [...photos, { type: "text", text }] }), notes);
+  return tidy(await callTool({ system: RECREATE_SYSTEM, tool: recreateDesignTool, maxTokens: 16000, effort: "high", content: [...photos, { type: "text", text }] }), notes);
 }
 
 export async function refineFromRender(photos: Image[], render: Image, design: unknown, round: number, notes?: string, request?: string): Promise<Recreation | null> {
@@ -220,7 +239,7 @@ export async function refineFromRender(photos: Image[], render: Image, design: u
     request ? `The person has looked at the build and asks for this change: "${request}". Make exactly that change; it overrides the photo and anything you think you see. Keep everything else as it is, and still score the build as it was before this change.` : null,
     `The build's design now: ${JSON.stringify({ type: current.type, style: current.style, ...designForAi(current) })}`,
   ].filter(Boolean).join("\n");
-  return tidy(await callTool({ system: REFINE_SYSTEM(), tool: refineDesignTool, maxTokens: 8000, content: [...photos, render, { type: "text", text }] }), [notes, request].filter(Boolean).join(" "));
+  return tidy(await callTool({ system: REFINE_SYSTEM(), tool: refineDesignTool, maxTokens: 16000, effort: "high", content: [...photos, render, { type: "text", text }] }), [notes, request].filter(Boolean).join(" "));
 }
 
 export const jpegImage = (dataUrl: string): Image => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: dataUrl.replace(/^data:image\/jpeg;base64,/, "") } });
