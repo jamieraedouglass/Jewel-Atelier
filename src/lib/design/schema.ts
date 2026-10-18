@@ -120,6 +120,8 @@ export const FrameSchema = z.object({
   every: z.number().int().min(1).max(8).default(1),
   gapMm: z.number().min(0).max(4).default(0.25),
   ratio: z.number().min(0.4).max(2.5).nullable().default(null),
+  pattern: z.enum(["even", "vines"]).default("even"),
+  vary: z.number().min(0).max(0.4).default(0),
 });
 export type Frame = z.infer<typeof FrameSchema>;
 export type FrameIn = z.input<typeof FrameSchema>;

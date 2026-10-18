@@ -63,6 +63,8 @@ export const designPatchSchema = {
       items: { type: "object", properties: {
         kind: { type: "string", enum: ["stones", "milgrain", "metal", "fill"], description: "fill = a mosaic packed solid with stones from the layer inside out to this outline (e.g. a square cushion of cabochons round a long marquise)" }, outline: { type: "string", enum: [...SHAPES], description: "the layer's shape: round, octagon, hexagon, cushion…" },
         ratio: { type: "number", description: "the outline's length to width (1 = square or round); leave out to follow the centre stone's proportions" },
+        pattern: { type: "string", enum: ["even", "vines"], description: "fill only: where the second (alt) gem goes: evenly every few stones, or in diagonal vines of leaves winding through the mosaic" },
+        vary: { type: "number", description: "fill only: 0–0.4, how much the stones vary in size, for a hand-set, organic mosaic" },
         gem: gemProp, color: hexProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES], description: "stone shape: round pavé, princess/baguette calibré, pear/oval petals" },
         widthMm: { type: "number" }, direction: { type: "string", enum: ["along", "radial"], description: "radial = fanning out from the centre (calibré, ballerina, petals)" },
         alt: { type: "object", properties: { gem: gemProp, color: hexProp, shape: { type: "string", enum: [...SHAPES] }, cut: { type: "string", enum: [...CUTS] } }, required: ["gem", "color", "shape"], description: "stripes of a second gem" },

@@ -43,7 +43,7 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   if (cutIn === "cabochon" || cutIn === "carved") {
     const asp0 = ASPECT[shape];
     const meshes = [
-      new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.45 }, 1), items.length),
+      new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.72 }, 1), items.length),
       new THREE.InstancedMesh(shapedRim(shape, asp0, 0.06), m.metal, items.length),
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });
