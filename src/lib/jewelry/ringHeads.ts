@@ -15,7 +15,9 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const N = 180;
   const theta = (x: number, z: number) => (Math.atan2(z, x) + Math.PI * 2) % (Math.PI * 2);
   const prev = new Float32Array(N);
-  { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = fn(k / 720); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
+  const turn = THREE.MathUtils.degToRad(c.rotation ?? 0), ct = Math.cos(turn), st0 = Math.sin(turn);
+  const turned = ([x, z]: [number, number]): [number, number] => (turn ? [x * ct + z * st0, -x * st0 + z * ct] : [x, z]);
+  { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = turned(fn(k / 720)); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
   for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
   const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
@@ -35,10 +37,18 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const stoneL = f.widthMm * ASPECT[f.shape];
     const thick = f.kind === "stones" ? (f.direction === "radial" ? stoneL : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm;
     const unit = f.ratio != null ? outlineFn(f.outline, (c.widthMm + 1) * f.ratio, c.widthMm + 1) : outlineFn(f.outline, c.lengthMm + 1, c.widthMm + 1);
-    const S = 240, raw = Array.from({ length: S }, (_, k) => unit(k / S));
+    const followsStone = f.outline === c.shape && f.ratio == null;
+    const S = 240, raw = Array.from({ length: S }, (_, k) => (followsStone ? turned(unit(k / S)) : unit(k / S)));
     if (f.kind === "fill") {
       const sz = f.widthMm, radial = f.direction === "radial";
-      const slotAlong = (radial ? sz : sz * ASPECT[f.shape]) + 0.12, slotAcross = (radial ? sz * ASPECT[f.shape] : sz) + 0.12;
+      const slotAlong = (radial ? sz : sz * ASPECT[f.shape]) + 0.05, slotAcross = (radial ? sz * ASPECT[f.shape] : sz) + 0.05;
+      let seed = 17;
+      const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const vine = (p: THREE.Vector3) => {
+        const u = Math.abs(p.x + p.z) / Math.SQRT2, w = Math.abs(p.x - p.z) / Math.SQRT2;
+        const sp = slotAcross * 3.4;
+        return (u % sp) < slotAcross * 0.55 || (w % sp) < slotAcross * 0.25;
+      };
       let k2 = 0;
       for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross) / (Math.hypot(x, z) || 1));
       const ringPts = raw.map(([x, z]) => v3(x * k2, 0, z * k2));
@@ -51,7 +61,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const A = 1440;
       let n = 0;
       for (let row = 0; row < 60; row++) {
-        let any = false, acc = slotAlong / 2, last: THREE.Vector3 | null = null;
+        let any = false, acc = slotAlong / 2 + (row % 2) * slotAlong / 2, last: THREE.Vector3 | null = null;
         const rowsAt = (th: number) => Math.max(1, Math.round((outerAt(th) - prevAt(th) - f.gapMm) / slotAcross));
         const rAt = (th: number) => { const inner = prevAt(th) + f.gapMm; return inner + ((row + 0.5) * (outerAt(th) - inner)) / rowsAt(th); };
         for (let a = 0; a < A; a++) {
@@ -67,18 +77,20 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           const tan = v3(Math.cos(th2) * r2 - p.x, 0, Math.sin(th2) * r2 - p.z).normalize();
           p.y = dome > 0 ? domeY(r) : y;
           const up = dome > 0 ? tilt(p) : Y.clone();
-          const isAlt = !!f.alt && n % (f.every + 1) === f.every;
+          const isAlt = !!f.alt && (f.pattern === "vines" ? vine(p) : n % (f.every + 1) === f.every);
           const shape = isAlt ? f.alt!.shape : f.shape;
           const out = v3(p.x, 0, p.z).normalize();
-          const facing = isAlt ? tan : radial ? out : tan;
+          const diag = v3(Math.sign(p.x || 1), 0, Math.sign(p.z || 1)).normalize();
+          const facing = isAlt ? (f.pattern === "vines" ? diag : tan) : radial ? out : tan;
           const dir = facing.clone().addScaledVector(up, -facing.dot(up)).normalize();
           const X = new THREE.Vector3().crossVectors(up, dir).normalize();
           const quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir));
-          if (isAlt) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(n % 2 ? 35 : -35)));
+          if (isAlt && f.pattern !== "vines") quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(n % 2 ? 35 : -35)));
           const rowGap = (outerAt(th) - prevAt(th) - f.gapMm) / rowsAt(th);
           const room = radial ? Math.min(slotAlong - 0.06, (rowGap - 0.06) / ASPECT[f.shape]) : Math.min(rowGap - 0.06, (slotAlong - 0.06) / ASPECT[f.shape]);
-          const fitted = Math.min(sz * 1.35, Math.max(sz * 0.85, room));
-          const dia = isAlt ? Math.min(fitted, Math.max(slotAlong, rowGap) / ASPECT[shape]) : fitted;
+          const fitted = Math.min(sz * 1.6, Math.max(sz * 0.85, room + 0.1));
+          const jitter = 1 + (rnd() * 2 - 1) * f.vary;
+          const dia = (isAlt ? Math.min(fitted, Math.max(slotAlong, rowGap) / ASPECT[shape]) : fitted) * jitter;
           const look = isAlt ? f.alt! : f;
           put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: p, dia, quat, up });
           n++;
@@ -176,7 +188,7 @@ function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
   for (let phi = 0.02; phi < Math.PI / 2 - 0.1; phi += 0.01) {
     const p = wallPoint(far, topY, depth, phi);
     arc += p.distanceTo(last); last = p;
-    if (arc >= pitch * (phis.length ? 1 : 0.5)) { phis.push(phi); arc = 0; }
+    if (arc >= pitch * (phis.length ? 0.95 : 0.3)) { phis.push(phi); arc = 0; }
   }
   const groups = new Map<string, Item[]>();
   const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);

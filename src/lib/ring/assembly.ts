@@ -88,6 +88,17 @@ export function buildRing(d: Design): THREE.Group {
     const g = new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 2, curveSegments: 64 });
     g.rotateX(Math.PI / 2); g.translate(0, GY + 0.12, 0); g.computeVertexNormals();
     head.add(new THREE.Mesh(g, metal));
+  } else if (d.setting.style === "bezel" && d.style === "deco") {
+    const shape = new THREE.Shape(loop(1.04, 0).map((p) => new THREE.Vector2(p.x, p.z)));
+    shape.holes.push(new THREE.Path(loop(0.985, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 1.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.05, bevelSegments: 2, curveSegments: 64 });
+    g.rotateX(Math.PI / 2); g.translate(0, GY + 0.2, 0); g.computeVertexNormals();
+    head.add(new THREE.Mesh(g, metal));
+    const beads = loop(1.06, GY + 0.24, Math.max(40, Math.round((Math.PI * (L + W)) / 2 / 0.32)));
+    const bead = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 8, 6), metal, beads.length);
+    const o = new THREE.Object3D();
+    beads.forEach((b, i) => { o.position.copy(b); o.updateMatrix(); bead.setMatrixAt(i, o.matrix); });
+    head.add(bead);
   } else if (d.setting.style === "bezel") {
     const shape = new THREE.Shape(loop(1.09, 0).map((p) => new THREE.Vector2(p.x, p.z)));
     shape.holes.push(new THREE.Path(loop(0.98, 0).reverse().map((p) => new THREE.Vector2(p.x, p.z))));

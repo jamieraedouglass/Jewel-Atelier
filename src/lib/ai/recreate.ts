@@ -50,6 +50,11 @@ How to choose:
     square or cushion top round a long marquise has no bare metal. Set the outline's ratio (1 = square) when the top's shape
     doesn't follow the centre stone's proportions.
   * When the stones carry on over the rounded sides of the top, set options.decoWrap true.
+  * The top's outline: "radiant" with ratio 1 is a square with its corners in line with the centre stone's points (a marquise
+    running corner to corner); "cushion" with ratio 1 is a softer square with its flat sides facing the stone's points.
+    center.rotation turns the stone and the layers that follow its shape (not the square).
+  * Leaves winding through a mosaic in diagonal lines: pattern "vines"; hand-set stones of slightly different sizes: vary 0.15–0.25.
+  * A centre stone in a fine gold rim with beaded (milgrain) edge: setting.style "bezel".
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
   * Start from the closest of these layer templates and adapt it (stone sizes, colours, outlines, how many layers):
 ${FRAME_TEMPLATES}
