@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { applyPatchLenient, chooseStyle, freshDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
 import { compressImage, uid } from "@/lib/media";
-import { photoPixels, withPhotoColours, type Sample } from "@/lib/colourSample";
+import { photoPixels, withMarkedColours, withPhotoColours, type Sample } from "@/lib/colourSample";
 import { createClient } from "@/lib/supabase/client";
 import PhotoReading, { type Reading } from "./PhotoReading";
 import { type PhotoSize, traceDrops } from "@/lib/photoTrace";
@@ -178,6 +178,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
     let d = { ...applyPatchLenient(chooseStyle(from, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch), name: r.title };
     if (r.samples?.length && pixels.current?.files === files) d = { ...withPhotoColours(d, r.samples, pixels.current.px).design, name: r.title };
     if (traced.current) d = traceDrops(d, traced.current.reading, photoSizes.current, traced.current.removed);
+    if (traced.current?.reading?.groups && pixels.current?.files === files) d = { ...withMarkedColours(d, traced.current.reading.groups.filter((_, i) => !traced.current!.removed.includes(i)), pixels.current.px), name: d.name };
     onReplace(d);
     return d;
   }

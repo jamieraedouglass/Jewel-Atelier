@@ -1,4 +1,4 @@
-import { type Design, type DesignPatch, applyPatchLenient } from "./design";
+import { type Design, type DesignPatch, GEMS, applyPatchLenient } from "./design";
 
 export type Sample = { target: string; photo: number; x: number; y: number };
 type Pixels = { data: Uint8ClampedArray; width: number; height: number };
@@ -36,7 +36,28 @@ export function believable(sampled: string, expected: string | undefined) {
   const a = hsl(...parse(sampled)), b = hsl(...parse(expected));
   if (b.s < 0.15 || a.s < 0.12) return Math.abs(a.s - b.s) < 0.35;
   const dh = Math.min(Math.abs(a.h - b.h), 360 - Math.abs(a.h - b.h));
-  return dh < 55;
+  // A sample far lighter or darker than the gem is a highlight or a shadow, not its colour.
+  return dh < 55 && Math.abs(a.l - b.l) < 0.24;
+}
+
+// The colour of each group of stones the person marked, read from the photo at every mark (median, so the odd
+// highlight or shadow doesn't count) and applied to the parts of the design made of that gem.
+export function withMarkedColours(d: Design, groups: { what?: string; marks?: { photo?: number; x?: number; y?: number; r?: number }[] }[], photos: Pixels[]): Design {
+  let out = d;
+  for (const g of groups) {
+    const what = (g.what ?? "").toLowerCase();
+    const gem = [...GEMS].sort((p, q) => q.length - p.length).find((x) => x !== "other" && what.includes(x.replace("-", " ")));
+    if (!gem || gem === "diamond") continue;
+    const found = (g.marks ?? []).map((mk) => (photos[mk.photo ?? 0] && typeof mk.x === "number" && typeof mk.y === "number" ? sampleAt(photos[mk.photo ?? 0], mk.x, mk.y) : null)).filter((c): c is string => !!c);
+    if (found.length < 3) continue;
+    const rgb = found.map(parse), mid = (k: number) => rgb.map((c) => c[k]).sort((p, q) => p - q)[Math.floor(rgb.length / 2)];
+    const colour = hex(mid(0), mid(1), mid(2));
+    const frames = out.frames.map((f) => ({ ...f, ...(f.gem === gem && f.kind !== "milgrain" ? { color: colour } : {}), ...(f.alt && f.alt.gem === gem ? { alt: { ...f.alt, color: colour } } : {}) }));
+    const band = out.band.paveGem === gem ? { paveColor: colour } : {};
+    const accents = out.accents.gem === gem ? { color: colour } : {};
+    out = applyPatchLenient(out, { frames, band, accents } as DesignPatch);
+  }
+  return out;
 }
 
 export function colourPatch(d: Design, target: string, colour: string): { patch: DesignPatch; was?: string } | null {
