@@ -90,6 +90,8 @@ How to choose:
     centre's shape with a ratio that gets smaller outward (e.g. marquise, then marquise ratio 1.75, then 1.45). Use "fill" only
     when the stones are packed with no banding.
   * Judge the profile: if the top rises to the centre stone and curves down on every side, it is domed (decoDome 0.8–1).
+  * Seen along the finger, does the top run straight across, or do its sides bend down over the finger into the band (the
+    top hugging the finger like a saddle, sloping away to where the fingers grip)? Bending sides: options.decoBend 0.5–0.9.
   * A square or cushion top only when the photo's top really has straight sides and corners. When the stones curve round the
     centre stone in bands that echo its shape (most cocktail rings round a marquise, pear or oval), use fit "hug" bands with the
     centre's own outline, as in the worked example; never turn such a piece into a square.
