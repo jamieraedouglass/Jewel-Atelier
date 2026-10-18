@@ -30,3 +30,14 @@ describe("chargeAiCall", () => {
     await expect(r.refund()).resolves.toBeUndefined();
   });
 });
+
+describe("higher limits for named accounts", () => {
+  it("gives listed names the higher limit and everyone else the normal one", async () => {
+    const { limitFor, DAILY_LIMIT } = await import("@/lib/usage");
+    const { emailForName } = await import("@/lib/names");
+    expect(limitFor(emailForName("Jamie"), "Jamie, Carl", "250")).toBe(250);
+    expect(limitFor(emailForName("Carl"), "Jamie, Carl")).toBe(300);
+    expect(limitFor(emailForName("Someone"), "Jamie")).toBe(DAILY_LIMIT);
+    expect(limitFor(null, "Jamie")).toBe(DAILY_LIMIT);
+  });
+});
