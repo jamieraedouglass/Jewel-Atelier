@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { NO_CHARACTER, type CenterStone, type Design, type Gem, ringInnerDiameter } from "../design";
-import { bandSection, buildRing, outlineFn, shankGeo } from "../ringModel";
+import { bandSection, buildRing, outlineFn, shankGeo, splitArms } from "../ringModel";
 import { type Piece, v3 } from "./common";
 import { type Mats, makeMaterials } from "./materials";
 import { setStoneRaw, tube } from "./stones";
@@ -65,7 +65,7 @@ export function ringPiece(d0: Design): Piece {
   if (d.center.none) {
     const group = new THREE.Group();
     const RIN = ringInnerDiameter(d.ringSize) / 2;
-    const sh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), m.metal);
+    const sh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape, d.band.split), m.metal);
     sh.userData.shank = true;
     group.add(sh);
     bandPave(group, d, m);
@@ -161,21 +161,24 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
     ? { ...d, accents: { ...d.accents, gem: mosaic.gem, color: mosaic.color, cut: mosaic.cut === "cabochon" ? "cabochon" : "faceted", sizeCt: 6, orientation: "across",
         shapes: mosaic.alt ? [mosaic.shape, mosaic.shape, mosaic.alt.shape] : [mosaic.shape],
         turns: mosaic.alt ? [0, 0, 55] : [], twins: [], sizes: mosaic.alt ? [1, 1, 0.85] : [],
-        colors: mosaic.alt ? [mosaic.color, mosaic.color, mosaic.alt.color] : [] } as Design["accents"] }
-    : { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [] } };
+        colors: mosaic.alt ? [mosaic.color, mosaic.color, mosaic.alt.color] : [], ombre: [], layout: "line" } as Design["accents"] }
+    : { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [], ombre: b.paveOmbre, layout: "line" } };
+  const arms = b.split > 0 && !mosaic ? [1, -1] : [0];
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
   for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
     const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
-    for (let r = 0; r < rows; r++) {
+    for (const arm of arms) for (let r = 0; r < rows; r++) {
       const N = 120;
       const pts = Array.from({ length: N + 1 }, (_, i) => {
         const th = a0 + ((a1 - a0) * i) / N;
-        const { r: R, w } = surf(th);
-        const z = rows === 1 ? 0 : mosaic ? (r - (rows - 1) / 2) * ((w - 0.3) / rows) : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1)));
+        const { r: R, w: w0 } = surf(th);
+        const sp = arm ? splitArms(w0, th, b.split) : null;
+        const w = sp ? sp.hi - sp.lo : w0;
+        const z = (sp ? arm * (sp.lo + sp.hi) / 2 : 0) + (rows === 1 ? 0 : mosaic ? (r - (rows - 1) / 2) * ((w - 0.3) / rows) : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1))));
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
-      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, fade: "start", up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
       g.userData.part = "accents";
       g.userData.keep = true;
       group.add(g);
@@ -204,7 +207,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     const prevTop = shank.userData.top as { topW: number; topT: number; spread: number } | undefined;
     const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm * 0.92, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.3, prevTop?.spread ?? 0), round: !prevTop };
     shank.geometry.dispose();
-    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
     shank.userData.top = top;
     drop = gy - (RIN + top.topT + 0.05);
     if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
@@ -215,7 +218,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     const topT = target - 0.3 - RIN;
     if (shank.userData.top) { drop = gy - target; rest.forEach((o) => (o.position.y -= drop)); return; }
     shank.geometry.dispose();
-    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape);
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape, d.band.split);
     shank.userData.top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };
     drop = gy - target;
   } else {

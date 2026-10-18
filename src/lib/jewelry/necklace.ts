@@ -243,20 +243,30 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       break;
     }
     case "collar": {
-      group.add(chainAlong(curve, "box", m));
-      const params = spreadParams(front, o.count, 0.4);
+      const span = 0.42;
+      const line = d.accents.enabled ? patternRun(d, m, curve, front - span / 2 - 0.03, front + span / 2 + 0.03, { gap: 0.15 }) : null;
+      if (line) group.add(line.group);
+      const lineW = line ? line.maxW : 0;
+      group.add(chainAlong(curve, "box", m, front + span / 2 + 0.03, front + 1 - span / 2 - 0.03));
+      const params = spreadParams(front, o.count, span);
       params.forEach((u, i) => {
         const k = 1 - Math.abs(i - (params.length - 1) / 2) / ((params.length - 1) / 2 || 1);
-        const s = setStone({ ...c, ...NO_CHARACTER, shape: c.shape === "round" ? "pear" : c.shape }, d.setting.style, m, 0.45 + 0.55 * k);
+        const short = params.length > 6 && i % 2 === 1;
+        const scale = (0.45 + 0.55 * k) * (short ? 0.7 : 1);
+        const s = setStone({ ...c, ...NO_CHARACTER, shape: c.shape === "round" ? "pear" : c.shape }, d.setting.style, m, scale);
         const out = outwardAt(curve, u);
-        s.position.copy(curve.getPointAt(u)).addScaledVector(out, 2 + (c.lengthMm * (0.45 + 0.55 * k)) / 2 + k * 6);
+        const linkLen = short ? 0.6 : 1.5 + k * 4;
+        const base = curve.getPointAt(u).addScaledVector(out, lineW / 2 + 0.3);
+        s.position.copy(base).addScaledVector(out, linkLen + (c.lengthMm * scale) / 2);
         s.quaternion.setFromUnitVectors(v3(0, 0, -1), out.clone().negate());
         if (c.shape === "pear") s.rotateY(Math.PI);
         group.add(s);
-        group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, [{ pos: curve.getPointAt(u).addScaledVector(out, 1), dia: accentDia }]));
-        group.add(tube(m, [curve.getPointAt(u).addScaledVector(out, 1.5), curve.getPointAt(u).addScaledVector(out, 1.5 + k * 6)], 0.2));
+        if (!short && linkLen > 1) {
+          group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, [{ pos: base.clone().addScaledVector(out, linkLen * 0.5), dia: Math.min(accentDia * 1.4, linkLen * 0.8) }]));
+          group.add(tube(m, [base, base.clone().addScaledVector(out, linkLen)], 0.18));
+        }
       });
-      focusSize = 60;
+      focusSize = 70;
       break;
     }
     case "briolette-fringe": {

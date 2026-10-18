@@ -34,6 +34,14 @@ const COLOR_PRESETS: [string, string[]][] = [
   ["Sapphire & diamond", ["#0c2394", "#f4f6fb"]],
 ];
 
+const FADES: [string, string[]][] = [
+  ["Pink to blue", ["#f6b3cf", "#d18fe0", "#8f7ae6", "#3f55cc"]],
+  ["White to pink", ["#f4f6fb", "#f6b3cf", "#e2558a"]],
+  ["Yellow to orange", ["#f4eec0", "#f2c230", "#ec8a2c"]],
+  ["Light to deep blue", ["#cfe2f7", "#5f93d8", "#1c3f94"]],
+  ["Green to blue", ["#8fd1a8", "#2e9e8a", "#2456b8"]],
+];
+
 export const accentMaxCt = (usesShapes: boolean) => (usesShapes ? 6 : 1.5);
 
 export default function AccentsSection({ d, onChange, usesShapes }: SectionProps & { usesShapes: boolean }) {
@@ -84,6 +92,19 @@ export default function AccentsSection({ d, onChange, usesShapes }: SectionProps
               </button>
             ))}
             {a.colors.length > 0 && <button type="button" className="chip" onClick={() => setAccents({ colors: [] })}>All one colour</button>}
+          </div>
+          {usesShapes && (
+            <Chips name="How the line runs" options={["line", "wave", "garland"] as const} value={a.layout}
+              fmt={(v) => (v === "line" ? "Straight" : v === "wave" ? "Wave (serpentine)" : "Garland of leaves")} onPick={(layout) => setAccents({ layout })} />
+          )}
+          <span className="small muted">Colour fade (ombré), from the front to the back</span>
+          <div className="chips" role="group" aria-label="Colour fade">
+            {FADES.map(([n, cols]) => (
+              <button key={n} type="button" className="chip" aria-pressed={a.ombre.join() === cols.join()} style={{ textTransform: "none" }} onClick={() => setAccents({ ombre: cols })}>
+                <span style={{ display: "inline-flex", marginRight: 6 }}>{cols.map((c, k) => <span key={k} style={{ width: 8, height: 8, borderRadius: 9, background: c, marginLeft: k ? -2 : 0 }} />)}</span>{n}
+              </button>
+            ))}
+            {a.ombre.length > 0 && <button type="button" className="chip" onClick={() => setAccents({ ombre: [] })}>No fade</button>}
           </div>
           <span className="small muted">Stone direction</span>
           {a.shapes.some((sh) => !SAME_EVERY_WAY.has(sh)) ? (

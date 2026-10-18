@@ -1559,6 +1559,49 @@ exports[`geometry snapshots > option three-stone pendant hangs in-chain 1`] = `
 }
 `;
 
+exports[`geometry snapshots > showcase Asscher and round trefoil bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 61.95,
+    "hash": "58c753bc",
+    "instances": 232,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      68.46,
+      6.57,
+      62.31,
+    ],
+    "upright": false,
+    "vertices": 93468,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 61.95,
+    "hash": "e85b9ac5",
+    "instances": 232,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      84.37,
+      6.57,
+      42.64,
+    ],
+    "upright": false,
+    "vertices": 93468,
+  },
+}
+`;
+
 exports[`geometry snapshots > showcase Ballerina ring 1`] = `
 {
   "fp": {
@@ -1820,6 +1863,31 @@ exports[`geometry snapshots > showcase Calibré emerald sherwani buttons 1`] = `
 }
 `;
 
+exports[`geometry snapshots > showcase Candy button ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.88,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "8a978af5",
+    "instances": 65,
+    "meshes": 15,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      24.29,
+      12.06,
+    ],
+    "upright": true,
+    "vertices": 30048,
+  },
+  "worn": null,
+}
+`;
+
 exports[`geometry snapshots > showcase Carved aquamarine and golden pearl pendant 1`] = `
 {
   "fp": {
@@ -1977,6 +2045,49 @@ exports[`geometry snapshots > showcase Diamond riviera 1`] = `
     ],
     "upright": false,
     "vertices": 145144,
+  },
+}
+`;
+
+exports[`geometry snapshots > showcase Diamond tassel bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 60,
+    "hash": "f6ac2ac1",
+    "instances": 1801,
+    "meshes": 14,
+    "nonFinite": 0,
+    "size": [
+      64.12,
+      3.84,
+      93.17,
+    ],
+    "upright": false,
+    "vertices": 539365,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 60,
+    "hash": "fc932a36",
+    "instances": 1801,
+    "meshes": 14,
+    "nonFinite": 0,
+    "size": [
+      79.83,
+      3.84,
+      73.29,
+    ],
+    "upright": false,
+    "vertices": 539365,
   },
 }
 `;
@@ -2600,6 +2711,49 @@ exports[`geometry snapshots > showcase Kundan choker 1`] = `
 }
 `;
 
+exports[`geometry snapshots > showcase Marquise and pear leaf garland bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 42.88,
+    "hash": "ab81df91",
+    "instances": 274,
+    "meshes": 13,
+    "nonFinite": 0,
+    "size": [
+      76,
+      5.08,
+      69.44,
+    ],
+    "upright": false,
+    "vertices": 84846,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 42.88,
+    "hash": "05f19c57",
+    "instances": 274,
+    "meshes": 13,
+    "nonFinite": 0,
+    "size": [
+      90.25,
+      5.08,
+      49.91,
+    ],
+    "upright": false,
+    "vertices": 84846,
+  },
+}
+`;
+
 exports[`geometry snapshots > showcase Marquise mosaic cocktail ring 1`] = `
 {
   "fp": {
@@ -2743,6 +2897,74 @@ exports[`geometry snapshots > showcase Old-mine and baguette line bracelet 1`] =
 }
 `;
 
+exports[`geometry snapshots > showcase Ombré sapphire split-shank ring 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      11.8,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "23dde6b1",
+    "instances": 543,
+    "meshes": 327,
+    "nonFinite": 0,
+    "size": [
+      20.78,
+      24.39,
+      12.34,
+    ],
+    "upright": true,
+    "vertices": 180393,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Oval and pink diamond line bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 49,
+    "hash": "e3af0bce",
+    "instances": 337,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      68.47,
+      5.33,
+      62.09,
+    ],
+    "upright": false,
+    "vertices": 103593,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 49,
+    "hash": "42851917",
+    "instances": 337,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      83.61,
+      5.33,
+      42.32,
+    ],
+    "upright": false,
+    "vertices": 103593,
+  },
+}
+`;
+
 exports[`geometry snapshots > showcase Oval trilogy ring 1`] = `
 {
   "fp": {
@@ -2818,6 +3040,49 @@ exports[`geometry snapshots > showcase Pear diamond cascade earrings 1`] = `
 }
 `;
 
+exports[`geometry snapshots > showcase Pear diamond fringe collar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.14,
+      0,
+      69.87,
+    ],
+    "focusSize": 70,
+    "hash": "c75a8d60",
+    "instances": 1220,
+    "meshes": 501,
+    "nonFinite": 0,
+    "size": [
+      119.75,
+      3.81,
+      150.61,
+    ],
+    "upright": false,
+    "vertices": 473272,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      50.71,
+    ],
+    "focusSize": 70,
+    "hash": "3b4186eb",
+    "instances": 1220,
+    "meshes": 501,
+    "nonFinite": 0,
+    "size": [
+      153.65,
+      3.81,
+      110.49,
+    ],
+    "upright": false,
+    "vertices": 473272,
+  },
+}
+`;
+
 exports[`geometry snapshots > showcase Pear emerald tiara 1`] = `
 {
   "fp": {
@@ -2840,6 +3105,49 @@ exports[`geometry snapshots > showcase Pear emerald tiara 1`] = `
     "vertices": 408212,
   },
   "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Pearl and diamond openwork cuff 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 73.99,
+    "hash": "7107a56b",
+    "instances": 5714,
+    "meshes": 202,
+    "nonFinite": 0,
+    "size": [
+      105.44,
+      4.55,
+      95.08,
+    ],
+    "upright": false,
+    "vertices": 2206942,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 73.99,
+    "hash": "0719a28e",
+    "instances": 6127,
+    "meshes": 216,
+    "nonFinite": 0,
+    "size": [
+      121.35,
+      4.55,
+      77.88,
+    ],
+    "upright": false,
+    "vertices": 2365553,
+  },
 }
 `;
 
@@ -3359,6 +3667,49 @@ exports[`geometry snapshots > showcase Sapphire petal ring 1`] = `
     "vertices": 954008,
   },
   "worn": null,
+}
+`;
+
+exports[`geometry snapshots > showcase Serpentine marquise bracelet 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 30.1,
+    "hash": "1f57f742",
+    "instances": 169,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      67.34,
+      3.68,
+      59.17,
+    ],
+    "upright": false,
+    "vertices": 53601,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 30.1,
+    "hash": "8d65beda",
+    "instances": 169,
+    "meshes": 9,
+    "nonFinite": 0,
+    "size": [
+      81.96,
+      3.68,
+      41.25,
+    ],
+    "upright": false,
+    "vertices": 53601,
+  },
 }
 `;
 
@@ -4089,6 +4440,49 @@ exports[`geometry snapshots > style bracelet/open-bangle 1`] = `
 }
 `;
 
+exports[`geometry snapshots > style bracelet/openwork 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 73.99,
+    "hash": "7107a56b",
+    "instances": 5714,
+    "meshes": 202,
+    "nonFinite": 0,
+    "size": [
+      105.44,
+      4.55,
+      95.08,
+    ],
+    "upright": false,
+    "vertices": 2206942,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 73.99,
+    "hash": "0719a28e",
+    "instances": 6127,
+    "meshes": 216,
+    "nonFinite": 0,
+    "size": [
+      121.35,
+      4.55,
+      77.88,
+    ],
+    "upright": false,
+    "vertices": 2365553,
+  },
+}
+`;
+
 exports[`geometry snapshots > style bracelet/station 1`] = `
 {
   "fp": {
@@ -4787,18 +5181,18 @@ exports[`geometry snapshots > style necklace/collar 1`] = `
       0,
       74.53,
     ],
-    "focusSize": 60,
-    "hash": "a7223a0e",
-    "instances": 748,
-    "meshes": 391,
+    "focusSize": 70,
+    "hash": "6de9382f",
+    "instances": 969,
+    "meshes": 360,
     "nonFinite": 0,
     "size": [
-      121.58,
-      3.8,
-      159.04,
+      126.19,
+      3.76,
+      153.05,
     ],
     "upright": false,
-    "vertices": 139840,
+    "vertices": 246647,
   },
   "worn": {
     "focus": [
@@ -4806,18 +5200,18 @@ exports[`geometry snapshots > style necklace/collar 1`] = `
       0,
       54.09,
     ],
-    "focusSize": 60,
-    "hash": "86f07082",
-    "instances": 748,
-    "meshes": 391,
+    "focusSize": 70,
+    "hash": "35fa40e9",
+    "instances": 969,
+    "meshes": 360,
     "nonFinite": 0,
     "size": [
-      159.58,
-      3.8,
-      116.23,
+      160.68,
+      3.76,
+      111.45,
     ],
     "upright": false,
-    "vertices": 139840,
+    "vertices": 246647,
   },
 }
 `;

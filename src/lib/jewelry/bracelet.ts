@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type Design, SOLID_BRACELETS, bangleDiameter, resolveClasp, roundDiameter } from "../design";
+import { BEAD_GEMS, type Design, SOLID_BRACELETS, bangleDiameter, resolveClasp, roundDiameter } from "../design";
 import { claspAt, claspGap } from "./clasps";
 import { type Piece, Y, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -7,7 +7,8 @@ import { setStone } from "./stones";
 import { type Item, accents, balls, chainAlong } from "./elements";
 import { patternMaxW, patternRun } from "./patterns";
 import { beadStrand, loopCurve, outwardAt, place, spreadParams, wrap, yawAt } from "./curves";
-import { haloRing } from "./ringHeads";
+import { decoFrames, haloRing } from "./ringHeads";
+import { type Mats as M } from "./materials";
 
 export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
   const c = d.center, o = d.options, st = d.style;
@@ -37,7 +38,9 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       });
       group.add(run.group);
       maxW = run.maxW;
-      const rail = off ? new THREE.CatmullRomCurve3(Array.from({ length: 200 }, (_, k) => curve.getPointAt(k / 200).addScaledVector(outwardAt(curve, k / 200), off)), true) : curve;
+      const path = run.path ?? curve;
+      const n = run.path ? 400 : 200;
+      const rail = off ? new THREE.CatmullRomCurve3(Array.from({ length: n }, (_, k) => path.getPointAt(k / n).addScaledVector(outwardAt(curve, k / n), off)), true) : path;
       const under = new THREE.Mesh(new THREE.TubeGeometry(rail, 400, Math.max(0.45, run.maxW * 0.08), 8, true), m.metal);
       under.position.y = -run.maxW * 0.45;
       group.add(under);
@@ -45,6 +48,39 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     if (haloItems.length) group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, haloItems));
     if (kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), W0 + (rows - 1) * pitch));
     focusSize = maxW * 7 + (rows - 1) * pitch * 2;
+    if (d.fringe.enabled) {
+      const reach = ((rows - 1) / 2) * pitch + maxW / 2;
+      group.add(tassel(d, m, curve.getPointAt(front).addScaledVector(outFront, reach + 0.6), outFront));
+      focusSize = Math.max(focusSize, 60);
+    }
+  } else if (st === "openwork") {
+    const motif = () => { const g = new THREE.Group(); g.add(setStone(c, d.setting.style, m)); const f = decoFrames(d, m, c); g.add(f.group); return { g, extent: f.extent }; };
+    const first = motif();
+    const long = first.extent, short = c.widthMm / 2 + (first.extent - c.lengthMm / 2);
+    const rowPitch = long * 2 + 0.8;
+    const rows = Math.max(1, Math.min(o.layers, Math.floor(55 / rowPitch) || 1));
+    const beads: Item[] = [];
+    const bead = Math.max(1.4, roundDiameter(d.accents.gem, d.accents.sizeCt) * 1.6);
+    for (let r = 0; r < rows; r++) {
+      const off = (r - (rows - 1) / 2) * rowPitch, shift = r % 2 ? 0.5 : 0;
+      const rail = new THREE.CatmullRomCurve3(Array.from({ length: 200 }, (_, k) => curve.getPointAt(k / 200).addScaledVector(outwardAt(curve, k / 200), off)), true);
+      const per = Math.max(3, Math.floor(rail.getLength() / (short * 2 + bead + 0.6)));
+      for (let i = 0; i < per; i++) {
+        const u = wrap(front + (i + shift) / per);
+        const mm = r === 0 && i === 0 ? first : motif();
+        const out = outwardAt(curve, u);
+        group.add(place(mm.g, curve.getPointAt(u).addScaledVector(out, off), yawAt(curve, u)));
+        const un = wrap(u + 0.5 / per), on = outwardAt(curve, un);
+        beads.push({ pos: curve.getPointAt(un).addScaledVector(on, off).add(v3(0, -0.2, 0)), dia: bead });
+        if (r < rows - 1) beads.push({ pos: curve.getPointAt(un).addScaledVector(on, off + rowPitch / 2).add(v3(0, -0.2, 0)), dia: bead * 1.2 });
+      }
+      const under = new THREE.Mesh(new THREE.TubeGeometry(rail, 400, 0.35, 8, true), m.metal);
+      under.position.y = -1.2;
+      group.add(under);
+    }
+    group.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, beads));
+    focus = curve.getPointAt(front);
+    focusSize = long * 2 * rows + 30;
   } else if (st === "open-bangle") {
     const thick = 2.2;
     const arc = new THREE.CatmullRomCurve3(Array.from({ length: 120 }, (_, i) => curve.getPointAt(wrap(front + 0.05 + (i / 119) * 0.9))));
@@ -121,4 +157,30 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
     if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), st === "beaded" ? Math.max(3, d.fringe.sizeMm) : 3.2));
   }
   return { group, focus, focusSize, upright: false };
+}
+
+function tassel(d: Design, m: M, at: THREE.Vector3, dir: THREE.Vector3) {
+  const g = new THREE.Group();
+  g.userData.part = "fringe";
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(2.4, 24, 16), m.metal);
+  cap.scale.set(1, 0.8, 1.25);
+  cap.position.copy(at).addScaledVector(dir, 2.4);
+  g.add(cap);
+  const capStones: Item[] = Array.from({ length: 10 }, (_, i) => {
+    const a = (i / 10) * Math.PI * 2;
+    return { pos: cap.position.clone().add(v3(Math.cos(a) * 1.9, 1.2, Math.sin(a) * 1.9)), dia: 0.9 };
+  });
+  g.add(accents(m, d.accents.gem, d.accents.color, d.accents.cut, capStones));
+  const D = Math.min(3.5, Math.max(1, d.fringe.sizeMm * 0.5));
+  const strands = 11, len = 32, side = new THREE.Vector3().crossVectors(Y, dir).normalize();
+  const stones: Item[] = [];
+  for (let k = 0; k < strands; k++) {
+    const spread = (k / (strands - 1) - 0.5) * 0.5;
+    const way = dir.clone().applyAxisAngle(Y, spread);
+    const start = cap.position.clone().addScaledVector(dir, 2.2).addScaledVector(side, spread * 4);
+    const n = Math.floor((len * (0.85 + 0.15 * Math.cos(spread * 6))) / (D + 0.15));
+    for (let i = 0; i < n; i++) stones.push({ pos: start.clone().addScaledVector(way, i * (D + 0.15)).add(v3(0, (k % 2) * 0.4, 0)), dia: D, up: Y });
+  }
+  g.add(BEAD_GEMS.has(d.fringe.gem) ? balls(m.bead(d.fringe.gem, d.fringe.color), stones) : accents(m, d.fringe.gem, d.fringe.color, "faceted", stones));
+  return g;
 }

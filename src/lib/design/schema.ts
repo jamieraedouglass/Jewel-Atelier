@@ -103,6 +103,7 @@ export const DropPartSchema = z.object({
   offsetZ: z.number().min(-40).max(40).default(0),
   tilt: z.number().min(-90).max(90).default(0),
   pair: z.boolean().default(false),
+  setting: z.enum(["auto", ...SETTINGS]).default("auto"),
 });
 export type DropPart = z.infer<typeof DropPartSchema>;
 
@@ -143,6 +144,8 @@ export const DesignSchema = z
       twins: z.array(z.boolean()).max(12).default([]),
       sizes: z.array(z.number().min(0.2).max(4)).max(12).default([]),
       colors: z.array(hex).max(60).default([]),
+      ombre: z.array(hex).max(6).default([]),
+      layout: z.enum(["line", "wave", "garland"]).default("line"),
     }).default({}),
     fringe: z.object({ enabled: z.boolean().default(false), gem: z.enum(GEMS).default("pearl"), color: hex.default("#f3ede2"), sizeMm: z.number().min(1.5).max(14).default(4) }).default({}),
     enamel: z.object({ enabled: z.boolean().default(false), color: hex.default("#16704c") }).default({}),
@@ -155,7 +158,7 @@ export const DesignSchema = z
       hugFrac: z.number().min(0.4).max(1).default(0.78),
       follow: z.enum(["level", "band"]).default("level"),
     }).default({}),
-    gallery: z.object({ roseCut: z.boolean().default(true), under: z.enum(["peekaboo", "hidden-halo"]).default("peekaboo") }).default({}),
+    gallery: z.object({ roseCut: z.boolean().default(true), under: z.enum(["peekaboo", "hidden-halo"]).default("peekaboo"), color: hex.default("#f4f6fb") }).default({}),
     band: z.object({
       widthMm: z.number().min(1.5).max(16).default(2.3), finish: z.enum(BAND_FINISHES).default("polished"),
       profile: z.enum(["raised", "low", "set-in", "flush"]).default("raised"),
@@ -167,6 +170,8 @@ export const DesignSchema = z
       paveShape: z.enum(SHAPES).default("round"),
       paveMm: z.number().min(0.8).max(4).default(1.5),
       paveAngle: z.number().min(0).max(80).default(0),
+      paveOmbre: z.array(hex).max(6).default([]),
+      split: z.number().min(0).max(8).default(0),
     }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     extraStones: z.array(ExtraStoneSchema).max(6).default([]),

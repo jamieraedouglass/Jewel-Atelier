@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { applyPatchLenient, chooseStyle, type Design, type DesignPatch, type PieceType } from "@/lib/design";
+import { applyPatchLenient, chooseStyle, freshDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
 import { compressImage, uid } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 
@@ -26,6 +26,9 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [best, setBest] = useState<{ score: number; round: number; differences: string[] } | null>(null);
+  const [paths, setPaths] = useState<string[]>([]);
+  const [ask, setAsk] = useState("");
+  const [fixes, setFixes] = useState<{ ask: string; done: string }[]>([]);
 
   if (!userId) return <p className="muted">Sign in to recreate a piece from a photo.</p>;
 
@@ -52,13 +55,14 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         if (error) throw new Error(error.message);
         paths.push(path);
       }
+      setPaths(paths); setFixes([]);
       setBusy("Studying the piece… (up to a minute)");
       const res = await fetch("/api/from-photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notes || undefined }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't recreate the piece.");
       setResult(json); setBest(null);
       const first: Result = json;
-      let built = apply(first, first.base ?? design);
+      let built = apply(first, first.base ?? freshDesign(design));
       const builds: { design: Design; result: Result; score: number | null; differences: string[] }[] = [{ design: built, result: first, score: null, differences: [] }];
       for (let round = 1; capture && round <= CHECKS; round++) {
         setBusy(`Comparing the 3D build with your photo (check ${round} of ${CHECKS})…`);
@@ -84,6 +88,26 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't recreate the piece.");
+    } finally { setBusy(null); }
+  }
+
+  async function adjust() {
+    const request = ask.trim();
+    if (!request || !capture || !paths.length) return;
+    setError(null);
+    setBusy("Making that change…");
+    try {
+      const shot = await capture();
+      if (!shot) throw new Error("Couldn't take a picture of the 3D build.");
+      const render = await dataUrl(await compressImage(shot));
+      const res = await fetch("/api/from-photo/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, notes: notes || undefined, design, render, round: 1, request }) });
+      const json: Result & { error?: string } = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't make that change.");
+      apply(json, design);
+      setFixes((f) => [...f, { ask: request, done: json.description }]);
+      setAsk("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't make that change.");
     } finally { setBusy(null); }
   }
 
@@ -119,6 +143,17 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         <section className="proposal">
           <h4>{result.title}</h4>
           {best && <p className="small" style={{ margin: 0 }}>Closest match: <b>{best.score}/10</b> ({best.round === 0 ? "the first build" : `after check ${best.round}`}).</p>}
+          {design.type === "ring" && !design.center.none && design.center.shape !== "round" && (
+            <div style={{ display: "grid", gap: 4 }}>
+              <span className="small muted">Centre stone, compared with the finger (tap to fix it if the angle is wrong):</span>
+              <div className="chips" role="group" aria-label="Centre stone direction">
+                {([["Along the finger", 0], ["Across the finger", 90], ["Diagonal", 45]] as const).map(([name, rotation]) => (
+                  <button key={name} type="button" className="chip" aria-pressed={((design.center.rotation % 180) + 180) % 180 === rotation}
+                    onClick={() => onReplace(applyPatchLenient(design, { center: { rotation } } as DesignPatch))}>{name}</button>
+                ))}
+              </div>
+            </div>
+          )}
           {result.analysis && (
             <details>
               <summary className="small">How the piece was read</summary>
@@ -139,7 +174,23 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
             </>
           )}
           <p className="small muted" style={{ margin: 0 }}>It&apos;s now in the 3D view. Open the Design tab to change anything, or click a part of the paused piece.</p>
-          <button className="btn" type="button" onClick={() => apply(result, result.base ?? design)}>Start over from this photo</button>
+          {capture && paths.length > 0 && (
+            <div style={{ display: "grid", gap: 6 }}>
+              <span className="small"><b>Still not right?</b> Say what to change. It looks at your photo and the 3D build again, and changes only that.</span>
+              {fixes.map((f, i) => (
+                <div key={i} className="small" style={{ display: "grid", gap: 2 }}>
+                  <span><b>You:</b> {f.ask}</span>
+                  <span className="muted">Done: {f.done}</span>
+                </div>
+              ))}
+              <textarea aria-label="What to change" value={ask} onChange={(e) => setAsk(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); adjust(); } }}
+                placeholder="e.g. the marquise should point along the finger · less gold showing · make the pink stones flatter and paler · the top curves down into the band at the sides" />
+              <button className="btn primary" type="button" disabled={!ask.trim() || !!busy} onClick={adjust}>{busy === "Making that change…" ? busy : "Change it"}</button>
+              <span className="small muted">Undo goes back a step if you don&apos;t like a change.</span>
+            </div>
+          )}
+          <button className="btn" type="button" onClick={() => apply(result, result.base ?? freshDesign(design))}>Start over from this photo</button>
         </section>
       )}
     </>

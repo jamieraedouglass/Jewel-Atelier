@@ -93,14 +93,25 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Carved aquamarine and golden pearl pendant", collection: KOTHARI, type: "necklace", style: "drop-pendant", patch: { metal: "yellow-gold", drop: dropOf("Carved stone pendant"), options: { lengthIn: 22, chain: "fine" } } as DesignPatch },
   { name: "Mughal carved emerald ring", collection: KOTHARI, type: "ring", style: "solitaire", patch: { metal: "yellow-gold", purity: { karat: 22 }, setting: { style: "four-claw" }, center: { gem: "emerald", cut: "carved", shape: "cushion", lengthMm: 16, widthMm: 13, domeMm: 4.5, ...graded("emerald", "colombian"), label: "Carved Colombian emerald", carat: null, rotation: 0, none: false } } },
   { name: "Carved jade drops", collection: KOTHARI, type: "earrings", style: "pendant", patch: { metal: "yellow-gold", purity: { karat: 22 }, drop: { ...dropOf("Carved jade drop"), top: "post" } } as DesignPatch },
+  { name: "Marquise and pear leaf garland bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { gem: "diamond", shapes: ["pear", "marquise", "round"], turns: [0, 0, 0], twins: [], sizes: [1.25, 1.15, 0.6], orientation: "along", layout: "garland", sizeCt: 0.6 }, options: { layers: 1 } } as DesignPatch },
+  { name: "Serpentine marquise bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { gem: "diamond", shapes: ["marquise", "pear"], turns: [0, 0], twins: [], sizes: [1, 0.9], orientation: "along", layout: "wave", sizeCt: 0.5 }, options: { layers: 1 } } as DesignPatch },
+  { name: "Asscher and round trefoil bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { gem: "diamond", shapes: ["asscher", "round"], turns: [45, 0], twins: [false, true], sizes: [1.5, 1], sizeCt: 1 }, options: { layers: 1 } } as DesignPatch },
+  { name: "Oval and pink diamond line bracelet", type: "bracelet", style: "tennis", patch: { metal: "platinum", accents: { gem: "diamond", shapes: ["oval", "round"], turns: [90, 0], twins: [false, true], sizes: [1.4, 0.9], colors: ["#f4f6fb", "#f2a6bf"], sizeCt: 0.6 }, options: { layers: 1 } } as DesignPatch },
+  { name: "Diamond tassel bracelet", type: "bracelet", style: "tennis", patch: { metal: "white-gold", accents: { gem: "diamond", shapes: ["round"], sizeCt: 0.1 }, fringe: { enabled: true, gem: "diamond", color: "#f4f6fb", sizeMm: 3 }, options: { layers: 1 } } as DesignPatch },
+  { name: "Pearl and diamond openwork cuff", type: "bracelet", style: "openwork", patch: { metal: "white-gold", options: { layers: 3 } } },
+  { name: "Pear diamond fringe collar", type: "necklace", style: "collar", patch: { metal: "platinum", center: diamond("pear", 1, "Pear diamonds"), accents: { gem: "diamond", shapes: ["baguette"], orientation: "across", sizeCt: 0.15 }, options: { count: 21, lengthIn: 15 } } as DesignPatch },
+  { name: "Ombré sapphire split-shank ring", type: "ring", style: "solitaire", patch: { metal: "rose-gold", center: diamond("emerald", 4, "Emerald-cut diamond"), setting: { style: "four-claw" }, gallery: { roseCut: true, under: "hidden-halo", color: "#f2a6c8" }, band: { widthMm: 2.4, split: 3, pave: "full", paveRows: 1, paveGem: "sapphire", paveColor: "#f2a6c8", paveShape: "round", paveMm: 1.3, paveOmbre: ["#f6b3cf", "#d18fe0", "#8f7ae6", "#3f55cc"] } } as DesignPatch },
+  { name: "Candy button ring", type: "ring", style: "solitaire", patch: { metal: "yellow-gold", center: { ...gem("aquamarine", "faceted", "cushion", 2.5, "Blue topaz"), color: "#4fa3d1", clarity: 0.85 }, setting: { style: "bezel" }, band: { widthMm: 3.2 } } as DesignPatch },
 ];
 
 export type ShowcasePiece = (typeof SHOWCASE)[number];
 
+export const freshDesign = (current?: Design): Design => current
+  ? applyPatch(defaultDesign(), { ringSize: current.ringSize, options: { wristCm: current.options.wristCm, bangleSize: current.options.bangleSize } })
+  : defaultDesign();
+
 export function showcaseDesign(entry: ShowcasePiece, current?: Design): Design {
-  const fresh = current
-    ? applyPatch(defaultDesign(), { ringSize: current.ringSize, options: { wristCm: current.options.wristCm, bangleSize: current.options.bangleSize } })
-    : defaultDesign();
+  const fresh = freshDesign(current);
   return { ...applyPatch(chooseStyle(fresh, entry.type, entry.style), entry.patch), name: entry.name };
 }
 
