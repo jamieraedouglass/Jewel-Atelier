@@ -15,7 +15,7 @@ import { Grabber } from "./canvas/Grabber";
 import { StoneLight, forgetRoomEnv } from "./canvas/stoneLight";
 import { Refraction, forgetStudioCube } from "./canvas/Refraction";
 import { CameraRig, ClickPicker, Model } from "./canvas/sceneParts";
-import { Backdrop, StudioLights } from "./canvas/studio";
+import { Backdrop, LIGHT_LOOK, StudioLights } from "./canvas/studio";
 
 type Props = {
   design: Design; view?: View; autoRotate?: boolean; className?: string; handle?: React.MutableRefObject<RingCanvasHandle | null>;
@@ -57,8 +57,8 @@ export default function RingCanvas({ design, view = "hero", autoRotate = true, c
       }}
     >
       <Backdrop />
-      <Suspense fallback={null}><StudioLights /></Suspense>
-      <directionalLight position={[10, 30, 20]} intensity={1.2} color="#fff4e6" />
+      <Suspense fallback={null}><StudioLights key={design.options.lighting} lighting={design.options.lighting} /></Suspense>
+      <directionalLight position={[10, 30, 20]} intensity={LIGHT_LOOK[design.options.lighting].sunI} color={LIGHT_LOOK[design.options.lighting].sun} />
       <Model piece={piece} />
       <StoneLight piece={piece} />
       <Suspense fallback={null}><Refraction piece={piece} enabled={!lowPower} /></Suspense>

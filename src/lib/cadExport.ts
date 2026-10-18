@@ -6,7 +6,7 @@ import { type Design } from "./design";
 import { buildPiece } from "./jewelryModel";
 import { buildSpec, isMetal } from "./studio/spec";
 
-type Part = { name: string; metal: boolean; geos: THREE.BufferGeometry[] };
+export type Part = { name: string; metal: boolean; color: string; geos: THREE.BufferGeometry[] };
 
 const plain = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
   const out = new THREE.BufferGeometry();
@@ -51,7 +51,7 @@ export function modelParts(d: Design): Part[] {
     let tag = "";
     for (let p: THREE.Object3D | null = o; p && !tag; p = p.parent) tag = (p.userData.part as string) ?? "";
     const name = metal ? "Metal" : `Stones ${tag || "main"} ${mat.color ? `#${mat.color.getHexString()}` : ""}`.trim();
-    const part = parts.get(name) ?? parts.set(name, { name, metal, geos: [] }).get(name)!;
+    const part = parts.get(name) ?? parts.set(name, { name, metal, color: metal ? "#d4af37" : `#${mat.color?.getHexString() ?? "ffffff"}`, geos: [] }).get(name)!;
     const inst = (o as THREE.InstancedMesh).isInstancedMesh ? (o as THREE.InstancedMesh) : null;
     const geo = light(mesh.geometry, metal);
     if (inst) for (let i = 0; i < inst.count; i++) { inst.getMatrixAt(i, m); m.premultiply(mesh.matrixWorld); part.geos.push(plain(geo, m)); }
@@ -62,8 +62,8 @@ export function modelParts(d: Design): Part[] {
 
 const mergedMesh = (p: Part) => new THREE.Mesh(mergeGeometries(p.geos, false) ?? new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
 
-export function cadZip(d: Design): Uint8Array {
-  const parts = modelParts(d);
+export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?: Part[]): Uint8Array {
+  const parts = given ?? modelParts(d);
   const stl = new STLExporter();
   const metal = parts.filter((p) => p.metal), stones = parts.filter((p) => !p.metal);
   const files: Record<string, Uint8Array> = {};
@@ -80,6 +80,8 @@ export function cadZip(d: Design): Uint8Array {
     spec.summary,
     "",
     "Units: millimetres. The model is at real size.",
+    "model.3dm      Rhino file (opens in Rhino and MatrixGold): the metal on its own layer, every stone a separate",
+    "               named object on a layer per stone type, units millimetres",
     "metal.stl      the metal only, for wax/resin printing and casting",
     "stones-*.stl   each set of stones (by colour), in place. Import them all together to see the whole piece",
     "               (Rhino, MatrixGold, JewelCAD and print software all open STL).",
@@ -97,5 +99,5 @@ export function cadZip(d: Design): Uint8Array {
     "",
     ...spec.notes,
   ].join("\n"));
-  return zipSync(files, { level: 6 });
+  return zipSync({ ...extra, ...files }, { level: 6 });
 }
