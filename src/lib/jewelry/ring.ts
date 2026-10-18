@@ -137,7 +137,7 @@ export function ringPiece(d0: Design): Piece {
     at(backingPlate(m, outlineFn("round", 1, 1), (R + dia + 1) * 2, -0.9, 0.8));
   }
   applyProfile(group, d, gy);
-  if (decoTop && d.options.decoBend > 0) bendOverFinger(group, decoTop, d.options.decoBend, ringInnerDiameter(d.ringSize) / 2 + 2.1);
+  if (decoTop && d.options.decoBend > 0) bendOverFinger(group, decoTop, d.options.decoBend, ringInnerDiameter(d.ringSize) / 2 + 2.1, d.band.widthMm / 2 + 1);
   bandPave(group, d, m);
   const top = new THREE.Box3().setFromObject(group).max.y;
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
@@ -156,7 +156,7 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const start = hx ? Math.asin(Math.min(0.9, (hx + 0.6) / (RIN + 2.3))) : 0;
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
   const mosaic = mosaicFrame(d);
-  const rows = mosaic ? Math.max(2, Math.round((b.widthMm - 0.3) / (mosaic.widthMm * ASPECT[mosaic.shape] + 0.1))) : b.paveRows;
+  const rows = mosaic ? Math.max(3, Math.round((b.widthMm - 0.3) / (mosaic.widthMm * 0.75 * ASPECT[mosaic.shape] + 0.1))) : b.paveRows;
   const W = mosaic ? ((b.widthMm - 0.3) / rows - 0.08) / ASPECT[mosaic.shape] : b.paveMm;
   const ang = b.paveAngle;
   const pd: Design = mosaic
@@ -229,7 +229,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
 }
 
-export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: number, floor: number) {
+export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: number, floor: number, bandHalf: number) {
   root.updateMatrixWorld(true);
   const toRoot = root.matrixWorld.clone().invert();
   const box = new THREE.Box3().setFromObject(part);
@@ -251,8 +251,16 @@ export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amoun
     for (let i = 0; i < ps.count; i += 3) { w.fromBufferAttribute(ps, i).applyMatrix4(mm); if (Math.abs(w.x) > edge) sideLow = Math.min(sideLow, w.y); }
   });
   const settle = Number.isFinite(sideLow) ? Math.min(4, Math.max(0, sideLow - floor)) : 0;
-  const angleAt = (x: number) => (amount * x) / R;
-  const place = (p: THREE.Vector3) => { const a = angleAt(p.x), r = Math.max(floor, p.y - settle * Math.min(1, Math.sin(a) ** 2 * 4)); return { a, p: v3(r * Math.sin(a), r * Math.cos(a), p.z) }; };
+  const Rb = R / amount, yc = R - Rb;
+  const place = (p: THREE.Vector3) => {
+    const a = p.x / Rb, over = Math.abs(p.z) <= bandHalf;
+    const sy = over ? p.y - settle * Math.min(1, Math.sin(a) ** 2 * 4) : p.y;
+    const rho = Math.max(0.5, Rb + sy - R);
+    const q = v3(rho * Math.sin(a), yc + rho * Math.cos(a), p.z);
+    const r = Math.hypot(q.x, q.y);
+    if (over && r < floor) { q.x *= floor / r; q.y *= floor / r; }
+    return { a, p: q };
+  };
   const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), rz = new THREE.Matrix4();
   const pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
   part.traverse((o) => {
