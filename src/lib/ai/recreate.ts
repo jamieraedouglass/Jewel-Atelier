@@ -77,6 +77,12 @@ How to choose:
   * A square or cushion top only when the photo's top really has straight sides and corners. When the stones curve round the
     centre stone in bands that echo its shape (most cocktail rings round a marquise, pear or oval), use fit "hug" bands with the
     centre's own outline, as in the worked example; never turn such a piece into a square.
+  * ORIENTATION (rings): judge every direction relative to the band, never from how the photo is tilted. First find where
+    the top curves down into the band: on a ring held between fingers, the fingers usually grip it there, and the top slopes
+    away towards them. That line is across the finger. A stone whose long axis is at right angles to that line points along
+    the finger: center.rotation 0. A stone whose long axis runs along that line lies across the finger: rotation 90. Only use
+    45 when the stone really sits diagonally to the band. A photo taken at an angle makes a straight stone look diagonal.
+  * In the analysis, say where the band meets the top and which way the centre stone points relative to it.
   * Leaves winding through a mosaic in diagonal lines: pattern "vines"; hand-set stones of slightly different sizes: vary 0.15–0.25.
   * A centre stone in a fine gold rim with beaded (milgrain) edge: setting.style "bezel".
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
@@ -90,7 +96,7 @@ ${SHOWCASE.filter((x) => x.type === "ring" || x.type === "earrings" || x.type ==
     paveShape matching the stones on the top (a vine of angled marquise leaves for leaf patterns), and a wider band (widthMm 4–8).
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.
 If the stones in a line change colour (rainbow, ombré, alternating gems), list them in accents.colors in order, one hex per stone, repeating; don't flatten them to one colour.
-Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
+The person's notes override what you think you see: if the notes give a size, direction, shape or stone, use it. Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
 
 export const REFINE_SYSTEM = () => `${RECREATE_SYSTEM}
 
@@ -102,6 +108,8 @@ real piece as this app allows:
 - every layer or row of stones: shape, size, colour, how many, which way they point, how tightly they are packed, and
   whether gold shows between them;
 - the metal colour, a flat or domed top, and whether the pattern continues down the band;
+- the centre stone's direction RELATIVE TO THE BAND (along or across the finger), not relative to the picture frame: the
+  build is shown from a different angle than the photo, so compare where each stone points against where its band is;
 - anything missing or extra.
 First score the build and list the differences. Then correct ONLY those differences: keep the style, outline, layers and
 everything else that already matches exactly as they are (change a value only when it is clearly wrong). Return the whole

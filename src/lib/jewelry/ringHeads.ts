@@ -48,7 +48,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       let seed = 17;
       const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
       let k2 = 0;
-      for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross * 2) / (Math.hypot(x, z) || 1));
+      for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross) / (Math.hypot(x, z) || 1));
       const ringPts = raw.map(([x, z]) => v3(x * k2, 0, z * k2));
       const outerR = new Float32Array(N);
       for (const p of ringPts) { const b = bin(theta(p.x, p.z)); outerR[b] = Math.max(outerR[b], Math.hypot(p.x, p.z)); }
@@ -90,7 +90,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           const room = radial ? Math.min(slotAlong - 0.06, (rowGap - 0.06) / ASPECT[f.shape]) : Math.min(rowGap - 0.06, (slotAlong - 0.06) / ASPECT[f.shape]);
           const fitted = Math.min(sz * 1.8, Math.max(sz * 0.9, room + 0.3));
           const jitter = 1 + (rnd() * 2 - 1) * Math.max(f.vary, f.cut === "cabochon" ? 0.12 : 0);
-          const leaf = (Math.max(slotAlong, rowGap) * (f.pattern === "vines" ? 1.55 : 1)) / ASPECT[shape];
+          const leaf = (Math.max(slotAlong, rowGap) * (f.pattern === "vines" ? 1.3 : 1)) / ASPECT[shape];
           const dia = (isAlt ? Math.max(Math.min(fitted, leaf), f.pattern === "vines" ? leaf : 0) : fitted) * jitter;
           const look = isAlt ? f.alt! : f;
           put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: isAlt ? p.clone().addScaledVector(up, 0.25) : p, dia, quat, up });
