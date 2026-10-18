@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL } from "./client";
+import { createMessage } from "./client";
 
 export const PHOTO_READ_SYSTEM = `You are a fine-jewellery stylist reading a client's inspiration photos (jewellery, outfits, interiors, anything).
 Describe the taste they show, for a designer who will not see the photos: metals and colours, stone types and cuts, scale and weight,
@@ -7,8 +7,7 @@ era and influences (Art Deco, Mughal, minimal, bridal…), recurring motifs and 
 stands out in particular photos briefly. Write 4–7 plain sentences, no lists, no preamble. Describe taste only: never identify people.`;
 
 export async function readPhotos(images: Anthropic.ImageBlockParam[]): Promise<string> {
-  const msg = await anthropic().messages.create({
-    model: MODEL,
+  const msg = await createMessage({
     max_tokens: 600,
     system: PHOTO_READ_SYSTEM,
     messages: [{ role: "user", content: [...images, { type: "text", text: `These are ${images.length} inspiration photo(s). What taste do they show?` }] }],

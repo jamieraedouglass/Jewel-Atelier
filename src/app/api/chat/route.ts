@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, CHAT_SYSTEM, createMotifTool, MODEL, proposeDesignTool, storageImages, toMotif } from "@/lib/ai";
+import { CHAT_SYSTEM, createMessage, createMotifTool, proposeDesignTool, storageImages, toMotif } from "@/lib/ai";
 import { MOTIF_STYLE, designForAi, normalizeDesign } from "@/lib/design";
 import { plainReply } from "@/lib/chat";
 import { requireUser } from "@/lib/supabase/server";
@@ -60,8 +60,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const msg = await anthropic().messages.create({
-      model: MODEL,
+    const msg = await createMessage({
       system: CHAT_SYSTEM,
       max_tokens: 4000,
       tools: [proposeDesignTool, createMotifTool],
