@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Mark = { photo?: number; x?: number; y?: number; r?: number };
 type Group = { what?: string; shape?: string; cut?: string; color?: string; ratio?: number; sizes_vary?: string; where?: string; marks?: Mark[]; count?: number };
@@ -54,20 +54,72 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
   const groups = (done && edits) || reading?.groups || [];
   const editable = () => edits ?? (reading?.groups ?? []).map((g) => ({ ...g, marks: [...(g.marks ?? [])] }));
   const edited: Reading = { ...(reading ?? {}), groups };
+  const [history, setHistory] = useState<Group[][]>([]);
+  const [zoom, setZoom] = useState<number | null>(null);
+  useEffect(() => {
+    if (zoom === null) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(null); };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [zoom]);
+  // Tapping a circle takes that stone away (whichever group it's in); tapping elsewhere adds a stone to the group
+  // being marked.
   const tap = (pi: number, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!done || active === null) return;
+    if (!done) return;
     const box = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - box.left) / box.width, y = (e.clientY - box.top) / box.height;
-    const next = editable(), g = next[active];
-    if (!g) return;
-    const marks = g.marks ?? [], a = aspect[pi] ?? 1;
-    const hit = marks.findIndex((mk) => (mk.photo ?? 0) === pi && num(mk.x) !== null && num(mk.y) !== null && Math.hypot((mk.x as number) - x, ((mk.y as number) - y) * a) < Math.max(0.012, num(mk.r) ?? 0.015));
-    const rs = marks.map((mk) => num(mk.r)).filter((r): r is number => r !== null).sort((p, q) => p - q);
-    const r = rs.length ? rs[Math.floor(rs.length / 2)] : 0.012;
-    g.marks = hit >= 0 ? marks.filter((_, i) => i !== hit) : [...marks, { photo: pi, x, y, r }];
-    g.count = g.marks.length;
+    const x = (e.clientX - box.left) / box.width, y = (e.clientY - box.top) / box.height, a = aspect[pi] ?? 1;
+    const before = editable(), next = before.map((g) => ({ ...g, marks: [...(g.marks ?? [])] }));
+    let hitGroup = -1, hitMark = -1, best = Infinity;
+    next.forEach((g, gi) => {
+      if (removed.has(gi)) return;
+      g.marks!.forEach((mk, mi) => {
+        if ((mk.photo ?? 0) !== pi || num(mk.x) === null || num(mk.y) === null) return;
+        const dist = Math.hypot((mk.x as number) - x, ((mk.y as number) - y) * a);
+        if (dist < Math.max(0.012, num(mk.r) ?? 0.015) && dist < best) { best = dist; hitGroup = gi; hitMark = mi; }
+      });
+    });
+    let changed = -1;
+    if (hitGroup >= 0) { next[hitGroup].marks = next[hitGroup].marks!.filter((_, i) => i !== hitMark); changed = hitGroup; }
+    else if (active !== null && next[active]) {
+      const rs = next[active].marks!.map((mk) => num(mk.r)).filter((r): r is number => r !== null).sort((p, q) => p - q);
+      next[active].marks!.push({ photo: pi, x, y, r: rs.length ? rs[Math.floor(rs.length / 2)] : 0.012 });
+      changed = active;
+    }
+    if (changed < 0) return;
+    next[changed].count = next[changed].marks!.length;
+    setHistory((h) => [...h.slice(-30), before]);
     setEdits(next);
-    setCounts((c) => ({ ...c, [active]: g.marks!.length }));
+    setCounts((c) => ({ ...c, [changed]: next[changed].marks!.length }));
+  };
+  const undo = () => {
+    const prev = history[history.length - 1];
+    if (!prev) return;
+    setHistory((h) => h.slice(0, -1));
+    setEdits(prev);
+    setCounts((c) => { const n = { ...c }; prev.forEach((g, gi) => { n[gi] = g.marks?.length ?? 0; }); return n; });
+  };
+  const photoView = (src: string, pi: number, big = false) => {
+    const a = aspect[pi] ?? 1;
+    return (
+      <div style={{ position: "relative", cursor: done ? "crosshair" : undefined, ...(big ? { width: `min(92vw, ${86 / a}vh)` } : {}) }} onClick={(e) => tap(pi, e)}>
+        <img src={src} alt={`Photo ${pi + 1}`} style={{ width: "100%", display: "block", borderRadius: 6 }} draggable={false}
+          onLoad={(e) => { const im = e.currentTarget; setAspect((x) => ({ ...x, [pi]: im.naturalHeight / Math.max(1, im.naturalWidth) })); }} />
+        <svg viewBox={`0 0 1 ${a}`} preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} aria-hidden="true">
+          {reading?.main && reading.main.photo === pi && num(reading.main.x) !== null && num(reading.main.w) !== null && (
+            <rect x={reading.main.x} y={(reading.main.y ?? 0) * a} width={reading.main.w} height={(reading.main.h ?? 0) * a}
+              fill="none" stroke="#fff" strokeWidth={big ? 0.002 : 0.004} strokeDasharray="0.012 0.008" />
+          )}
+          {groups.map((g, gi) => removed.has(gi) ? null : (g.marks ?? []).filter((mk) => (mk.photo ?? 0) === pi && num(mk.x) !== null && num(mk.y) !== null).map((mk, mi) => (
+            <circle key={`${gi}-${mi}`} cx={mk.x} cy={(mk.y as number) * a} r={Math.max(0.006, Math.min(0.08, num(mk.r) ?? 0.015))}
+              fill="none" stroke={COLORS[gi % COLORS.length]} strokeWidth={(active === gi ? 0.007 : 0.004) * (big ? 0.6 : 1)} />
+          )))}
+        </svg>
+        {done && !big && (
+          <button type="button" className="chip" style={{ position: "absolute", right: 6, top: 6, padding: "1px 8px", background: "rgba(0,0,0,0.6)" }}
+            onClick={(e) => { e.stopPropagation(); setZoom(pi); }}>Enlarge</button>
+        )}
+      </div>
+    );
   };
   const addGroup = (what: string) => {
     if (!what.trim()) return;
@@ -89,25 +141,7 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
         </p>
       )}
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: previews.length > 1 ? "1fr 1fr" : "1fr" }}>
-        {previews.map((src, pi) => {
-          const a = aspect[pi] ?? 1;
-          return (
-            <div key={src} style={{ position: "relative", cursor: done && active !== null ? "crosshair" : undefined }} onClick={(e) => tap(pi, e)}>
-              <img src={src} alt={`Photo ${pi + 1}`} style={{ width: "100%", display: "block", borderRadius: 6 }}
-                onLoad={(e) => { const im = e.currentTarget; setAspect((x) => ({ ...x, [pi]: im.naturalHeight / Math.max(1, im.naturalWidth) })); }} />
-              <svg viewBox={`0 0 1 ${a}`} preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} aria-hidden="true">
-                {reading?.main && reading.main.photo === pi && num(reading.main.x) !== null && num(reading.main.w) !== null && (
-                  <rect x={reading.main.x} y={(reading.main.y ?? 0) * a} width={reading.main.w} height={(reading.main.h ?? 0) * a}
-                    fill="none" stroke="#fff" strokeWidth={0.004} strokeDasharray="0.012 0.008" />
-                )}
-                {groups.map((g, gi) => removed.has(gi) ? null : (g.marks ?? []).filter((mk) => (mk.photo ?? 0) === pi && num(mk.x) !== null && num(mk.y) !== null).map((mk, mi) => (
-                  <circle key={`${gi}-${mi}`} cx={mk.x} cy={(mk.y as number) * a} r={Math.max(0.006, Math.min(0.08, num(mk.r) ?? 0.015))}
-                    fill="none" stroke={COLORS[gi % COLORS.length]} strokeWidth={active === gi ? 0.007 : 0.004} />
-                )))}
-              </svg>
-            </div>
-          );
-        })}
+        {previews.map((src, pi) => <div key={src}>{photoView(src, pi)}</div>)}
       </div>
 
       {reading?.main?.what && (
@@ -142,11 +176,12 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
       </ul>
       {done && (
         <div style={{ display: "grid", gap: 6 }}>
-          {active !== null && groups[active] && (
-            <p className="small" style={{ margin: 0 }}>
-              <b>Tap the photo</b> on each {groups[active].what} it missed to add it; tap a circle to take it away. Tap &ldquo;Done&rdquo; when they&rsquo;re all marked.
-            </p>
-          )}
+          <p className="small" style={{ margin: 0 }}>
+            {active !== null && groups[active]
+              ? <><b>Tap the photo</b> on each {groups[active].what} it missed to add it. Tap any circle to take it away. Tap &ldquo;Done&rdquo; when they&rsquo;re all marked.</>
+              : <>Tap any circle it got wrong to take it away. To add stones it missed, tap &ldquo;Mark&rdquo; next to their group first. &ldquo;Enlarge&rdquo; makes the photo bigger.</>}
+          </p>
+          {history.length > 0 && <button type="button" className="chip" style={{ justifySelf: "start", textTransform: "none" }} onClick={undo}>Undo last change</button>}
           {naming ? (
             <div style={{ display: "grid", gap: 6 }}>
               <span className="small">What did it miss?</span>
@@ -161,6 +196,31 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
           ) : (
             <button type="button" className="chip" style={{ justifySelf: "start", textTransform: "none" }} onClick={() => setNaming(true)}>+ Stones it didn&rsquo;t see</button>
           )}
+        </div>
+      )}
+
+      {zoom !== null && previews[zoom] && (
+        <div role="dialog" aria-label="Mark stones on the photo" onClick={() => setZoom(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(10,8,6,0.92)", display: "grid", placeItems: "center", padding: 12 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "grid", gap: 10, justifyItems: "center", maxHeight: "100%", overflow: "auto" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
+              {groups.map((g, gi) => g.what && !removed.has(gi) && (
+                <button key={gi} type="button" className="chip" aria-pressed={active === gi} onClick={() => setActive(active === gi ? null : gi)}
+                  style={{ borderColor: COLORS[gi % COLORS.length], textTransform: "none" }}>
+                  {active === gi ? "✓ " : ""}{g.what} ({counts[gi] ?? g.marks?.length ?? 0})
+                </button>
+              ))}
+              {history.length > 0 && <button type="button" className="chip" style={{ textTransform: "none" }} onClick={undo}>Undo</button>}
+              <button type="button" className="btn primary" onClick={() => setZoom(null)}>Done</button>
+            </div>
+            <span className="small">{active !== null && groups[active] ? `Tap to add ${groups[active].what}. Tap a circle to take it away.` : "Pick a group above to add stones, or tap a circle to take it away."}</span>
+            {photoView(previews[zoom], zoom, true)}
+            {previews.length > 1 && (
+              <div className="chips">
+                {previews.map((_, pi) => <button key={pi} type="button" className="chip" aria-pressed={zoom === pi} onClick={() => setZoom(pi)}>Photo {pi + 1}</button>)}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
