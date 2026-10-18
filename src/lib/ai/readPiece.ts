@@ -77,8 +77,11 @@ Work like a bench jeweller counting stones under a loupe: look, mark each stone 
 - For every other group of stones, mark each stone's centre where you actually see it. Never mark a stone you can't see,
   and never spread a group further round the main stone than it really goes.
 - Judge sizes against the main stone (ratio) and say when sizes vary inside a group.
-- Drops in a cascade overlap: count every one, front and back tier (a cluster of briolettes is often 12–20), and say
-  where the largest hang. Small stones set right along a stone's edge are their own group.
+- Drops in a cascade overlap: count and mark every one, front and back tier (a cluster of briolettes is often 12–20),
+  and say where the largest hang. Small stones set right along a stone's edge are their own group.
+- Follow each row along the stone's edge to where it really ends: rows of small stones and drops often run up the
+  side almost to the tip of a pear. Mark every stone in the row, including the small ones near its ends; don't stop
+  where the stones get small or hard to see. Your marks place the stones in the 3D build exactly where you put them.
 - Say exactly where each group sits relative to the main stone.
 - Ask a question only when the answer would change the build and the photos can't settle it. Never ask what the photo shows.
 The person's notes are facts; use them. Call read_piece once.`;
