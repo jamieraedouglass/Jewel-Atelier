@@ -4,7 +4,7 @@ import { pieceRoot } from "@/lib/cadExport";
 import { solidMetal } from "@/lib/cadSolid";
 
 describe("CAD metal solid", () => {
-  for (const name of ["Oval trilogy ring", "Burmese sapphire, half-moons", "Gold band with diamond edges"]) {
+  for (const name of ["Oval trilogy ring", "Burmese sapphire, half-moons", "Gold band with diamond edges", "Moval in a leaf-mosaic dome"]) {
     it(`${name}: every metal part joins into one watertight solid with stone seats`, async () => {
       const r = await solidMetal(pieceRoot(showcaseDesign(SHOWCASE.find((x) => x.name === name)!)));
       expect(r).not.toBeNull();

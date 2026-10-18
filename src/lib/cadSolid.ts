@@ -104,8 +104,23 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
   const m = new THREE.Matrix4(), rel = new THREE.Matrix4();
   const seen = new Set<string>();
 
-  const findings = new Set<THREE.Object3D>(), drilled = new Set<THREE.Object3D>();
-  root.traverse((o) => { if (o.userData.finding) o.traverse((k) => findings.add(k)); if (o.userData.strung) o.traverse((k) => drilled.add(k)); });
+  const findings = new Set<THREE.Object3D>(), drilled = new Set<THREE.Object3D>(), openBack = new Map<THREE.Object3D, number>();
+  root.traverse((o) => {
+    if (o.userData.finding) o.traverse((k) => findings.add(k));
+    if (o.userData.strung) o.traverse((k) => drilled.add(k));
+    if (typeof o.userData.openBack === "number") o.traverse((k) => openBack.set(k, o.userData.openBack));
+  });
+  // A light hole straight through the metal behind a stone in an open-backed cell.
+  const unitHole = w.Manifold.cylinder(1, 1, 1, 18, false);
+  const holeFor = (mm: THREE.Matrix4, geo: THREE.BufferGeometry, frac: number) => {
+    geo.computeBoundingBox();
+    const b = geo.boundingBox!, pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    mm.decompose(pos, q, sc);
+    const r = Math.min(Math.abs(sc.x) * (b.max.x - b.min.x), Math.abs(sc.z) * (b.max.z - b.min.z)) * 0.5 * frac;
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q), base = pos.clone().addScaledVector(up, b.min.y * Math.abs(sc.y) - 2.4);
+    const m4 = new THREE.Matrix4().compose(base, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), up), new THREE.Vector3(r, r, 2.6));
+    return unitHole.transform(toMat4(m4));
+  };
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || !mesh.visible || findings.has(o)) return;
@@ -139,12 +154,14 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
       if (!seatCache.has(key)) seatCache.set(key, seatCutter(w, mesh.geometry));
       const base = seatCache.get(key);
       if (!base) return;
+      const frac = openBack.get(o);
       each((mm) => {
         const p = new THREE.Vector3().setFromMatrixPosition(mm);
         const id = `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`;
         if (seen.has(id)) return;
         seen.add(id);
         cutters.push(base.transform(toMat4(mm)));
+        if (frac) cutters.push(holeFor(mm, mesh.geometry, frac));
       });
     }
   });
@@ -167,9 +184,17 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
     if (report.specks) { const kept = w.Manifold.union(keep); solid.delete(); solid = kept; }
     bits.forEach((b) => b.delete());
   }
+  unitHole.delete();
   cache.forEach((s) => s?.delete());
   seatCache.forEach((s) => s?.delete());
   if (solid.numTri() > 600000) { const lean = solid.simplify(0.01); solid.delete(); solid = lean; }
+  // Simplifying can leave slivers of its own; anything that small on its own can't be cast.
+  {
+    const bits = solid.decompose(), vols = bits.map((b) => b.volume()), top = Math.max(...vols, 0);
+    const keep = bits.filter((_, i) => vols[i] >= Math.max(top * 0.002, 0.05));
+    if (keep.length < bits.length) { report.specks = (report.specks ?? 0) + bits.length - keep.length; const kept = w.Manifold.union(keep); solid.delete(); solid = kept; }
+    bits.forEach((b) => b.delete());
+  }
   report.watertight = solid.status() === "NoError" && !solid.isEmpty();
   report.volumeMm3 = Math.round(solid.volume() * 10) / 10;
   const mesh = solid.getMesh();

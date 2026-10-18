@@ -14,7 +14,7 @@ import { plateMetal } from "./ringHeads";
 export const isBombe = (d: Design) =>
   d.type === "ring" && d.style === "deco" && d.options.decoWrap && d.options.decoDome > 0 && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays" && !!f.alt);
 
-const NT = 192, NK = 30, SHELL = 0.6;
+const NT = 192, NK = 30, SHELL = 0.5;
 
 function stoneEdge(c: CenterStone) {
   const fn = outlineFn(c.shape, c.lengthMm, c.widthMm), t = THREE.MathUtils.degToRad(c.rotation ?? 0), bins = 360, r = new Float32Array(bins);
@@ -181,7 +181,10 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   beads.push(...Array.from({ length: NT }, (_, i) => ({ pos: grid[i][1].clone().addScaledVector(normals[i][1], 0.08), dia: 0.42 })));
   groups.forEach((items, k) => {
     const [gem, color, cut, shape] = k.split("|");
-    g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
+    const set = accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27);
+    // Each stone sits in an open-backed cell: a light hole through the metal behind it, as on the real piece.
+    set.userData.openBack = 0.72;
+    g.add(set);
   });
   g.add(balls(m.satin, beads));
   return { group: g };
