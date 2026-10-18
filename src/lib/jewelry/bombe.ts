@@ -129,6 +129,28 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     const dir = facing.clone().addScaledVector(n, -facing.dot(n)).normalize();
     return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(n, dir).normalize(), n, dir));
   };
+  // Dense points on the surface, to check a stone's whole outline sits over metal before it is placed.
+  const surfCell = 0.5, surf = new Map<string, THREE.Vector3[]>();
+  for (let i = 0; i < NT * 3; i++) for (let s = 0; s <= NK - 1; s += 0.12) {
+    const v = at(i / 3, s).p, k = `${Math.floor(v.x / surfCell)},${Math.floor(v.y / surfCell)},${Math.floor(v.z / surfCell)}`;
+    (surf.get(k) ?? surf.set(k, []).get(k)!).push(v);
+  }
+  const overMetal = (v: THREE.Vector3, tol: number) => {
+    const x = Math.floor(v.x / surfCell), y = Math.floor(v.y / surfCell), z = Math.floor(v.z / surfCell), reach = Math.ceil(tol / surfCell);
+    for (let a = -reach; a <= reach; a++) for (let b = -reach; b <= reach; b++) for (let c = -reach; c <= reach; c++) for (const q of surf.get(`${x + a},${y + b},${z + c}`) ?? []) if (q.distanceTo(v) < tol) return true;
+    return false;
+  };
+  // Every point round an outline (in the surface's tangent plane at the stone) must sit over metal.
+  const seated = (c: THREE.Vector3, n: THREE.Vector3, along: THREE.Vector3, halfL: number, halfW: number) => {
+    const ax = along.clone().addScaledVector(n, -along.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
+    for (let k = 0; k < 12; k++) {
+      // The surface curves away from the flat outline by up to about d²/2R; past an edge the gap grows much faster.
+      const a = (k / 12) * Math.PI * 2, ca = Math.cos(a) * halfL, sa = Math.sin(a) * halfW;
+      const v = c.clone().addScaledVector(ax, ca).addScaledVector(sx, sa);
+      if (!overMetal(v, 0.32 + (ca * ca + sa * sa) / 14)) return false;
+    }
+    return true;
+  };
   let seed = 41;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const groups = new Map<string, Item[]>();
@@ -157,20 +179,27 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
         const pair: THREE.Vector3[] = [];
         for (const sgn of [(leafCount++ % 2) * 2 - 1]) {
-          const c0 = pt.clone().addScaledVector(side, sgn * (leafW * 0.8 + 0.3)).addScaledVector(tan, leafL * 0.12);
-          // Where a branch turns steeply down the side, leaves can bunch up; one that would touch a leaf of another
-          // pair is left out (the two leaves of a pair sit side by side by design).
-          if (leaves.some((q) => q.distanceTo(c0) < leafL * 0.98 + 0.4)) continue;
-          pair.push(c0);
           const facing = tan.clone().applyAxisAngle(n, sgn * 0.62);
-          put(leafKey, { pos: c0.clone().addScaledVector(n, 0.04), dia: leafW, quat: orient(n, facing), up: n });
+          // Where the dome curves hard (near its rim) a full-size leaf may not sit flat, so it is tried smaller first.
+          let L = 0, W = 0, c0 = pt;
+          for (const k of [1, 0.85, 0.72]) {
+            const cc = pt.clone().addScaledVector(side, sgn * (leafW * k * 0.8 + 0.3)).addScaledVector(tan, leafL * k * 0.12);
+            // Where a branch turns steeply down the side, leaves can bunch up; one that would touch another is left out.
+            if (leaves.some((q) => q.distanceTo(cc) < (leafL * k) * 0.98 + 0.4)) continue;
+            if (!seated(cc, n, facing, (leafL * k) / 2 + 0.3, (leafW * k) / 2 + 0.3)) continue;
+            L = leafL * k; W = leafW * k; c0 = cc;
+            break;
+          }
+          if (!L) continue;
+          pair.push(c0);
+          put(leafKey, { pos: c0.clone().addScaledVector(n, 0.04), dia: W, quat: orient(n, facing), up: n });
           // Each leaf sits in its own cell edged with milgrain that follows the leaf's outline.
           const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
-          const rim = leafOutline(leafL + 0.62, leafW + 0.62);
+          const rim = leafOutline(L + 0.62, W + 0.62);
           // Dropped by the dome's curvature (about 12 mm radius) so every bead sits on the metal, not above it.
           for (const [x, z] of rim) leafBeads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.06 - (x * x + z * z) / 20), dia: 0.36 });
           // The leaf's cell, with its beaded border, keeps the pink stones clear.
-          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * r + 0.24 });
+          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, L * k), r: W * r + 0.24 });
         }
         leaves.push(...pair);
       }
@@ -210,8 +239,10 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const wall = 0.1;
   for (const [cap, least] of [[big / 2, big * 0.3], [big * 0.36, big * 0.2], [big * 0.24, big * 0.14]] as const) {
     for (const cnd of cands) {
-      const room = Math.min(roomAt(cnd.p, cap + wall) - wall, (toFoot.get(cnd) ?? 9) - 0.35);
-      if (room >= least) place(cnd, Math.min(cap, room));
+      let r = Math.min(cap, roomAt(cnd.p, cap + wall) - wall, (toFoot.get(cnd) ?? 9) - 0.35);
+      const any = v3(1, 0, 0);
+      while (r >= least && !seated(cnd.p, cnd.n, any, r, r)) r *= 0.85;
+      if (r >= least) place(cnd, r);
     }
   }
   for (const st of kept) {
