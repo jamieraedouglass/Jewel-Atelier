@@ -107,6 +107,15 @@ export default function DropPartEditor({ p, i, count, above, focused, set, onMov
               </div>
               <Dir value={p.stone.rotation} onPick={(rotation) => setStone({ rotation })} options={[[0, "Tip down"], [180, "Tip up"], [90, "Tip left"], [-90, "Tip right"]]} />
               <Num id={id("rot")} text="Angle" value={p.stone.rotation} min={-180} max={180} step={5} unit="°" onChange={(rotation) => setStone({ rotation })} />
+              <label className="field" htmlFor={id("set")}><span>Setting</span>
+                <select id={id("set")} value={p.setting} onChange={(e) => set({ setting: e.target.value as DropPart["setting"] })}>
+                  <option value="auto">Automatic (rim for cabochons)</option>
+                  <option value="four-claw">Four prongs</option>
+                  <option value="six-claw">Six prongs</option>
+                  <option value="double-claw">Double prongs</option>
+                  <option value="bezel">Bezel (metal rim)</option>
+                </select>
+              </label>
             </>
           )}
         </>

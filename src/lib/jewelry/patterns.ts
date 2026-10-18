@@ -25,9 +25,33 @@ export type RunOpts = {
   closed?: boolean;
   gemAt?: (i: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"] } | null;
   onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, shape: CenterStone["shape"]) => void;
+  fade?: "start" | "middle";
 };
 
-export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from: number, to: number, opts: RunOpts = {}) {
+export function ombreAt(stops: string[], t: number) {
+  if (stops.length < 2) return stops[0] ?? "#ffffff";
+  const x = Math.min(1, Math.max(0, t)) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(x));
+  const c = new THREE.Color(stops[i]).lerp(new THREE.Color(stops[i + 1]), Math.round((x - i) * 6) / 6);
+  return `#${c.getHexString()}`;
+}
+
+const SPINE = new Set(["round", "old-mine"]);
+
+export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from: number, to: number, opts: RunOpts = {}): { group: THREE.Group; maxW: number; count: number; path?: THREE.Curve<THREE.Vector3> } {
+  if (d.accents.layout === "wave") {
+    const W = patternMaxW(d, opts.maxW), len = curve.getLength();
+    const A = Math.max(1.4, W * 0.7), lam = len / Math.max(1, Math.round(len / Math.max(42, W * 14)));
+    const closed = (curve as THREE.CatmullRomCurve3).closed ?? false;
+    const n = 720, pts: THREE.Vector3[] = [];
+    for (let i = 0; i < (closed ? n : n + 1); i++) {
+      const u = i / n, t = curve.getTangentAt(u), up = (opts.up?.(u) ?? Y).clone().normalize();
+      const side = new THREE.Vector3().crossVectors(up, t).normalize();
+      pts.push(curve.getPointAt(u).addScaledVector(side, A * Math.sin((2 * Math.PI * u * len) / lam)));
+    }
+    const path = new THREE.CatmullRomCurve3(pts, closed, "centripetal");
+    const run = patternRun({ ...d, accents: { ...d.accents, layout: "line" } }, m, path, from, to, { ...opts, gap: Math.min(opts.gap ?? 0.2, 0.2) });
+    return { ...run, path };
+  }
   const dims0 = patternDims(d, opts.maxW);
   if (!opts.maxW && new Set(dims0.map((x) => x.shape)).size > 1) opts = { ...opts, maxW: Math.max(...dims0.map((x) => x.W)) };
   const dims = opts.maxW ? patternDims(d, opts.maxW) : dims0;
@@ -39,7 +63,9 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     return { line: c * a + n * b, cross: c * b + n * a };
   };
   const fit = (s: (typeof dims)[number], i: number) => { const x = ext(s, i).cross; return opts.maxW && x > opts.maxW ? opts.maxW / x : 1; };
-  const foot = (s: (typeof dims)[number], i: number) => ext(s, i).line * fit(s, i);
+  const layout = d.accents.layout;
+  const onSpine = (s: (typeof dims)[number]) => SPINE.has(s.shape) && dims.some((x) => !SPINE.has(x.shape));
+  const foot = (s: (typeof dims)[number], i: number) => ext(s, i).line * fit(s, i) * (layout === "garland" && !onSpine(s) ? 0.46 : 1);
   const curveLen = curve.getLength();
   const total = curveLen * (to - from);
   const gap = opts.gap ?? Math.max(0.15, Math.min(...dims.map((x) => x.W)) * 0.08);
@@ -56,6 +82,8 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
   const usedLen = seq.reduce((a, s, i) => a + foot(s, i), 0) + gap * Math.max(0, seq.length - (opts.closed ? 0 : 1));
   const spare = (total - usedLen) / Math.max(1, opts.closed ? seq.length : seq.length + 1);
   const byShape = new Map<string, Item[]>();
+  const spineW = Math.max(0, ...dims.filter((x) => onSpine(x)).map((x) => x.W));
+  let leaf = 0;
   let at = opts.closed ? 0 : spare;
   const basis = new THREE.Matrix4();
   seq.forEach((s, i) => {
@@ -68,9 +96,21 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const X = new THREE.Vector3().crossVectors(up, Z).normalize();
     basis.makeBasis(X, up, Z);
     const pos = curve.getPointAt(u).add(opts.offset?.(u) ?? new THREE.Vector3());
-    const quat = new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turnOf(i)));
-    const cols = d.accents.colors;
-    const gm = opts.gemAt?.(i) ?? (cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
+    let yaw = turnOf(i);
+    if (layout !== "line") {
+      const side = new THREE.Vector3().crossVectors(up, tp).normalize();
+      const s0 = at + f / 2;
+      if (!onSpine(s)) {
+        const sign = (leaf++ % 2 ? -1 : 1);
+        pos.addScaledVector(side, sign * (s.W * 0.42 + spineW * 0.3));
+        yaw -= sign * 0.62;
+      }
+    }
+    const quat = new THREE.Quaternion().setFromRotationMatrix(basis).multiply(new THREE.Quaternion().setFromAxisAngle(Y, yaw));
+    const cols = d.accents.colors, fadeCols = d.accents.ombre;
+    const pos01 = seq.length > 1 ? i / (seq.length - 1) : 0;
+    const fadeT = opts.fade === "start" ? pos01 : opts.closed ? 2 * Math.min(pos01, 1 - pos01) : Math.abs(pos01 - 0.5) * 2;
+    const gm = opts.gemAt?.(i) ?? (fadeCols.length ? { gem: d.accents.gem, color: ombreAt(fadeCols, fadeT), cut: d.accents.cut } : cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
     const shape = gm?.shape ?? s.shape;
     const key = `${shape}|${gm ? `${gm.gem}|${gm.color}|${gm.cut}` : ""}`;
     const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);

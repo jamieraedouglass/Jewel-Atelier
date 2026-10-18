@@ -1,7 +1,7 @@
 "use client";
 
 import { BAND_FINISHES, GEMS, GEM_LOOK, SHAPES, type Design, indianRingSize, label } from "@/lib/design";
-import { Chips, GemSelect, Range, sectionStyle, type SectionProps } from "./fields";
+import { Chips, GemSelect, Range, colorInputStyle, sectionStyle, type SectionProps } from "./fields";
 
 export default function BandSection({ d, onChange }: SectionProps) {
   const b = d.band;
@@ -18,6 +18,11 @@ export default function BandSection({ d, onChange }: SectionProps) {
           <Chips name="Under the stone" options={["none", "peekaboo", "hidden-halo"] as const} value={!d.gallery.roseCut ? "none" : d.gallery.under}
             fmt={(v) => (v === "none" ? "Nothing" : v === "peekaboo" ? "Two peek-a-boo stones" : "A row of stones (hidden halo)")}
             onPick={(v) => onChange({ gallery: v === "none" ? { roseCut: false } : { roseCut: true, under: v } })} />
+          {d.gallery.roseCut && d.gallery.under === "hidden-halo" && (
+            <label className="field" htmlFor="gal-color"><span>Hidden halo colour</span>
+              <input id="gal-color" type="color" value={d.gallery.color} onChange={(e) => onChange({ gallery: { color: e.target.value } })} style={colorInputStyle} />
+            </label>
+          )}
         </>
       )}
       <span className="small muted">Band shape</span>
@@ -44,9 +49,15 @@ export default function BandSection({ d, onChange }: SectionProps) {
             <Range id="bp-mm" label="Each, width" value={b.paveMm} min={0.8} max={4} step={0.1} format={(n) => `${n} mm`} onChange={(paveMm) => setBand({ paveMm })} />
             <Range id="bp-rows" label="Rows" value={b.paveRows} min={1} max={4} step={1} onChange={(paveRows) => setBand({ paveRows })} />
           </div>
+          <div className="chips" role="group" aria-label="Band colour fade">
+            {([["One colour", []], ["Pink to blue", ["#f6b3cf", "#d18fe0", "#8f7ae6", "#3f55cc"]], ["White to pink", ["#f4f6fb", "#f6b3cf", "#e2558a"]], ["Yellow to orange", ["#f4eec0", "#f2c230", "#ec8a2c"]]] as [string, string[]][]).map(([n, cols]) => (
+              <button key={n} type="button" className="chip" aria-pressed={b.paveOmbre.join() === cols.join()} style={{ textTransform: "none" }} onClick={() => setBand({ paveOmbre: cols })}>{n === "One colour" ? n : `Fade: ${n.toLowerCase()}`}</button>
+            ))}
+          </div>
           <Range id="bp-angle" label="Vine (stones angled left and right)" value={b.paveAngle} min={0} max={80} step={5} format={(n) => (n ? `${n}°` : "Straight line")} onChange={(paveAngle) => setBand({ paveAngle })} />
         </>
       )}
+      <Range id="b-split" label="Split shank (two arms at the top)" value={b.split} min={0} max={8} step={0.5} format={(n) => (n ? `${n} mm apart` : "One band")} onChange={(split) => setBand({ split })} />
       <div className="row2">
         <Range id="bw" label="Width" value={b.widthMm} min={1.5} max={16} step={0.1} format={(n) => `${n} mm`} onChange={(widthMm) => setBand({ widthMm })} />
         <Range id="size" label="Size" value={d.ringSize} min={3} max={13} step={0.25} format={(n) => `US ${n} · Indian ${indianRingSize(n)}`} onChange={(ringSize) => onChange({ ringSize })} />

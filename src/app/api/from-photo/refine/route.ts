@@ -14,6 +14,7 @@ const Body = z.object({
   design: z.unknown(),
   render: z.string().startsWith("data:image/jpeg;base64,").max(3_000_000),
   round: z.number().int().min(1).max(3),
+  request: z.string().max(1000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Sign in to recreate a piece from a photo." }, { status: 401 });
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "Bad request." }, { status: 400 });
-  const { paths, notes, render, round, design } = body.data;
+  const { paths, notes, render, round, design, request } = body.data;
   if (paths.some((p) => !p.startsWith(`${user.id}/`))) return NextResponse.json({ error: "Those files aren't yours." }, { status: 403 });
 
   const photos = await storageImages(supabase, "inspiration", paths);
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   if ("error" in charge) return NextResponse.json({ error: charge.error }, { status: 429 });
 
   try {
-    const result = await refineFromRender(photos, jpegImage(render), design, round, notes);
+    const result = await refineFromRender(photos, jpegImage(render), design, round, notes, request);
     if (!result) { await charge.refund(); return NextResponse.json({ error: "Couldn't compare the build with the photo." }, { status: 502 }); }
     return NextResponse.json(result);
   } catch (e) {

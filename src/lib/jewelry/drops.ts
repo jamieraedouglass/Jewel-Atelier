@@ -15,7 +15,8 @@ function paveDesign(d: Design, p: DropPart): Design {
   return { ...d, accents: { ...d.accents, gem: p.small.gem, color: p.small.color, cut, sizeCt: 6, shapes: [p.haloShape], orientation: "along", turns: [], colors: [] } };
 }
 function partStone(d: Design, p: DropPart): CenterStone {
-  const domeMm = p.stone.cut === "faceted" ? Math.max(p.stone.domeMm, Math.min(p.stone.widthMm, p.stone.lengthMm) * 0.15) : p.stone.domeMm;
+  const short = Math.min(p.stone.widthMm, p.stone.lengthMm);
+  const domeMm = p.stone.cut === "faceted" ? Math.max(p.stone.domeMm, short * 0.15) : p.stone.cut === "cabochon" ? Math.max(p.stone.domeMm, short * 0.32) : p.stone.domeMm;
   return { ...d.center, ...NO_CHARACTER, ...p.stone, domeMm, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
 }
 function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): CenterStone {
@@ -25,7 +26,7 @@ function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): Center
     color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
   };
 }
-const setFor = (d: Design, c: CenterStone) => (c.cut === "cabochon" ? "bezel" : Math.max(c.lengthMm, c.widthMm) < 4.5 ? "four-claw" : d.setting.style);
+const setFor = (d: Design, c: CenterStone, p?: DropPart) => (p && p.setting !== "auto" ? p.setting : c.cut === "cabochon" ? "bezel" : Math.max(c.lengthMm, c.widthMm) < 4.5 ? "four-claw" : d.setting.style);
 
 type Built = { g: THREE.Group; top?: number; hang?: number };
 
@@ -36,7 +37,7 @@ function dropStonePart(d: Design, m: Mats, p: DropPart): Built {
   const core = new THREE.Group();
   let Lh = 1, Wh = 1;
   if (p.showStone) {
-    core.add(setStoneRaw(cs, setFor(d, cs), m));
+    core.add(setStoneRaw(cs, setFor(d, cs, p), m));
     Lh = cs.lengthMm / 2; Wh = cs.widthMm / 2;
     if (p.halo) {
       const pd = paveDesign(d, p);
@@ -131,7 +132,7 @@ function dropFramePart(d: Design, m: Mats, p: DropPart): Built {
   g.add(wire);
   if (p.halo) g.add(patternRun(paveDesign(d, p), m, curve, 0, 1, { closed: true, gap: 0.14, maxW: p.haloMm, offset: () => v3(0, r * 0.55, 0) }).group);
   if (p.showStone) {
-    g.add(setStoneRaw(cs, setFor(d, cs), m));
+    g.add(setStoneRaw(cs, setFor(d, cs, p), m));
     const fn = outlineFn(cs.shape, cs.lengthMm, cs.widthMm);
     for (const u of [0, 0.25, 0.5, 0.75]) { const [x, z] = fn(u); const len = Math.hypot(x, z) || 1; g.add(tube(m, [v3(x, -0.4, z), v3(x * (1 + (p.spreadMm + r) / len), -0.4, z * (1 + (p.spreadMm + r) / len))], 0.22)); }
   }
@@ -161,7 +162,7 @@ function dropBowPart(d: Design, m: Mats, p: DropPart): Built {
   const cs = partStone(d, p);
   let top = -1.2;
   if (p.showStone) {
-    const knot = setStoneRaw(cs, setFor(d, cs), m);
+    const knot = setStoneRaw(cs, setFor(d, cs, p), m);
     knot.rotation.y = THREE.MathUtils.degToRad(p.stone.rotation);
     knot.position.y = 0.35;
     g.add(knot, backingPlate(m, outlineFn(cs.shape, cs.lengthMm, cs.widthMm), 1.15, -0.3, 0.6));

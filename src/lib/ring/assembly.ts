@@ -30,7 +30,7 @@ export function buildRing(d: Design): THREE.Group {
   };
 
   const RIN = ringInnerDiameter(d.ringSize) / 2;
-  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape), bandMetal);
+  const shankMesh = new THREE.Mesh(shankGeo(RIN, d.band.widthMm, d.band.finish, undefined, d.band.shape, d.band.split), bandMetal);
   shankMesh.userData.shank = true;
   root.add(shankMesh);
   const SHANK_TOP = RIN + 2.3;
@@ -139,12 +139,14 @@ export function buildRing(d: Design): THREE.Group {
     for (let i = 0; i < ring.length; i++) per += ring[i].distanceTo(ring[(i + 1) % ring.length]);
     const n = Math.max(8, Math.floor(per / (r * 2 + 0.12)));
     const rg = roseCutGeo(r, r * 0.55);
+    const haloMat = d.gallery.color.toLowerCase() === "#f4f6fb" ? roseMat : roseMat.clone();
+    if (haloMat !== roseMat) haloMat.color.set(d.gallery.color);
     const hh = new THREE.Group();
     hh.userData.part = "accents";
     hh.userData.keep = true;
     for (let i = 0; i < n; i++) {
       const [x, z] = fn(i / n), out = new THREE.Vector3(x, 0, z).normalize();
-      const s = new THREE.Mesh(rg, roseMat);
+      const s = new THREE.Mesh(rg, haloMat);
       s.position.set(x * 0.86 + out.x * 0.25, y, z * 0.86 + out.z * 0.25);
       s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), out.clone().add(new THREE.Vector3(0, 0.35, 0)).normalize());
       hh.add(s);
@@ -210,7 +212,7 @@ export function buildRing(d: Design): THREE.Group {
       const pavF = 0.85, pavD = pav * pavF;
       const top = { topW: Math.max(d.band.widthMm + 1.6, sl + 1.6), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
-      shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape);
+      shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
       shankMesh.userData.top = top;
       const surf = (a: number) => RIN + bandSection(d.band.widthMm, a, top, d.band.shape, RIN).t;
       const Rmid = surf(0);
