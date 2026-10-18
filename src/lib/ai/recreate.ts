@@ -222,6 +222,24 @@ export function directionFromNotes(notes?: string): number | null {
   return null;
 }
 
+// "- 12 × briolette diamond drops (drop, briolette)" from the confirmed reading: the count is a fact. It is applied
+// when exactly one drop part holds stones of that kind.
+export function withConfirmedCounts(parts: Record<string, unknown>[], notes?: string) {
+  const out = parts.map((p) => ({ ...p }));
+  for (const m of (notes ?? "").matchAll(/^- (\d{1,3}) × ([^\n]+)$/gm)) {
+    const n = Math.min(24, Number(m[1])), what = m[2].toLowerCase();
+    const kind = /briolette/.test(what) ? "briolette" : /\bround\b/.test(what) ? "round" : null;
+    if (!kind || !(n > 0)) continue;
+    const hits = out.filter((p) => {
+      const sm = (p.small && typeof p.small === "object" ? p.small : {}) as Record<string, unknown>;
+      const shapes = Array.isArray(sm.shapes) ? (sm.shapes as string[]) : [];
+      return (p.kind ?? "stone") === "stone" && (kind === "briolette" ? sm.cut === "briolette" : sm.cut !== "briolette" && shapes.length > 0 && shapes.every((x) => x === "round"));
+    });
+    if (hits.length === 1) hits[0].count = n;
+  }
+  return out;
+}
+
 const TIPPED = new Set(["pear", "marquise", "heart", "kite", "trillion"]);
 // "the tip points to about 10 o'clock" (left piece) -> drop-stone rotation: 0 tip down, 180 up, 90 right, -90 left.
 export function tipFromNotes(notes?: string): number | null {
@@ -273,6 +291,10 @@ function tidy(input: unknown, notes?: string): Recreation | null {
       const same = (st: unknown) => !!st && typeof st === "object" && (st as Record<string, unknown>).shape === first.shape && (st as Record<string, unknown>).lengthMm === first.lengthMm;
       d.patch = { ...d.patch, drop: { ...drop, parts: drop.parts.map((p, i) => (i === 0 || (same(p.stone) && p.anchor === "on") ? { ...p, stone: { ...(p.stone as object), rotation: tip } } : p)) } };
     }
+  }
+  if (d.type === "earrings" || d.type === "necklace") {
+    const drop = (d.patch.drop && typeof d.patch.drop === "object" ? d.patch.drop : null) as { parts?: Record<string, unknown>[] } | null;
+    if (drop?.parts?.length) d.patch = { ...d.patch, drop: { ...drop, parts: withConfirmedCounts(drop.parts, notes) } };
   }
   const facts = factsFromNotes(notes, d.type);
   if (facts.ringSize) d.patch = { ...d.patch, ringSize: facts.ringSize };

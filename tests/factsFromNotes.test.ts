@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factsFromNotes, tipFromNotes } from "@/lib/ai/recreate";
+import { factsFromNotes, tipFromNotes, withConfirmedCounts } from "@/lib/ai/recreate";
 
 describe("factsFromNotes", () => {
   it("reads the seller's details", () => {
@@ -26,5 +26,14 @@ describe("tipFromNotes", () => {
     expect(tipFromNotes("tip points to about 10:30 o'clock")).toBe(-135);
     expect(tipFromNotes("tip points to about 6 o'clock")).toBe(0);
     expect(tipFromNotes("no tip here")).toBeNull();
+  });
+});
+
+describe("withConfirmedCounts", () => {
+  it("applies a confirmed count to the one part holding those stones", () => {
+    const parts = [{ kind: "stone", count: 8, small: { cut: "briolette", shapes: ["pear"] } }, { kind: "stone", count: 7, small: { cut: "faceted", shapes: ["round"] } }];
+    const notes = "Confirmed reading:\n- 12 × briolette diamond drops (drop, briolette), each about 20%.\n- 14 × small round diamond collar (round), each about 6%.";
+    const out = withConfirmedCounts(parts, notes);
+    expect(out.map((p) => p.count)).toEqual([12, 14]);
   });
 });

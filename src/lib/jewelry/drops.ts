@@ -26,6 +26,17 @@ function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): Center
     color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
   };
 }
+// Distance from the stone's centre to its edge in each direction (radians in the stone's own frame), from its outline.
+function outlineRadius(c: CenterStone, extra: number) {
+  const fn = outlineFn(c.shape, c.lengthMm, c.widthMm), bins = 360, r = new Float32Array(bins);
+  for (let i = 0; i < 1440; i++) {
+    const [x, z] = fn(i / 1440), b = Math.round(((Math.atan2(z, x) / (2 * Math.PI)) * bins + bins) % bins) % bins;
+    r[b] = Math.max(r[b], Math.hypot(x, z));
+  }
+  for (let pass = 0; pass < 3; pass++) for (let b = 0; b < bins; b++) if (!r[b]) r[b] = Math.max(r[(b + 1) % bins], r[(b + bins - 1) % bins]);
+  return (a: number) => r[Math.round(((a / (2 * Math.PI)) * bins + bins * 2) % bins) % bins] + extra;
+}
+
 // sizes run with the shapes (one per shape in the repeat); a longer list gives each stone its own size, spread over the count.
 function sizeAt(p: DropPart, i: number, n: number, slot: number) {
   const z = p.small.sizes;
@@ -57,13 +68,21 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
       Lh += p.haloMm + 0.45; Wh += p.haloMm + 0.45;
     }
   } else {
-    core.add(new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), m.metal));
+    // A small junction where this part hangs from another; when it sits "on" another part's stone it's only a marker.
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), m.metal);
+    knot.visible = p.anchor !== "on";
+    core.add(knot);
     // Stones set "on" a stone drawn by another part still sit round that stone's outline.
     Lh = cs.lengthMm / 2; Wh = cs.widthMm / 2;
   }
   core.rotation.y = theta;
   g.add(core);
 
+  // Where the big stone's setting has metal under its edge: the claws' gallery ring, the bezel wall, or the halo's plate.
+  const bigSet = setFor(d, cs, p), belly = cs.cut === "faceted" ? cs.widthMm * 0.43 : Math.max(0.3, cs.domeMm);
+  const gallery = p.halo ? { r: 0.9, y: -0.5 } : bigSet === "bezel" || cs.cut === "rose-cut" || cs.cut === "polki" ? { r: 1.0, y: -0.3 } : { r: 0.92, y: -Math.min(belly, 2) * 0.35 };
+  // The stone's true outline (a pear is not an oval), so small stones sit on its edge and wires meet its gallery.
+  const edge = cs.shape === "round" ? null : outlineRadius(cs, p.halo ? p.haloMm + 0.45 : 0);
   const n = p.count;
   if (n > 0) {
     const angles: number[] = [];
@@ -80,7 +99,7 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
     angles.forEach((phi, i) => {
       const dir = v3(Math.cos(phi), 0, Math.sin(phi));
       const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
-      const rEdge = 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
+      const rEdge = edge ? edge(Math.atan2(lz, lx)) : 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
       const slot = i % p.small.shapes.length, shape = p.small.shapes[slot];
       const k = sizeAt(p, i, n, slot), base = smallStone(d, p, shape);
       const sc = k === 1 ? base : { ...base, widthMm: base.widthMm * k, lengthMm: base.lengthMm * k, domeMm: base.domeMm * k };
@@ -95,15 +114,21 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
       // Packed tighter than they fit side by side, every other briolette drops into a second, lower tier.
       const step = n > 1 ? Math.abs(angles[Math.min(n - 1, i + 1)] - angles[Math.max(0, i - 1)]) / (i === 0 || i === n - 1 ? 1 : 2) : Math.PI;
       const tier = hangs && n >= 6 && sc.widthMm > hangFrom * step * 1.1 && i % 2 === 1 ? 1 : 0;
-      const drop = tier * sc.lengthMm * 0.6;
+      // The back tier sits just behind the front one and a little lower, its caps hidden behind the front stones.
+      const drop = tier * sc.lengthMm * 0.35, back = tier * Math.max(1.2, sc.widthMm * 0.55);
       const pos = hangs ? dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, sc.lengthMm * 0.45 + drop) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
-      if (drop) g.add(tube(m, [dir.clone().multiplyScalar(hangFrom).setY(-0.6), dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, drop).setY(-0.6)], 0.16));
       const s = setStoneRaw(sc, setFor(d, sc), m);
-      s.position.copy(pos).setY(hangs ? -0.6 - tier * 0.9 : -0.15);
+      const sy = hangs ? -0.6 - back : -0.15;
+      s.position.copy(pos).setY(sy);
       s.rotation.y = hangs ? Math.atan2(fall.x, fall.z) + Math.PI : Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
       g.add(s);
-      // A short wire behind the stones joins each one to the setting, out of sight from the front.
-      g.add(tube(m, [dir.clone().multiplyScalar(rEdge * 0.95).setY(-1.5), dir.clone().multiplyScalar(hangs ? hangFrom : rEdge + 0.3 + sc.lengthMm / 2).setY(-1.5)], 0.14));
+      // Each stone is wired to the gallery under the big stone: from that ring to the briolette's cap, or into the
+      // small stone's own setting, so the piece casts as one connected frame.
+      // The wire drops behind the stone before running out, clear of the seat cut for the stone above it.
+      const from = dir.clone().multiplyScalar(rEdge * gallery.r).setY(gallery.y);
+      const under = dir.clone().multiplyScalar(rEdge * gallery.r).setY(gallery.y - 1.2), out = dir.clone().multiplyScalar(rEdge * 1.08 + 0.2).setY(Math.min(sy, gallery.y - 1.2));
+      if (hangs) g.add(tube(m, [from, under, out, dir.clone().multiplyScalar(hangFrom).setY(sy), pos.clone().addScaledVector(fall, -sc.lengthMm / 2).setY(sy)], 0.14));
+      else g.add(tube(m, [from, under, out, pos.clone().addScaledVector(dir, -sc.widthMm * 0.46).setY(sy - 0.35 * Math.min(sc.cut === "faceted" ? sc.widthMm * 0.43 : 0.6, 2))], 0.14));
     });
   }
   return { g };

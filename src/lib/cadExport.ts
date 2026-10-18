@@ -48,9 +48,11 @@ export function modelParts(d: Design, given?: THREE.Object3D): Part[] {
   root.updateMatrixWorld(true);
   const parts = new Map<string, Part>();
   const m = new THREE.Matrix4();
+  const findings = new Set<THREE.Object3D>();
+  root.traverse((o) => { if (o.userData.finding) o.traverse((k) => findings.add(k)); });
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible) return;
+    if (!mesh.isMesh || !mesh.visible || findings.has(o)) return;
     const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshPhysicalMaterial;
     if (!mat || (mat.transparent && mat.opacity < 0.5)) return;
     const metal = isMetal(mesh.material);
@@ -68,7 +70,7 @@ export function modelParts(d: Design, given?: THREE.Object3D): Part[] {
 
 const mergedMesh = (p: Part) => new THREE.Mesh(mergeGeometries(p.geos, false) ?? new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
 
-export type MetalSolid = { geometry: THREE.BufferGeometry; report: { pieces: number; joined: number; skipped: string[]; seats: number; watertight: boolean; volumeMm3: number } };
+export type MetalSolid = { geometry: THREE.BufferGeometry; report: { pieces: number; joined: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number } };
 
 export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?: Part[], solid?: MetalSolid | null): Uint8Array {
   const parts = given ?? modelParts(d);
@@ -90,8 +92,9 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
   const r = solid?.report;
   const solidLines = r ? [
     r.watertight && !r.skipped.length
-      ? `metal.stl is ONE watertight solid: all ${r.joined} metal parts joined, with a seat cut for each of the ${r.seats} stones (matched to each stone below its girdle, 3% clearance).`
+      ? `metal.stl is ONE watertight solid: all ${r.joined} metal parts joined, with a seat cut for each of the ${r.seats} stones (matched to each stone below its girdle, about 0.05 mm clearance).`
       : `metal.stl is a solid made from ${r.joined} of ${r.pieces} metal parts${r.skipped.length ? `; ${r.skipped.length} part(s) couldn't be joined and are in metal-unjoined-parts.stl` : ""}. Check it before casting.`,
+    ...(r.specks ? [`${r.specks} tiny fragment(s) of claw tips between tightly packed stones were left over after cutting seats and removed; set those stones on shared prongs.`] : []),
     `Metal volume ${r.volumeMm3} mm3, so the metal weighs about ${Math.round((r.volumeMm3 / 1000) * density * 100) / 100} g in ${spec.metal.name} (density ${density} g/cm3).`,
   ] : ["metal.stl is the metal parts as modelled (overlapping, not yet joined). Union them into one solid before casting."];
   files["README.txt"] = strToU8([
@@ -107,6 +110,9 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
     "               Small stones are simple domes of the right size, as placeholders for setting.",
     "",
     ...solidLines,
+    ...(d.type === "earrings" && (d.style === "pendant" || d.style === "chandelier") && d.drop.top === "post"
+      ? ["Each earring has a 0.85 mm post on a pad behind the top stone (part of metal.stl). The butterfly backs are standard", "findings, not modelled for casting: buy them to fit the post."]
+      : []),
     "Before casting: check wall and prong thickness for your alloy and casting method, add sprues, and confirm the",
     "ring size against the inside diameter. Measure your actual stones and adjust seats if they differ from the list.",
     "",
