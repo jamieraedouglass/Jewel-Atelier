@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factsFromNotes } from "@/lib/ai/recreate";
+import { factsFromNotes, tipFromNotes } from "@/lib/ai/recreate";
 
 describe("factsFromNotes", () => {
   it("reads the seller's details", () => {
@@ -14,5 +14,17 @@ describe("factsFromNotes", () => {
     expect(factsFromNotes("size 6", "earrings")).toEqual({});
     expect(factsFromNotes("stone size 8 mm", "ring")).toEqual({});
     expect(factsFromNotes("indian size 13", "ring")).toEqual({});
+  });
+});
+
+describe("tipFromNotes", () => {
+  it("turns a clock hour into a drop-stone rotation", () => {
+    expect(tipFromNotes("On the left piece, the main stone's tip points to about 12 o'clock.")).toBe(180);
+    expect(tipFromNotes("tip points to about 3 o'clock")).toBe(90);
+    expect(tipFromNotes("tip points to about 9 o'clock")).toBe(-90);
+    expect(tipFromNotes("tip points to about 10 o'clock")).toBe(-120);
+    expect(tipFromNotes("tip points to about 10:30 o'clock")).toBe(-135);
+    expect(tipFromNotes("tip points to about 6 o'clock")).toBe(0);
+    expect(tipFromNotes("no tip here")).toBeNull();
   });
 });

@@ -6,7 +6,7 @@ type Mark = { photo?: number; x?: number; y?: number; r?: number };
 type Group = { what?: string; shape?: string; cut?: string; color?: string; ratio?: number; sizes_vary?: string; where?: string; marks?: Mark[]; count?: number };
 export type Reading = {
   piece?: { type?: string; kind?: string; pair?: boolean; confidence?: number };
-  main?: { what?: string; shape?: string; cut?: string; color?: string; size_mm?: string; direction?: string; photo?: number; x?: number; y?: number; w?: number; h?: number };
+  main?: { what?: string; shape?: string; cut?: string; color?: string; size_mm?: string; direction?: string; tip_clock?: number; photo?: number; x?: number; y?: number; w?: number; h?: number };
   groups?: Group[];
   overall?: { length_mm?: number; width_mm?: number; metal?: string; setting?: string };
   questions?: { question?: string; options?: string[] }[];
@@ -20,6 +20,8 @@ export function readingSummary(r: Reading, counts: Record<number, number>, remov
   if (r.piece?.kind) lines.push(`- Piece: ${r.piece.kind}${r.piece.pair ? " (a pair; build one, mirrored)" : ""}.`);
   if (r.main?.what) lines.push(`- Main stone (it must be in the design as the centre stone): ${r.main.what}${r.main.shape ? `, ${r.main.shape}` : ""}${r.main.cut ? `, ${r.main.cut}` : ""}${r.main.color ? `, ${r.main.color}` : ""}${r.main.size_mm ? `, about ${r.main.size_mm}` : ""}.`);
   if (r.main?.direction && r.main.direction !== "not a ring or round stone") lines.push(`- The main stone points ${r.main.direction}.`);
+  const tc = num(r.main?.tip_clock);
+  if (tc !== null && tc > 0 && tc <= 12) { const h = Math.floor(tc), mins = Math.round((tc - h) * 60); lines.push(`- On the left piece, the main stone's tip points to about ${h}${mins ? `:${String(mins).padStart(2, "0")}` : ""} o'clock.`); }
   (r.groups ?? []).forEach((g, i) => {
     if (removed.has(i) || !g.what) return;
     const n = counts[i] ?? g.count ?? g.marks?.length ?? 0;

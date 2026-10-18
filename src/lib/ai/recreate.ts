@@ -78,9 +78,14 @@ How to choose:
   * Two rows of small stones round ONE stone (e.g. small round diamonds right at the edge, then briolettes hanging
     beyond them): the first part has the stone and one row; add a second part with showStone false, anchor "on",
     from = the first part, and its own small stones and arc. Never use "beside" for this.
-  * A stone that sits tilted (a pear leaning out to one side) is a rotation, not something to leave out: rotation 180
-    is tip up; 150 or 210 leans the tip about 30 degrees to one side. With mirrorPair the other earring mirrors it.
-  * Briolettes round a stone always hang from their narrow drilled end; leave small.rotation at 0 for them.
+  * A stone that sits tilted (a pear leaning out to one side) is a rotation, not something to leave out. Rotation sets
+    where the tip of a pear, marquise or heart points on the earring drawn on the LEFT of the view (the right one is its
+    mirror): 0 = tip down, 180 = tip up, 90 = tip to the right (towards the other earring), -90 = tip to the left (away).
+    Up and outward = -120 to -150; up and inward = 120 to 150. Read it off the LEFT piece in the photo. Values stay
+    between -180 and 180. Use the same rotation on every part that sits on that stone.
+  * Briolettes round a stone always hang from their narrow drilled end; leave small.rotation at 0 for them. Give count
+    the full number in the cascade (both tiers; packed ones drop into a second tier by themselves) and small.sizes one
+    size per stone in order round the arc, so the biggest hang where the photo shows them.
   * A row of small stones between a stone and the drops hanging from it: put the drops on the stone's part, and the row as
     a second part with anchor "on", from = that part, showStone false, the same stone, and its own arc. The drops then hang
     outside the row.
@@ -217,6 +222,17 @@ export function directionFromNotes(notes?: string): number | null {
   return null;
 }
 
+const TIPPED = new Set(["pear", "marquise", "heart", "kite", "trillion"]);
+// "the tip points to about 10 o'clock" (left piece) -> drop-stone rotation: 0 tip down, 180 up, 90 right, -90 left.
+export function tipFromNotes(notes?: string): number | null {
+  const m = (notes ?? "").toLowerCase().match(/tip points? (?:to |towards? )?(?:about |roughly )?(\d{1,2})(?::(\d{2}))? o'?clock/);
+  if (!m) return null;
+  const hour = Number(m[1]) % 12 + (m[2] ? Number(m[2]) / 60 : 0);
+  if (!(hour >= 0 && hour < 12)) return null;
+  const r = 180 - hour * 30;
+  return Math.round(r > 180 ? r - 360 : r <= -180 ? r + 360 : r);
+}
+
 // Hard facts the person wrote down win over anything the model guessed from the photo.
 export function factsFromNotes(notes: string | undefined, type: string): { ringSize?: number; carat?: number; karat?: 14 | 18 | 22 | 24 } {
   const n = (notes ?? "").toLowerCase().replace(/,/g, " ");
@@ -248,6 +264,15 @@ function tidy(input: unknown, notes?: string): Recreation | null {
   if (d.type === "ring" && turn !== null) {
     const c = (d.patch.center && typeof d.patch.center === "object" ? d.patch.center : {}) as Record<string, unknown>;
     d.patch = { ...d.patch, center: { ...c, rotation: turn } };
+  }
+  const tip = tipFromNotes(notes);
+  if (d.type === "earrings" && tip !== null) {
+    const drop = (d.patch.drop && typeof d.patch.drop === "object" ? d.patch.drop : null) as { parts?: Record<string, unknown>[] } | null;
+    const first = drop?.parts?.[0]?.stone as Record<string, unknown> | undefined;
+    if (drop?.parts && first && TIPPED.has(String(first.shape))) {
+      const same = (st: unknown) => !!st && typeof st === "object" && (st as Record<string, unknown>).shape === first.shape && (st as Record<string, unknown>).lengthMm === first.lengthMm;
+      d.patch = { ...d.patch, drop: { ...drop, parts: drop.parts.map((p, i) => (i === 0 || (same(p.stone) && p.anchor === "on") ? { ...p, stone: { ...(p.stone as object), rotation: tip } } : p)) } };
+    }
   }
   const facts = factsFromNotes(notes, d.type);
   if (facts.ringSize) d.patch = { ...d.patch, ringSize: facts.ringSize };
