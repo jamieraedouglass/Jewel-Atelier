@@ -148,7 +148,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const rim = outer.map((p) => new THREE.Vector2(p.x, p.z));
     const flatY = y;
     const topY = dome > 0 ? (r: number) => domeY(r) - 0.75 : () => flatY - 0.75;
-    const depth = wrap ? 1.6 + 2.4 * sideStone!.size : 1.6;
+    const depth = wrap ? 1.6 + 3.4 * sideStone!.size : 1.6;
     const plate = new THREE.Mesh(domedPlate(rim, topY, depth), plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
@@ -193,14 +193,14 @@ type SideStone = { gem: Frame["gem"]; color: string; cut: Frame["cut"]; shape: F
 
 function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: number, st: SideStone) {
   const g = new THREE.Group();
-  const pitch = st.size + 0.15;
+  const pitch = st.size + 0.04;
   const far = rim.reduce((a, p) => (p.length() > a.length() ? p : a), rim[0]);
   const phis: number[] = [];
   let arc = 0, last = wallPoint(far, topY, depth, 0.02);
-  for (let phi = 0.02; phi < Math.PI / 2 - 0.1; phi += 0.01) {
+  for (let phi = 0.0; phi < Math.PI / 2 + 0.02; phi += 0.01) {
     const p = wallPoint(far, topY, depth, phi);
     arc += p.distanceTo(last); last = p;
-    if (arc >= pitch * (phis.length ? 0.95 : 0.3)) { phis.push(phi); arc = 0; }
+    if (arc >= pitch * (phis.length ? 0.92 : 0.15)) { phis.push(phi); arc = 0; }
   }
   const groups = new Map<string, Item[]>();
   const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);

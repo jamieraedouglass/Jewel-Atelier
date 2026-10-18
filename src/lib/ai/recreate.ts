@@ -57,16 +57,16 @@ How to choose:
     centre's shape with a ratio that gets smaller outward (e.g. marquise, then marquise ratio 1.75, then 1.45). Use "fill" only
     when the stones are packed with no banding.
   * Judge the profile: if the top rises to the centre stone and curves down on every side, it is domed (decoDome 0.8–1).
-  * The top's outline: "radiant" with ratio 1 is a square with its corners in line with the centre stone's points (a marquise
-    running corner to corner); "cushion" with ratio 1 is a softer square with its flat sides facing the stone's points.
-    center.rotation turns the stone and the layers that follow its shape (not the square).
+  * A square or cushion top only when the photo's top really has straight sides and corners. When the stones curve round the
+    centre stone in bands that echo its shape (most cocktail rings round a marquise, pear or oval), use fit "hug" bands with the
+    centre's own outline, as in the worked example; never turn such a piece into a square.
   * Leaves winding through a mosaic in diagonal lines: pattern "vines"; hand-set stones of slightly different sizes: vary 0.15–0.25.
   * A centre stone in a fine gold rim with beaded (milgrain) edge: setting.style "bezel".
   * A top that rises to the centre stone (bombé, dome-shaped) needs options.decoDome 0.5–1; a flat Art Deco plaque 0.
   * Start from the closest of these layer templates and adapt it (stone sizes, colours, outlines, how many layers):
 ${FRAME_TEMPLATES}
-  * A worked example, a domed marquise cocktail ring packed with pink sapphire cabochons and emerald leaves, its stones
-    carried on down the band: ${MOSAIC_EXAMPLE}
+  * A worked example, a domed marquise cocktail ring in hugging bands of pink sapphire cabochons and emerald leaves, its stones
+    carried on down the sides and the band. For a piece like this, copy it closely and change only what the photo shows differently: ${MOSAIC_EXAMPLE}
   * When the stones carry on down the shank, set band.pave ("shoulders", "half" or "full") with paveRows, paveGem, paveColor and
     paveShape matching the stones on the top (a vine of angled marquise leaves for leaf patterns), and a wider band (widthMm 4–8).
 Estimate sizes in millimetres from typical proportions (an earring is usually 15–70 mm long; a stud 5–15 mm) or any scale reference.

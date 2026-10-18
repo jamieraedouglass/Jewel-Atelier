@@ -154,8 +154,8 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const start = hx ? Math.asin(Math.min(0.9, (hx + 0.6) / (RIN + 2.3))) : 0;
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
   const mosaic = mosaicFrame(d);
-  const W = mosaic ? Math.max(1.6, mosaic.widthMm * 0.9) : b.paveMm;
-  const rows = mosaic ? Math.max(2, Math.floor((b.widthMm - 0.6) / (W * ASPECT[mosaic.shape] + 0.15))) : b.paveRows;
+  const rows = mosaic ? Math.max(2, Math.round((b.widthMm - 0.3) / (mosaic.widthMm * ASPECT[mosaic.shape] + 0.1))) : b.paveRows;
+  const W = mosaic ? ((b.widthMm - 0.3) / rows - 0.08) / ASPECT[mosaic.shape] : b.paveMm;
   const ang = b.paveAngle;
   const pd: Design = mosaic
     ? { ...d, accents: { ...d.accents, gem: mosaic.gem, color: mosaic.color, cut: mosaic.cut === "cabochon" ? "cabochon" : "faceted", sizeCt: 6, orientation: "across",
@@ -171,7 +171,7 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
       const pts = Array.from({ length: N + 1 }, (_, i) => {
         const th = a0 + ((a1 - a0) * i) / N;
         const { r: R, w } = surf(th);
-        const z = rows === 1 ? 0 : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1)));
+        const z = rows === 1 ? 0 : mosaic ? (r - (rows - 1) / 2) * ((w - 0.3) / rows) : (r / (rows - 1) - 0.5) * Math.max(0, Math.min(w - W - 0.4, (W + 0.25) * (rows - 1)));
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
