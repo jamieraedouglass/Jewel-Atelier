@@ -214,6 +214,27 @@ export function directionFromNotes(notes?: string): number | null {
   return null;
 }
 
+// Hard facts the person wrote down win over anything the model guessed from the photo.
+export function factsFromNotes(notes: string | undefined, type: string): { ringSize?: number; carat?: number; karat?: 14 | 18 | 22 | 24 } {
+  const n = (notes ?? "").toLowerCase().replace(/,/g, " ");
+  const out: { ringSize?: number; carat?: number; karat?: 14 | 18 | 22 | 24 } = {};
+  if (type === "ring") {
+    const m = n.match(/(?<!indian |uk |eu )\b(?:ring )?size\s*(?:us\s*)?(\d{1,2}\s+\d\/\d|\d{1,2}(?:\.\d{1,2})?)(?![\d.]|\s*(?:mm|cm))/);
+    if (m) {
+      const [whole, frac] = m[1].split(/\s+/);
+      const v = frac ? Number(whole) + Number(frac.split("/")[0]) / Number(frac.split("/")[1]) : Number(whole);
+      if (v >= 3 && v <= 13) out.ringSize = Math.round(v * 4) / 4;
+    }
+  }
+  for (const m of n.matchAll(/(?<!total |tw |weight of )\b(\d{1,2}(?:\.\d{1,2})?)\s*(?:ct|cts|carats?)\b(?!\s*(?:tw|t\.w|total|gold|yellow|white|rose))/g)) {
+    const v = Number(m[1]);
+    if (v > 0.05 && v <= 60 && !/\b(total|tw|ctw)\b/.test(n.slice(Math.max(0, m.index! - 25), m.index! + m[0].length + 12))) { out.carat = v; break; }
+  }
+  const k = n.match(/\b(14|18|22|24)\s*(?:k|kt|karat|carat gold|ct gold)\b/);
+  if (k) out.karat = Number(k[1]) as 14 | 18 | 22 | 24;
+  return out;
+}
+
 const ROTATION: Record<string, number> = { "along the finger": 0, "across the finger": 90, diagonal: 45 };
 
 function tidy(input: unknown, notes?: string): Recreation | null {
@@ -224,6 +245,13 @@ function tidy(input: unknown, notes?: string): Recreation | null {
   if (d.type === "ring" && turn !== null) {
     const c = (d.patch.center && typeof d.patch.center === "object" ? d.patch.center : {}) as Record<string, unknown>;
     d.patch = { ...d.patch, center: { ...c, rotation: turn } };
+  }
+  const facts = factsFromNotes(notes, d.type);
+  if (facts.ringSize) d.patch = { ...d.patch, ringSize: facts.ringSize };
+  if (facts.karat) d.patch = { ...d.patch, purity: { karat: facts.karat } };
+  if (facts.carat) {
+    const c = (d.patch.center && typeof d.patch.center === "object" ? d.patch.center : {}) as Record<string, unknown>;
+    d.patch = { ...d.patch, center: { ...c, carat: facts.carat } };
   }
   const style = Object.hasOwn(STYLES[d.type], d.style) ? d.style : Object.keys(STYLES[d.type])[0];
   const start = SHOWCASE.find((x) => x.name === d.start_from);

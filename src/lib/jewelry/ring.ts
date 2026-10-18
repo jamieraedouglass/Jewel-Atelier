@@ -22,7 +22,48 @@ export function mosaicFrame(d: Design) {
   return stoneLayers[stoneLayers.length - 1] ?? null;
 }
 
-export function ringPiece(d0: Design): Piece {
+const TOP_PARTS = new Set(["center", "sides", "extra", "accents", "motif"]);
+function topSize(p: Piece, rotation: number) {
+  const b = new THREE.Box3();
+  p.group.updateMatrixWorld(true);
+  p.group.traverse((o) => { if (TOP_PARTS.has(o.userData.part)) b.expandByObject(o); });
+  if (b.isEmpty()) return { L: 0, W: 0 };
+  const x = b.max.x - b.min.x, z = b.max.z - b.min.z, across = Math.abs(Math.cos(THREE.MathUtils.degToRad(rotation))) > 0.7;
+  return across ? { L: z, W: x } : { L: x, W: z };
+}
+function dispose(g: THREE.Object3D) { g.traverse((o) => (o as THREE.Mesh).geometry?.dispose()); }
+
+// The stones round the edge and the bend over the finger both add to the top, so a measured size is checked on the
+// finished ring and the fit aimed again until it matches.
+export function ringPiece(d00: Design): Piece {
+  let d0 = d00;
+  const o = d0.options, wantL = o.decoLengthMm, wantW = o.decoWidthMm;
+  if (d0.type !== "ring" || d0.style !== "deco" || !(wantL > 0 || wantW > 0) || !d0.frames.length) return ringPieceOnce(d0);
+  // Layers too wide for the measured top are made finer (smaller stones, narrower bands) instead of being squashed.
+  const natural = ringPieceOnce({ ...d0, options: { ...o, decoLengthMm: 0, decoWidthMm: 0, decoSpread: 0 } });
+  const nat = topSize(natural, d0.center.rotation);
+  dispose(natural.group);
+  const c = d0.center, rim = (half: number, want: number, now: number) => (want > 0 && now / 2 > half + 1 ? (want / 2 - half) / (now / 2 - half) : 1);
+  const f = Math.min(rim(c.lengthMm / 2 + 0.6, wantL, nat.L), rim(c.widthMm / 2 + 0.6, wantW, nat.W));
+  if (f < 0.92) {
+    const k = Math.max(0.35, f);
+    d0 = { ...d0, frames: d0.frames.map((fr) => ({ ...fr, widthMm: Math.max(0.4, fr.widthMm * k), gapMm: fr.gapMm * k })) };
+  }
+  let p = ringPieceOnce(d0);
+  let aimL = wantL, aimW = wantW;
+  for (let i = 0; i < 3; i++) {
+    const { L, W } = topSize(p, d0.center.rotation);
+    const overL = wantL > 0 ? L - wantL : 0, overW = wantW > 0 ? W - wantW : 0;
+    if (Math.abs(overL) < 0.3 && Math.abs(overW) < 0.3) break;
+    if (wantL > 0) aimL = Math.max(wantL * 0.5, aimL - overL);
+    if (wantW > 0) aimW = Math.max(wantW * 0.5, aimW - overW);
+    dispose(p.group);
+    p = ringPieceOnce({ ...d0, options: { ...o, decoLengthMm: aimL, decoWidthMm: aimW } });
+  }
+  return p;
+}
+
+function ringPieceOnce(d0: Design): Piece {
   const mosaic = mosaicFrame(d0);
   const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 7), shape: "flat", pave: d0.band.pave === "none" ? "full" : d0.band.pave } } : d0;
   const m = makeMaterials(d);
@@ -112,8 +153,11 @@ export function ringPiece(d0: Design): Piece {
     if (d.options.decoSpread > 0) stretchAxis(decoTop, across, 1 + 0.7 * d.options.decoSpread, fromW);
     const o = d.options;
     for (const [axis, from, want, cap] of [[along, fromL, o.decoLengthMm, 34], [across, fromW, o.decoWidthMm, 32]] as const) {
-      const now = reach(decoTop, axis), target = (want > 0 ? want : Math.min(now * 2, cap)) / 2;
-      if (now > from + 1 && Math.abs(target - now) > 0.3) stretchAxis(decoTop, axis, Math.min(1.8, Math.max(0.45, (target - from) / (now - from))), from);
+      for (let pass = 0; pass < 3; pass++) {
+        const now = reach(decoTop, axis), target = (want > 0 ? want : Math.min(now * 2, cap)) / 2;
+        if (!(now > from + 1 && Math.abs(target - now) > 0.2)) break;
+        stretchAxis(decoTop, axis, Math.min(1.8, Math.max(0.45, (target - from) / (now - from))), from);
+      }
     }
     at(decoTop);
   }
@@ -322,7 +366,15 @@ function reach(part: THREE.Object3D, axis: THREE.Vector3) {
     if (!mesh.isMesh) return;
     const rel = new THREE.Matrix4().multiplyMatrices(toPart, mesh.matrixWorld);
     const inst = o as THREE.InstancedMesh;
-    if (inst.isInstancedMesh) { for (let i = 0; i < inst.count; i++) { inst.getMatrixAt(i, m); v.setFromMatrixPosition(m.premultiply(rel)); most = Math.max(most, Math.abs(v.dot(axis))); } return; }
+    if (inst.isInstancedMesh) {
+      if (!inst.geometry.boundingBox) inst.geometry.computeBoundingBox();
+      const b = inst.geometry.boundingBox!, corners = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => v3(k & 1 ? b.max.x : b.min.x, k & 2 ? b.max.y : b.min.y, k & 4 ? b.max.z : b.min.z));
+      for (let i = 0; i < inst.count; i++) {
+        inst.getMatrixAt(i, m); m.premultiply(rel);
+        for (const c of corners) { v.copy(c).applyMatrix4(m); most = Math.max(most, Math.abs(v.dot(axis))); }
+      }
+      return;
+    }
     const ps = mesh.geometry.getAttribute("position");
     for (let i = 0; i < ps.count; i += 2) { v.fromBufferAttribute(ps, i).applyMatrix4(rel); most = Math.max(most, Math.abs(v.dot(axis))); }
   });
