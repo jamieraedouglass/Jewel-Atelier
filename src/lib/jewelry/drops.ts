@@ -83,7 +83,9 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
   const gallery = p.halo ? { r: 0.9, y: -0.5 } : bigSet === "bezel" || cs.cut === "rose-cut" || cs.cut === "polki" ? { r: 1.0, y: -0.3 } : { r: 0.92, y: -Math.min(belly, 2) * 0.35 };
   // The stone's true outline (a pear is not an oval), so small stones sit on its edge and wires meet its gallery.
   const edge = cs.shape === "round" ? null : outlineRadius(cs, p.halo ? p.haloMm + 0.45 : 0);
-  const n = p.count;
+  const spots = p.small.spots;
+  if (spots.length) tracedStones(d, m, p, g, spots, cs, theta, edge, Wh, Lh, gallery);
+  const n = spots.length ? 0 : p.count;
   if (n > 0) {
     const angles: number[] = [];
     const fan = (centre: number, k: number, step: number) => { for (let i = 0; i < k; i++) angles.push(centre + (i - (k - 1) / 2) * step); };
@@ -132,6 +134,40 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
     });
   }
   return { g };
+}
+
+// Stones placed where they were traced on the photo. Briolettes hang from their cap; where one overlaps a stone already
+// placed it sits behind it (the back tier). Every stone is wired to the big stone's gallery like the arc layout.
+function tracedStones(d: Design, m: Mats, p: DropPart, g: THREE.Group, spots: DropPart["small"]["spots"], cs: CenterStone, theta: number,
+  edge: ((a: number) => number) | null, Wh: number, Lh: number, gallery: { r: number; y: number }) {
+  const placed: { x: number; z: number; r: number; back: number }[] = [];
+  const order = spots.map((sp, i) => ({ sp, i })).sort((a, b) => b.sp.s - a.sp.s);
+  for (const { sp, i } of order) {
+    const shape = p.small.shapes[i % p.small.shapes.length], base = smallStone(d, p, shape);
+    const sc = { ...base, widthMm: base.widthMm * sp.s, lengthMm: base.lengthMm * sp.s, domeMm: base.domeMm * sp.s };
+    const hangs = sc.cut === "briolette";
+    const dir = v3(sp.x, 0, sp.z);
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+    dir.normalize();
+    const lx = dir.x * Math.cos(-theta) + dir.z * Math.sin(-theta), lz = -dir.x * Math.sin(-theta) + dir.z * Math.cos(-theta);
+    const rEdge = edge ? edge(Math.atan2(lz, lx)) : 1 / Math.sqrt((lx / Wh) ** 2 + (lz / Lh) ** 2);
+    const rad = sc.widthMm / 2;
+    const under = placed.filter((q) => Math.hypot(q.x - sp.x, q.z - sp.z) < (q.r + rad) * 0.8);
+    const back = under.length ? Math.max(...under.map((q) => q.back)) + Math.max(1.2, sc.widthMm * 0.6) : 0;
+    placed.push({ x: sp.x, z: sp.z, r: rad, back });
+    const sy = (hangs ? -0.6 : -0.15) - back;
+    const pos = v3(sp.x, sy, sp.z);
+    const fall = hangs ? dir.clone().multiplyScalar(0.25).add(v3(0, 0, 1)).normalize() : dir;
+    const s = setStoneRaw(sc, setFor(d, sc), m);
+    s.position.copy(pos);
+    s.rotation.y = hangs ? Math.atan2(fall.x, fall.z) + Math.PI : Math.atan2(dir.x, dir.z) + THREE.MathUtils.degToRad(p.small.rotation);
+    g.add(s);
+    const from = dir.clone().multiplyScalar(rEdge * gallery.r).setY(gallery.y);
+    const low = Math.min(sy, gallery.y - 1.2);
+    const end = hangs ? pos.clone().addScaledVector(fall, -sc.lengthMm / 2) : pos.clone().addScaledVector(dir, -sc.widthMm * 0.46).setY(sy - 0.35 * Math.min(sc.cut === "faceted" ? sc.widthMm * 0.43 : 0.6, 2));
+    const outR = Math.max(rEdge * 1.08 + 0.2, Math.min(Math.hypot(end.x, end.z), rEdge * 1.08 + 0.2));
+    g.add(tube(m, [from, dir.clone().multiplyScalar(rEdge * gallery.r).setY(gallery.y - 1.2), dir.clone().multiplyScalar(outR).setY(low), v3(end.x, low, end.z), end], 0.14));
+  }
 }
 
 function dropStrandsPart(d: Design, m: Mats, p: DropPart): Built {

@@ -9,7 +9,7 @@ const ARRANGE_LABEL: Record<DropPart["arrange"], string> = { around: "All round"
 
 export const NEW_PART: Record<DropPart["kind"], Partial<DropPart>> = {
   stone: { kind: "stone", gapMm: 0.8 },
-  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [], sizes: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
+  strands: { kind: "strands", count: 5, perStrand: 2, small: { gem: "diamond", cut: "faceted", color: GEM_LOOK.diamond.color, shapes: ["pear"], widthMm: 2.6, rotation: 180, turns: [], sizes: [], spots: [] }, spreadMm: 14, curveMm: 2.5, gapMm: 0.8 },
   frame: { kind: "frame", showStone: false, halo: true, stone: { ...DropPartSchema.parse({}).stone, shape: "octagon", lengthMm: 14, widthMm: 12 }, gapMm: 0.8 },
   bow: { kind: "bow", halo: true, haloMm: 1.1, spreadMm: 18, stone: { ...DropPartSchema.parse({}).stone, shape: "baguette", lengthMm: 4, widthMm: 2 }, gapMm: 0.8 },
 };
@@ -145,7 +145,13 @@ export default function DropPartEditor({ p, i, count, above, focused, set, onMov
           <span className="small muted">{smallWord}</span>
           {p.kind === "stone" && (
             <>
-              <Num id={id("petals")} text="How many" value={p.count} min={0} max={24} step={1} unit="" onChange={(count) => set({ count })} />
+              {p.small.spots.length > 0 && (
+                <p className="small muted" style={{ margin: 0 }}>
+                  {p.small.spots.length} stones placed where they are in your photo.{" "}
+                  <button type="button" className="chip" onClick={() => set({ count: p.small.spots.length, small: { ...p.small, spots: [] } })}>Space them evenly instead</button>
+                </p>
+              )}
+              <Num id={id("petals")} text="How many" value={p.small.spots.length || p.count} min={0} max={24} step={1} unit="" onChange={(count) => set({ count, small: { ...p.small, spots: [] } })} />
               {p.count > 0 && <Chips name="Arrangement" options={DROP_ARRANGE} value={p.arrange} fmt={(a) => ARRANGE_LABEL[a]} onPick={(arrange) => set({ arrange })} />}
             </>
           )}

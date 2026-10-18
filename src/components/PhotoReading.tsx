@@ -37,7 +37,7 @@ export function readingSummary(r: Reading, counts: Record<number, number>, remov
 
 export default function PhotoReading({ previews, reading, done, busy, onBuild, onCancel }: {
   previews: string[]; reading: Reading | null; done: boolean; busy: boolean;
-  onBuild: (summary: string) => void; onCancel: () => void;
+  onBuild: (summary: string, removed: number[]) => void; onCancel: () => void;
 }) {
   const [aspect, setAspect] = useState<Record<number, number>>({});
   const [counts, setCounts] = useState<Record<number, number>>({});
@@ -128,7 +128,7 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
 
       {done && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn primary" type="button" disabled={busy} onClick={() => onBuild(readingSummary(reading ?? {}, counts, removed, answers))}>
+          <button className="btn primary" type="button" disabled={busy} onClick={() => onBuild(readingSummary(reading ?? {}, counts, removed, answers), [...removed])}>
             {unanswered ? `Build it in 3D (${unanswered} unanswered)` : "Looks right: build it in 3D"}
           </button>
           <button className="btn" type="button" disabled={busy} onClick={onCancel}>Start over</button>

@@ -6,6 +6,7 @@ import { compressImage, uid } from "@/lib/media";
 import { photoPixels, withPhotoColours, type Sample } from "@/lib/colourSample";
 import { createClient } from "@/lib/supabase/client";
 import PhotoReading, { type Reading } from "./PhotoReading";
+import { type PhotoSize, traceDrops } from "@/lib/photoTrace";
 
 type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[]; analysis?: string; samples?: Sample[]; inventory?: { what: string; count: number; size: string; where: string }[]; base?: Design | null; score?: number | null; differences?: string[] };
 type Props = {
@@ -32,6 +33,15 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   const [paths, setPaths] = useState<string[]>([]);
   const [ask, setAsk] = useState("");
   const [fixes, setFixes] = useState<{ ask: string; done: string }[]>([]);
+  // The confirmed reading and each photo's size, so every build can place the circled stones where they are in the photo.
+  const traced = useRef<{ reading: Reading | null; removed: number[] } | null>(null);
+  const photoSizes = useRef<(PhotoSize | null)[]>([]);
+  useEffect(() => {
+    let live = true;
+    Promise.all(previews.map((u) => new Promise<PhotoSize | null>((res) => { const im = new Image(); im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight }); im.onerror = () => res(null); im.src = u; })))
+      .then((s) => { if (live) photoSizes.current = s; });
+    return () => { live = false; };
+  }, [previews]);
   const pixels = useRef<{ files: Blob[]; px: Awaited<ReturnType<typeof photoPixels>> } | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
   const [readingDone, setReadingDone] = useState(false);
@@ -40,6 +50,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   if (!userId) return <p className="muted">Sign in to recreate a piece from a photo.</p>;
 
   async function pick(list: FileList | null) {
+    traced.current = null;
     if (!list?.length) return;
     setError(null); setResult(null);
     try {
@@ -66,7 +77,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   }
 
   async function readPhoto() {
-    setError(null); setResult(null); setReading(null); setReadingDone(false);
+    setError(null); setResult(null); setReading(null); setReadingDone(false); traced.current = null;
     try {
       const uploaded = await upload();
       setBusy("Reading the photo…");
@@ -165,6 +176,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
   function apply(r: Result, from: Design) {
     let d = { ...applyPatchLenient(chooseStyle(from, r.type, r.style), { ...r.patch, type: r.type, style: r.style } as DesignPatch), name: r.title };
     if (r.samples?.length && pixels.current?.files === files) d = { ...withPhotoColours(d, r.samples, pixels.current.px).design, name: r.title };
+    if (traced.current) d = traceDrops(d, traced.current.reading, photoSizes.current, traced.current.removed);
     onReplace(d);
     return d;
   }
@@ -189,10 +201,10 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
           <textarea id="piece-notes" maxLength={3000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What the photo can't show: size, stones, how high the top is, what the band looks like…" />
         </label>
         <button className="btn primary" type="button" disabled={!files.length || !!busy} onClick={readPhoto}>{busy ?? "Read the photo"}</button>
-        <button className="btn" type="button" disabled={!files.length || !!busy} onClick={() => recreate()} style={{ justifySelf: "start" }}>Skip the check and build now</button>
+        <button className="btn" type="button" disabled={!files.length || !!busy} onClick={() => { traced.current = null; recreate(); }} style={{ justifySelf: "start" }}>Skip the check and build now</button>
         {reading && (
           <PhotoReading key={paths.join("|")} previews={previews} reading={reading} done={readingDone} busy={!!busy}
-            onBuild={(summary) => recreate(summary, paths)} onCancel={() => { setReading(null); setReadingDone(false); }} />
+            onBuild={(summary, removed) => { traced.current = { reading, removed }; recreate(summary, paths); }} onCancel={() => { setReading(null); setReadingDone(false); }} />
         )}
         {error && <p className="error">{error}</p>}
       </section>
