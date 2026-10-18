@@ -1,4 +1,4 @@
-import type { Design, DropPart } from "./design";
+import { type Design, type DropPart, DropPartSchema } from "./design";
 
 type Mark = { photo?: number; x?: number; y?: number; r?: number };
 type Group = { what?: string; shape?: string; cut?: string; marks?: Mark[] };
@@ -36,6 +36,13 @@ export function traceDrops(d: Design, reading: TraceReading | null, sizes: (Phot
     const kind = /briolette/.test(text) ? "briolette" : /\bround\b/.test(text) ? "round" : null;
     if (!kind) return;
     const hits = parts.filter((p) => p.kind === "stone" && (kind === "briolette" ? p.small.cut === "briolette" : p.small.cut !== "briolette" && p.small.shapes.every((x) => x === "round")));
+    // Stones the person marked that no part holds yet get their own part, set on the big stone.
+    if (!hits.length && parts.length < 10) {
+      const added = DropPartSchema.parse({ kind: "stone", stone: first.stone, showStone: false, anchor: "on", from: 0, link: "direct", gapMm: 0,
+        small: { gem: "diamond", cut: kind === "briolette" ? "briolette" : "faceted", shapes: [kind === "briolette" ? "pear" : "round"] } });
+      parts.push(added);
+      hits.push(added);
+    }
     if (hits.length !== 1) return;
     const part = hits[0] as DropPart;
     const across = marks.map((mk) => (2 * (num(mk.r) ? mk.r : 0.015) * img.w) / pxPerMm * (kind === "briolette" ? 0.75 : 1));

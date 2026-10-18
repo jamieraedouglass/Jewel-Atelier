@@ -32,3 +32,14 @@ describe("traceDrops", () => {
     expect(traceDrops(ring, { main: { x: 0, y: 0, w: 1, h: 1 } }, [{ w: 1, h: 1 }])).toBe(ring);
   });
 });
+
+describe("traceDrops with stones the person marked", () => {
+  it("adds a part for a group no part holds yet", () => {
+    const d0 = applyPatch(chooseStyle(defaultDesign(), "earrings", "pendant"), { drop: { parts: [{ kind: "stone", stone, small: { cut: "briolette", shapes: ["pear"], widthMm: 3 }, count: 3 }] } } as never);
+    const reading = { main: { photo: 0, x: 0.4, y: 0.4, w: 0.2, h: 0.2 }, groups: [{ what: "Small round diamonds", marks: [{ x: 0.45, y: 0.6, r: 0.008 }, { x: 0.55, y: 0.6, r: 0.008 }] }] };
+    const d = traceDrops(d0, reading, [{ w: 1000, h: 1000 }]);
+    expect(d.drop.parts).toHaveLength(2);
+    expect(d.drop.parts[1]).toMatchObject({ anchor: "on", showStone: false, count: 2 });
+    expect(d.drop.parts[1].small.spots).toHaveLength(2);
+  });
+});

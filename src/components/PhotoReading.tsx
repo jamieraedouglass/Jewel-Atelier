@@ -35,15 +35,47 @@ export function readingSummary(r: Reading, counts: Record<number, number>, remov
   return lines.join("\n");
 }
 
+const MISSED = ["Small round diamonds", "Briolette drops", "Pear-shaped diamonds", "Marquise diamonds"];
+
 export default function PhotoReading({ previews, reading, done, busy, onBuild, onCancel }: {
   previews: string[]; reading: Reading | null; done: boolean; busy: boolean;
-  onBuild: (summary: string, removed: number[]) => void; onCancel: () => void;
+  onBuild: (summary: string, removed: number[], edited: Reading) => void; onCancel: () => void;
 }) {
   const [aspect, setAspect] = useState<Record<number, number>>({});
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [removed, setRemoved] = useState<Set<number>>(new Set());
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const groups = reading?.groups ?? [];
+  // Once the reading is done the person can correct the marks: pick a group, tap the photo to add a stone it missed,
+  // tap a circle to take one away, or add a group of stones it didn't see at all.
+  const [edits, setEdits] = useState<Group[] | null>(null);
+  const [active, setActive] = useState<number | null>(null);
+  const [naming, setNaming] = useState(false);
+  const [custom, setCustom] = useState("");
+  const groups = (done && edits) || reading?.groups || [];
+  const editable = () => edits ?? (reading?.groups ?? []).map((g) => ({ ...g, marks: [...(g.marks ?? [])] }));
+  const edited: Reading = { ...(reading ?? {}), groups };
+  const tap = (pi: number, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!done || active === null) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - box.left) / box.width, y = (e.clientY - box.top) / box.height;
+    const next = editable(), g = next[active];
+    if (!g) return;
+    const marks = g.marks ?? [], a = aspect[pi] ?? 1;
+    const hit = marks.findIndex((mk) => (mk.photo ?? 0) === pi && num(mk.x) !== null && num(mk.y) !== null && Math.hypot((mk.x as number) - x, ((mk.y as number) - y) * a) < Math.max(0.012, num(mk.r) ?? 0.015));
+    const rs = marks.map((mk) => num(mk.r)).filter((r): r is number => r !== null).sort((p, q) => p - q);
+    const r = rs.length ? rs[Math.floor(rs.length / 2)] : 0.012;
+    g.marks = hit >= 0 ? marks.filter((_, i) => i !== hit) : [...marks, { photo: pi, x, y, r }];
+    g.count = g.marks.length;
+    setEdits(next);
+    setCounts((c) => ({ ...c, [active]: g.marks!.length }));
+  };
+  const addGroup = (what: string) => {
+    if (!what.trim()) return;
+    const next = editable();
+    const shape = /briolette|pear/i.test(what) ? "pear" : /marquise/i.test(what) ? "marquise" : "round";
+    next.push({ what: what.trim(), shape, cut: /briolette/i.test(what) ? "briolette" : "faceted", marks: [], count: 0, where: "where marked on the photo" });
+    setEdits(next); setActive(next.length - 1); setNaming(false); setCustom("");
+  };
   const questions = (reading?.questions ?? []).filter((q) => q.question);
   const unanswered = questions.filter((_, i) => !answers[i]).length;
 
@@ -60,7 +92,7 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
         {previews.map((src, pi) => {
           const a = aspect[pi] ?? 1;
           return (
-            <div key={src} style={{ position: "relative" }}>
+            <div key={src} style={{ position: "relative", cursor: done && active !== null ? "crosshair" : undefined }} onClick={(e) => tap(pi, e)}>
               <img src={src} alt={`Photo ${pi + 1}`} style={{ width: "100%", display: "block", borderRadius: 6 }}
                 onLoad={(e) => { const im = e.currentTarget; setAspect((x) => ({ ...x, [pi]: im.naturalHeight / Math.max(1, im.naturalWidth) })); }} />
               <svg viewBox={`0 0 1 ${a}`} preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} aria-hidden="true">
@@ -70,7 +102,7 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
                 )}
                 {groups.map((g, gi) => removed.has(gi) ? null : (g.marks ?? []).filter((mk) => (mk.photo ?? 0) === pi && num(mk.x) !== null && num(mk.y) !== null).map((mk, mi) => (
                   <circle key={`${gi}-${mi}`} cx={mk.x} cy={(mk.y as number) * a} r={Math.max(0.006, Math.min(0.08, num(mk.r) ?? 0.015))}
-                    fill="none" stroke={COLORS[gi % COLORS.length]} strokeWidth={0.004} />
+                    fill="none" stroke={COLORS[gi % COLORS.length]} strokeWidth={active === gi ? 0.007 : 0.004} />
                 )))}
               </svg>
             </div>
@@ -84,7 +116,12 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
       <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "grid", gap: 6 }}>
         {groups.map((g, gi) => g.what && (
           <li key={gi} className="small" style={{ display: "flex", gap: 8, alignItems: "flex-start", opacity: removed.has(gi) ? 0.45 : 1 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 12, border: `2px solid ${COLORS[gi % COLORS.length]}`, marginTop: 3, flex: "none" }} />
+            {done ? (
+              <button type="button" className="chip" aria-pressed={active === gi} title="Mark these stones on the photo"
+                onClick={() => setActive(active === gi ? null : gi)} style={{ padding: "1px 8px", borderColor: COLORS[gi % COLORS.length], flex: "none" }}>
+                {active === gi ? "Done" : "Mark"}
+              </button>
+            ) : <span style={{ width: 12, height: 12, borderRadius: 12, border: `2px solid ${COLORS[gi % COLORS.length]}`, marginTop: 3, flex: "none" }} />}
             <span style={{ flex: 1 }}>
               {done ? (
                 <input type="number" min={0} max={200} aria-label={`How many ${g.what}`} value={counts[gi] ?? g.count ?? g.marks?.length ?? 0}
@@ -103,6 +140,30 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
           </li>
         ))}
       </ul>
+      {done && (
+        <div style={{ display: "grid", gap: 6 }}>
+          {active !== null && groups[active] && (
+            <p className="small" style={{ margin: 0 }}>
+              <b>Tap the photo</b> on each {groups[active].what} it missed to add it; tap a circle to take it away. Tap &ldquo;Done&rdquo; when they&rsquo;re all marked.
+            </p>
+          )}
+          {naming ? (
+            <div style={{ display: "grid", gap: 6 }}>
+              <span className="small">What did it miss?</span>
+              <div className="chips">
+                {MISSED.map((w) => <button key={w} type="button" className="chip" style={{ textTransform: "none" }} onClick={() => addGroup(w)}>{w}</button>)}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input type="text" placeholder="Or describe them, e.g. emerald cabochons" value={custom} onChange={(e) => setCustom(e.target.value)} aria-label="What it missed" style={{ flex: 1 }} />
+                <button type="button" className="btn" disabled={!custom.trim()} onClick={() => addGroup(custom)}>Add</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="chip" style={{ justifySelf: "start", textTransform: "none" }} onClick={() => setNaming(true)}>+ Stones it didn&rsquo;t see</button>
+          )}
+        </div>
+      )}
+
       {reading?.overall && (num(reading.overall.length_mm) !== null || reading.overall.metal) && (
         <p className="small muted" style={{ margin: 0 }}>
           {num(reading.overall.length_mm) !== null && num(reading.overall.width_mm) !== null ? `About ${reading.overall.length_mm} × ${reading.overall.width_mm} mm` : ""}
@@ -128,11 +189,11 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
 
       {done && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn primary" type="button" disabled={busy} onClick={() => onBuild(readingSummary(reading ?? {}, counts, removed, answers), [...removed])}>
+          <button className="btn primary" type="button" disabled={busy} onClick={() => onBuild(readingSummary(edited, counts, removed, answers), [...removed], edited)}>
             {unanswered ? `Build it in 3D (${unanswered} unanswered)` : "Looks right: build it in 3D"}
           </button>
           <button className="btn" type="button" disabled={busy} onClick={onCancel}>Start over</button>
-          <span className="small muted">Fix any count or tap &ldquo;Not there&rdquo; first.</span>
+          <span className="small muted">Fix any count, tap &ldquo;Mark&rdquo; to add stones it missed, or &ldquo;Not there&rdquo; first.</span>
         </div>
       )}
     </section>

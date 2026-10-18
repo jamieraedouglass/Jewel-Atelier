@@ -204,7 +204,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         <button className="btn" type="button" disabled={!files.length || !!busy} onClick={() => { traced.current = null; recreate(); }} style={{ justifySelf: "start" }}>Skip the check and build now</button>
         {reading && (
           <PhotoReading key={paths.join("|")} previews={previews} reading={reading} done={readingDone} busy={!!busy}
-            onBuild={(summary, removed) => { traced.current = { reading, removed }; recreate(summary, paths); }} onCancel={() => { setReading(null); setReadingDone(false); }} />
+            onBuild={(summary, removed, edited) => { traced.current = { reading: edited, removed }; recreate(summary, paths); }} onCancel={() => { setReading(null); setReadingDone(false); }} />
         )}
         {error && <p className="error">{error}</p>}
       </section>
