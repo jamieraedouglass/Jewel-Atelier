@@ -7,6 +7,7 @@ import { setStoneRaw, tube } from "./stones";
 import { ASPECT, accents, aroundOutline, backingPlate, balls } from "./elements";
 import { halo, outlineCurve, patternMaxW, patternRun } from "./patterns";
 import { decoFrames, flowerCluster, halfFlower, swirlArms } from "./ringHeads";
+import { bombeHead, isBombe } from "./bombe";
 import { handPolished } from "../polish";
 
 function edgeX(shape: CenterStone["shape"], L: number, W: number, deg: number, side: 1 | -1): number {
@@ -36,6 +37,7 @@ function dispose(g: THREE.Object3D) { g.traverse((o) => (o as THREE.Mesh).geomet
 // The stones round the edge and the bend over the finger both add to the top, so a measured size is checked on the
 // finished ring and the fit aimed again until it matches.
 export function ringPiece(d00: Design): Piece {
+  if (isBombe(d00)) return ringPieceOnce(d00);
   let d0 = d00;
   const o = d0.options, wantL = o.decoLengthMm, wantW = o.decoWidthMm;
   if (d0.type !== "ring" || d0.style !== "deco" || !(wantL > 0 || wantW > 0) || !d0.frames.length) return ringPieceOnce(d0);
@@ -147,7 +149,10 @@ function ringPieceOnce(d0: Design): Piece {
   if (st === "halo") at(halo(d, m, c).group);
   if (st === "posy") { const f = flowerCluster(d, m, c); f.rotation.y = THREE.MathUtils.degToRad(c.rotation); at(f); }
   let decoTop: THREE.Object3D | null = null;
-  if (st === "deco") {
+  if (st === "deco" && isBombe(d)) {
+    decoTop = bombeHead(d, m, c, { r: ringInnerDiameter(d.ringSize) / 2 + 0.6, gy }).group;
+    at(decoTop);
+  } else if (st === "deco") {
     decoTop = decoFrames(d, m, c, -0.15, 0, { r: ringInnerDiameter(d.ringSize) / 2 + 0.6, gy }).group;
     const t = THREE.MathUtils.degToRad(c.rotation), across = v3(Math.cos(t), 0, -Math.sin(t)), along = v3(Math.sin(t), 0, Math.cos(t));
     const fromW = c.widthMm / 2 + 0.6, fromL = c.lengthMm / 2 + 0.6;
@@ -194,7 +199,7 @@ function ringPieceOnce(d0: Design): Piece {
     at(backingPlate(m, outlineFn("round", 1, 1), (R + dia + 1) * 2, -0.9, 0.8));
   }
   applyProfile(group, d, gy);
-  if (decoTop && d.options.decoBend > 0) bendOverFinger(group, decoTop, d.options.decoBend, ringInnerDiameter(d.ringSize) / 2 + 2.1, d.band.widthMm / 2 + 1);
+  if (decoTop && d.options.decoBend > 0 && !isBombe(d)) bendOverFinger(group, decoTop, d.options.decoBend, ringInnerDiameter(d.ringSize) / 2 + 2.1, d.band.widthMm / 2 + 1);
   bandPave(group, d, m);
   const top = new THREE.Box3().setFromObject(group).max.y;
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
