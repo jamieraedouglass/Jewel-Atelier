@@ -107,8 +107,15 @@ export function ringPiece(d0: Design): Piece {
   if (st === "posy") { const f = flowerCluster(d, m, c); f.rotation.y = THREE.MathUtils.degToRad(c.rotation); at(f); }
   let decoTop: THREE.Object3D | null = null;
   if (st === "deco") {
-    decoTop = decoFrames(d, m, c).group;
-    if (d.options.decoSpread > 0) stretchAcross(decoTop, 1 + 0.7 * d.options.decoSpread, Math.min(c.lengthMm, c.widthMm) / 2 + 0.6, THREE.MathUtils.degToRad(c.rotation));
+    decoTop = decoFrames(d, m, c, -0.15, 0, { r: ringInnerDiameter(d.ringSize) / 2 + 0.6, gy }).group;
+    const t = THREE.MathUtils.degToRad(c.rotation), across = v3(Math.cos(t), 0, -Math.sin(t)), along = v3(Math.sin(t), 0, Math.cos(t));
+    const fromW = c.widthMm / 2 + 0.6, fromL = c.lengthMm / 2 + 0.6;
+    if (d.options.decoSpread > 0) stretchAxis(decoTop, across, 1 + 0.7 * d.options.decoSpread, fromW);
+    const o = d.options;
+    for (const [axis, from, want, cap] of [[along, fromL, o.decoLengthMm, 34], [across, fromW, o.decoWidthMm, 32]] as const) {
+      const now = reach(decoTop, axis), target = (want > 0 ? want : Math.min(now * 2, cap)) / 2;
+      if (now > from + 1 && Math.abs(target - now) > 0.3) stretchAxis(decoTop, axis, Math.min(1.8, Math.max(0.45, (target - from) / (now - from))), from);
+    }
     at(decoTop);
   }
   if (st === "half-flower") {
@@ -307,10 +314,25 @@ export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amoun
   });
 }
 
-export function stretchAcross(part: THREE.Object3D, k: number, from: number, turn: number) {
+function reach(part: THREE.Object3D, axis: THREE.Vector3) {
+  part.updateMatrixWorld(true);
+  const toPart = part.matrixWorld.clone().invert(), m = new THREE.Matrix4(), v = new THREE.Vector3();
+  let most = 0;
+  part.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const rel = new THREE.Matrix4().multiplyMatrices(toPart, mesh.matrixWorld);
+    const inst = o as THREE.InstancedMesh;
+    if (inst.isInstancedMesh) { for (let i = 0; i < inst.count; i++) { inst.getMatrixAt(i, m); v.setFromMatrixPosition(m.premultiply(rel)); most = Math.max(most, Math.abs(v.dot(axis))); } return; }
+    const ps = mesh.geometry.getAttribute("position");
+    for (let i = 0; i < ps.count; i += 2) { v.fromBufferAttribute(ps, i).applyMatrix4(rel); most = Math.max(most, Math.abs(v.dot(axis))); }
+  });
+  return most;
+}
+
+export function stretchAxis(part: THREE.Object3D, axis: THREE.Vector3, k: number, from: number) {
   part.updateMatrixWorld(true);
   const toPart = part.matrixWorld.clone().invert();
-  const axis = v3(Math.cos(turn), 0, -Math.sin(turn));
   const J = new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0)));
   J.multiply(new THREE.Matrix4().makeScale(k, 1, 1)).multiply(new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0))).transpose());
   const move = (p: THREE.Vector3) => { const u = p.dot(axis), extra = (k - 1) * Math.max(0, Math.abs(u) - from) * Math.sign(u); return { p: p.clone().addScaledVector(axis, extra), far: Math.abs(u) > from }; };

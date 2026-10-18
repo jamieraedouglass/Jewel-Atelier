@@ -8,7 +8,7 @@ import { patternMaxW, patternRun } from "./patterns";
 import { tube } from "./stones";
 import { handPolished } from "../polish";
 
-export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass = 0): { group: THREE.Group; extent: number } {
+export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass = 0, finger?: { r: number; gy: number }): { group: THREE.Group; extent: number } {
   const g = new THREE.Group();
   g.userData.part = "accents";
   g.userData.keep = true;
@@ -166,8 +166,16 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const rim = outer.map((p) => new THREE.Vector2(p.x, p.z));
     const flatY = y;
     const topY = dome > 0 ? (r: number) => domeY(r) - 0.75 : () => flatY - 0.75;
-    const depth = wrap ? 1.6 + Math.min(3.4 * sideStone!.size, 5) : 1.6;
-    const plate = new THREE.Mesh(domedPlate(rim, topY, depth), plateMetal(m));
+    const full = wrap ? 1.6 + Math.min(3.4 * sideStone!.size, 5) : 1.6, bend = d.type === "ring" ? d.options.decoBend : 0;
+    const shaped = (p: THREE.Vector2) => { const across = (p.x * p.x) / Math.max(1e-6, p.x * p.x + p.y * p.y); return bend > 0 ? Math.max(1.2, full * (1 - 0.85 * bend * across)) : full; };
+    const clear = (p: THREE.Vector2) => {
+      if (!finger) return Infinity;
+      const x = Math.abs(p.x) * (1 - ROUNDING);
+      if (x >= finger.r) return Infinity;
+      return topY(Math.hypot(p.x, p.y)) + finger.gy - Math.sqrt(finger.r * finger.r - x * x);
+    };
+    const depth: Depth = bend > 0 || finger ? (p) => Math.max(0.8, Math.min(shaped(p), clear(p))) : full;
+    const plate = new THREE.Mesh(domedPlate(rim, topY, depth, finger), plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
     if (wrap) g.add(wrapStones(m, rim, topY, depth, sideStone!));
@@ -193,13 +201,14 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   for (let b = 0; b < N; b++) extent = Math.max(extent, prev[b]);
   if (extent > maxHalf * 1.12 && pass < 3 && !pointed && !frames.some((f) => f.kind === "fill")) {
     const k = Math.max(0.2, (maxHalf - centreHalf) / Math.max(0.1, extent - centreHalf));
-    return decoFrames({ ...d, frames: frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * k), gapMm: f.gapMm * k })) }, m, c, y0, pass + 1);
+    return decoFrames({ ...d, frames: frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * k), gapMm: f.gapMm * k })) }, m, c, y0, pass + 1, finger);
   }
   return { group: g, extent };
 }
 
 function plateMetal(m: Mats) {
   const satin = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone());
+  satin.side = THREE.DoubleSide;
   satin.roughness = 0.62;
   satin.envMapIntensity = 0.3;
   satin.color = satin.color.clone().multiplyScalar(0.72);
@@ -209,30 +218,26 @@ function plateMetal(m: Mats) {
 
 type SideStone = { gem: Frame["gem"]; color: string; cut: Frame["cut"]; shape: Frame["shape"]; size: number; alt: Frame["alt"]; every: number };
 
-function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: number, st: SideStone) {
+function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, depth: Depth, st: SideStone) {
   const g = new THREE.Group();
   const pitch = st.size + 0.04;
-  const far = rim.reduce((a, p) => (p.length() > a.length() ? p : a), rim[0]);
-  const phis: number[] = [];
-  let arc = 0, last = wallPoint(far, topY, depth, 0.02);
-  for (let phi = 0.0; phi < Math.PI / 2 + 0.02; phi += 0.01) {
-    const p = wallPoint(far, topY, depth, phi);
-    arc += p.distanceTo(last); last = p;
-    if (arc >= pitch * (phis.length ? 0.92 : 0.15)) { phis.push(phi); arc = 0; }
-  }
+  const N = rim.length;
+  const arcAt = (p: THREE.Vector2) => { let a = 0, last = wallPoint(p, topY, depth, 0); for (let k = 1; k <= 12; k++) { const q = wallPoint(p, topY, depth, (k / 12) * (Math.PI / 2)); a += q.distanceTo(last); last = q; } return a; };
+  const rows = rim.map((p) => Math.max(0, Math.round(arcAt(p) / pitch - 0.15)));
+  const maxRows = Math.max(0, ...rows);
   const groups = new Map<string, Item[]>();
   const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
   let n = 0;
-  phis.forEach((phi, row) => {
-    const N = rim.length;
+  for (let row = 0; row < maxRows; row++) {
+    const phiAt = (i: number) => (Math.min(row, rows[i % N] - 1) + 0.55) / Math.max(1, rows[i % N]) * (Math.PI / 2);
     let acc = (row % 2) * pitch / 2;
-    let prevP = wallPoint(rim[0], topY, depth, phi);
+    let prevP = wallPoint(rim[0], topY, depth, phiAt(0));
     for (let i = 1; i <= N; i++) {
-      const a = rim[i % N], p = wallPoint(a, topY, depth, phi);
+      const a = rim[i % N], phi = phiAt(i), p = wallPoint(a, topY, depth, phi);
       acc += p.distanceTo(prevP); prevP = p;
-      if (acc < pitch) continue;
+      if (row >= rows[i % N] || acc < pitch) continue;
       acc = 0;
-      const around = wallPoint(rim[(i + 1) % N], topY, depth, phi).sub(p).normalize();
+      const around = wallPoint(rim[(i + 1) % N], topY, depth, phiAt(i + 1)).sub(p).normalize();
       const down = wallPoint(a, topY, depth, Math.min(Math.PI / 2, phi + 0.05)).sub(p).normalize();
       const up = new THREE.Vector3().crossVectors(down, around).normalize();
       if (up.dot(v3(p.x, 0, p.z)) < 0) up.negate();
@@ -246,7 +251,7 @@ function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
       put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: p.clone().addScaledVector(up, 0.35), dia: isAlt ? Math.min(st.size, pitch / ASPECT[shape] * 1.6) : st.size, quat, up });
       n++;
     }
-  });
+  }
   groups.forEach((items, key) => {
     const [gem, color, cut, shape] = key.split("|");
     g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
@@ -256,12 +261,15 @@ function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
 
 export const ROUNDING = 0.32;
 
-export function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: number, phi: number) {
+export type Depth = number | ((p: THREE.Vector2) => number);
+const depthAt = (depth: Depth, p: THREE.Vector2) => (typeof depth === "number" ? depth : depth(p));
+
+export function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: Depth, phi: number) {
   const rr = Math.hypot(p.x, p.y), k = 1 - ROUNDING + ROUNDING * Math.cos(phi);
-  return v3(p.x * k, topY(rr) - depth * Math.sin(phi), p.y * k);
+  return v3(p.x * k, topY(rr) - depthAt(depth, p) * Math.sin(phi), p.y * k);
 }
 
-function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth: number) {
+function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth: Depth, finger?: { r: number; gy: number }) {
   const N = outline.length, R = 10, E = 10, pos: number[] = [], idx: number[] = [];
   const vert = (v: THREE.Vector3) => { pos.push(v.x, v.y, v.z); return pos.length / 3 - 1; };
   const rows: number[][] = [];
@@ -273,7 +281,12 @@ function domedPlate(outline: THREE.Vector2[], topY: (r: number) => number, depth
   const k = 1 - ROUNDING, bottom: number[][] = [];
   for (let r = R; r >= 0; r--) {
     const t = r / R;
-    bottom.push(outline.map((p) => vert(v3(p.x * k * t, topY(Math.hypot(p.x, p.y)) - depth, p.y * k * t))));
+    bottom.push(outline.map((p) => {
+      const x = p.x * k * t, z = p.y * k * t;
+      let y = topY(Math.hypot(p.x, p.y)) - depthAt(depth, p);
+      if (finger && Math.abs(x) < finger.r) y = Math.max(y, Math.sqrt(finger.r * finger.r - x * x) - finger.gy);
+      return vert(v3(x, Math.min(y, topY(Math.hypot(x, z)) - 0.4), z));
+    }));
   }
   const all = [...rows, ...bottom.slice(1)];
   for (let r = 0; r < all.length - 1; r++) for (let i = 0; i < N; i++) {
