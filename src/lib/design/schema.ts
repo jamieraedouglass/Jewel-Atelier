@@ -121,7 +121,7 @@ export const FrameSchema = z.object({
   gapMm: z.number().min(0).max(4).default(0.25),
   ratio: z.number().min(0.4).max(2.5).nullable().default(null),
   pattern: z.enum(["even", "vines"]).default("even"),
-  fit: z.enum(["scale", "hug"]).default("scale"),
+  fit: z.enum(["scale", "hug", "point"]).default("scale"),
   vary: z.number().min(0).max(0.4).default(0),
 });
 export type Frame = z.infer<typeof FrameSchema>;

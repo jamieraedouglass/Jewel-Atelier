@@ -51,7 +51,8 @@ How to choose:
     doesn't follow the centre stone's proportions.
   * When the stones carry on over the rounded sides of the top, set options.decoWrap true.
   * Bands that sit tight against each other all the way round (echoing a marquise or pear, no metal showing between them):
-    give every layer fit "hug" and the centre stone's outline; each band then follows the one inside it.
+    give every layer the centre stone's outline and fit "point" when the outer edge stays pointed at the stone's tips (a kite
+    or lozenge round a marquise or pear), or fit "hug" when it rounds off into an oval.
   * Look hard at how the stones are organised before choosing. Bands that follow the centre stone's outline (concentric rings
     of stones, often separated by milgrain, growing rounder towards the edge) are several "stones" layers whose outline is the
     centre's shape with a ratio that gets smaller outward (e.g. marquise, then marquise ratio 1.75, then 1.45). Use "fill" only

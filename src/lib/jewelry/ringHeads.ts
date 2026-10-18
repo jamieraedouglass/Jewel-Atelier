@@ -23,7 +23,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
   const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12);
   const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * ASPECT[f.shape] : f.widthMm), 0);
-  const fit = centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
+  const pointed = d.frames.some((f) => f.fit === "point");
+  const fit = !pointed && centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
   const frames = fit < 1 ? d.frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * fit), gapMm: f.gapMm * fit })) : d.frames;
   const dome = d.options.decoDome;
   const Rd = dome > 0 ? 70 - 54 * dome : 0;
@@ -109,15 +110,25 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     }
     let kScale = 0;
     for (const [x, z] of raw) kScale = Math.max(kScale, (prevAt(theta(x, z)) + f.gapMm) / (Math.hypot(x, z) || 1));
-    const hug = f.fit === "hug";
+    const hug = f.fit === "hug" || f.fit === "point";
     const hugRing = (dist: number) => {
       const pts = Array.from({ length: N }, (_, b) => { const a = ((b + 0.5) / N) * Math.PI * 2; return [Math.cos(a) * prev[b], Math.sin(a) * prev[b]] as const; });
-      return pts.map((p, i) => {
+      const off = pts.map((p, i) => {
         const a = pts[(i + N - 1) % N], c2 = pts[(i + 1) % N];
         let nx = c2[1] - a[1], nz = -(c2[0] - a[0]);
         const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
         if (nx * p[0] + nz * p[1] < 0) { nx = -nx; nz = -nz; }
         return v3(p[0] + nx * dist, y, p[1] + nz * dist);
+      });
+      if (f.fit !== "point") return off;
+      const rad = new Float32Array(N);
+      for (const q of off) { const b = Math.floor((theta(q.x, q.z) / (Math.PI * 2)) * N) % N; rad[b] = Math.max(rad[b], Math.hypot(q.x, q.z)); }
+      for (let b = 0; b < N; b++) if (!rad[b]) rad[b] = Math.max(rad[(b + N - 1) % N], rad[(b + 1) % N]);
+      return Array.from({ length: N }, (_, b) => {
+        const a = ((b + 0.5) / N) * Math.PI * 2;
+        const tip = Math.pow(Math.abs(Math.sin(a - turn)), 6);
+        const r = Math.max(rad[b], prev[b] + dist * (1 + 0.45 * tip));
+        return v3(Math.cos(a) * r, y, Math.sin(a) * r);
       });
     };
     const meanR = hug ? prev.reduce((a, r) => a + r, 0) / N + f.gapMm : raw.reduce((a, [x, z]) => a + Math.hypot(x, z), 0) / S * kScale;
