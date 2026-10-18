@@ -88,7 +88,7 @@ export const DropPartSchema = z.object({
     widthMm: z.number().min(0.8).max(20).default(3),
     rotation: z.number().min(-180).max(180).default(0),
     turns: z.array(z.number().min(-180).max(180)).max(8).default([]),
-    sizes: z.preprocess(relativeSizes, z.array(z.number().min(0.3).max(3)).max(8)).default([]),
+    sizes: z.preprocess(relativeSizes, z.array(z.number().min(0.3).max(3)).max(24)).default([]),
   }).default({}),
   count: z.number().int().min(0).max(24).default(0),
   arc: z.object({ centerDeg: z.number().min(-180).max(180).default(90), spanDeg: z.number().min(10).max(360).default(120) }).nullable().default(null),

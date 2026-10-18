@@ -81,6 +81,9 @@ How to choose:
   * A stone that sits tilted (a pear leaning out to one side) is a rotation, not something to leave out: rotation 180
     is tip up; 150 or 210 leans the tip about 30 degrees to one side. With mirrorPair the other earring mirrors it.
   * Briolettes round a stone always hang from their narrow drilled end; leave small.rotation at 0 for them.
+  * A row of small stones between a stone and the drops hanging from it: put the drops on the stone's part, and the row as
+    a second part with anchor "on", from = that part, showStone false, the same stone, and its own arc. The drops then hang
+    outside the row.
   * Layouts don't have to be one straight line: anchor "beside" puts a part next to another (toi-et-moi, clusters side by side), from picks which part to hang from, offsetX/offsetZ shift it, tilt angles it, pair adds a mirrored twin (two side drops). Asymmetric pieces are fine.
 - Single studs: earrings "stud" (extraStones for multi-stone studs). Hoops: hoop or huggie with options.hoopShape and pave.
 - Rings, necklaces, bracelets and Indian pieces: the matching type and style, centre stone, accents and options.
