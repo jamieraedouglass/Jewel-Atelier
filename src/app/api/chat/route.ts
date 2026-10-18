@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
 import { describeProfile, normalizePrefs } from "@/lib/style/profile";
-import { loadStyleProfile, loadTaste } from "@/lib/style/load";
+import { loadStyleProfile, loadOwned, loadTaste } from "@/lib/style/load";
 import { freshRead } from "@/lib/style/context";
 import { droppedNote, screenProposals } from "@/lib/style/guard";
 import type { StylePrefs } from "@/lib/style/profile";
@@ -36,12 +36,12 @@ export async function POST(req: Request) {
   const context: Anthropic.ContentBlockParam[] = [];
   let prefs: StylePrefs | null = null;
   if (useStyleProfile) {
-    const [profile, taste] = await Promise.all([loadStyleProfile(supabase, user.id), loadTaste(supabase, user.id)]);
+    const [profile, taste, owned] = await Promise.all([loadStyleProfile(supabase, user.id), loadTaste(supabase, user.id), loadOwned(supabase, user.id)]);
     const useRead = !!profile && freshRead(profile);
     const imgs = profile && !useRead ? await storageImages(supabase, "inspiration", profile.image_paths.slice(0, 8)) : [];
     const text = describeProfile({
       prefs: profile?.prefs ?? normalizePrefs({}), icons: profile?.icons ?? [], notes: profile?.notes ?? "", taste,
-      applied: profile?.applied, dismissed: profile?.dismissed, photos: imgs.length, photoRead: useRead ? profile.photoRead : "",
+      applied: profile?.applied, dismissed: profile?.dismissed, photos: imgs.length, photoRead: useRead ? profile.photoRead : "", owned,
     });
     prefs = profile?.prefs ?? null;
     if (text) {
