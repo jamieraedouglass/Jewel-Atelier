@@ -334,7 +334,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   return { group: g, extent };
 }
 
-function plateMetal(m: Mats) {
+export function plateMetal(m: Mats) {
   const satin = handPolished((m.metal as THREE.MeshPhysicalMaterial).clone());
   satin.side = THREE.DoubleSide;
   satin.roughness = 0.62;
