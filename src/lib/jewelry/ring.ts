@@ -66,7 +66,7 @@ export function ringPiece(d00: Design): Piece {
 function ringPieceOnce(d0: Design): Piece {
   const mosaic = mosaicFrame(d0);
   // A mosaic top carries its stones down the shoulders; the band behind stays as designed (often slim and plain).
-  const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 2.5), pave: d0.band.pave === "none" || d0.band.pave === "full" ? "shoulders" : d0.band.pave } } : d0;
+  const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 1.8), pave: d0.band.pave === "none" || d0.band.pave === "full" ? "shoulders" : d0.band.pave } } : d0;
   const m = makeMaterials(d);
   const st = d.style;
   if (st === "eternity") {
