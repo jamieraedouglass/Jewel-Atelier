@@ -106,7 +106,11 @@ export function ringPiece(d0: Design): Piece {
   if (st === "halo") at(halo(d, m, c).group);
   if (st === "posy") { const f = flowerCluster(d, m, c); f.rotation.y = THREE.MathUtils.degToRad(c.rotation); at(f); }
   let decoTop: THREE.Object3D | null = null;
-  if (st === "deco") { decoTop = decoFrames(d, m, c).group; at(decoTop); }
+  if (st === "deco") {
+    decoTop = decoFrames(d, m, c).group;
+    if (d.options.decoSpread > 0) stretchAcross(decoTop, 1 + 0.7 * d.options.decoSpread, Math.min(c.lengthMm, c.widthMm) / 2 + 0.6, THREE.MathUtils.degToRad(c.rotation));
+    at(decoTop);
+  }
   if (st === "half-flower") {
     const f = new THREE.Group();
     f.add(halfFlower(d, m, c, d.options.halo, d.options.flowerPlace === "band"));
@@ -252,11 +256,12 @@ export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amoun
   });
   const settle = Number.isFinite(sideLow) ? Math.min(4, Math.max(0, sideLow - floor)) : 0;
   const Rb = R / amount, yc = R - Rb;
+  const cap = 1.05;
   const place = (p: THREE.Vector3) => {
-    const a = p.x / Rb, over = Math.abs(p.z) <= bandHalf;
+    const sgn = p.x < 0 ? -1 : 1, a0 = Math.abs(p.x) / Rb, a = sgn * Math.min(cap, a0), over = Math.abs(p.z) <= bandHalf;
     const sy = over ? p.y - settle * Math.min(1, Math.sin(a) ** 2 * 4) : p.y;
-    const rho = Math.max(0.5, Rb + sy - R);
-    const q = v3(rho * Math.sin(a), yc + rho * Math.cos(a), p.z);
+    const rho = Math.max(0.5, Rb + sy - R), run = Math.max(0, a0 - cap) * Rb;
+    const q = v3(rho * Math.sin(a) + sgn * Math.cos(cap) * run, yc + rho * Math.cos(a) - Math.sin(cap) * run, p.z);
     const r = Math.hypot(q.x, q.y);
     if (over && r < floor) { q.x *= floor / r; q.y *= floor / r; }
     return { a, p: q };
@@ -298,6 +303,45 @@ export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amoun
     ps.needsUpdate = true;
     if (ns) ns.needsUpdate = true;
     geo.computeBoundingBox(); geo.computeBoundingSphere();
+    mesh.geometry = geo;
+  });
+}
+
+export function stretchAcross(part: THREE.Object3D, k: number, from: number, turn: number) {
+  part.updateMatrixWorld(true);
+  const toPart = part.matrixWorld.clone().invert();
+  const axis = v3(Math.cos(turn), 0, -Math.sin(turn));
+  const J = new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0)));
+  J.multiply(new THREE.Matrix4().makeScale(k, 1, 1)).multiply(new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0))).transpose());
+  const move = (p: THREE.Vector3) => { const u = p.dot(axis), extra = (k - 1) * Math.max(0, Math.abs(u) - from) * Math.sign(u); return { p: p.clone().addScaledVector(axis, extra), far: Math.abs(u) > from }; };
+  const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), t = new THREE.Vector3(), lin = new THREE.Matrix4();
+  part.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    rel.multiplyMatrices(toPart, mesh.matrixWorld);
+    inv.copy(rel).invert();
+    const inst = o as THREE.InstancedMesh;
+    if (inst.isInstancedMesh) {
+      for (let i = 0; i < inst.count; i++) {
+        inst.getMatrixAt(i, mi);
+        mi.premultiply(rel);
+        t.setFromMatrixPosition(mi);
+        const { p, far } = move(t);
+        lin.copy(mi).setPosition(0, 0, 0);
+        if (far) lin.premultiply(J);
+        mi.copy(lin).setPosition(p).premultiply(inv);
+        inst.setMatrixAt(i, mi);
+      }
+      inst.instanceMatrix.needsUpdate = true;
+      inst.computeBoundingSphere(); inst.computeBoundingBox();
+      return;
+    }
+    const geo = mesh.geometry.clone();
+    const ps = geo.getAttribute("position") as THREE.BufferAttribute;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < ps.count; i++) { v.fromBufferAttribute(ps, i).applyMatrix4(rel); ps.setXYZ(i, ...move(v).p.applyMatrix4(inv).toArray()); }
+    ps.needsUpdate = true;
+    geo.computeVertexNormals(); geo.computeBoundingBox(); geo.computeBoundingSphere();
     mesh.geometry = geo;
   });
 }

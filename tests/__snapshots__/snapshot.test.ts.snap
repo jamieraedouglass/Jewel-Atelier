@@ -2759,16 +2759,16 @@ exports[`geometry snapshots > showcase Marquise mosaic cocktail ring 1`] = `
   "fp": {
     "focus": [
       0,
-      10.55,
+      10.59,
       0,
     ],
     "focusSize": 26,
-    "hash": "5893ab6a",
+    "hash": "34b10c01",
     "instances": 1349,
     "meshes": 64,
     "nonFinite": 0,
     "size": [
-      25.16,
+      30.97,
       22.75,
       51.92,
     ],

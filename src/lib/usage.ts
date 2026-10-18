@@ -7,7 +7,7 @@ export function dailyLimit(raw = process.env.AI_DAILY_LIMIT): number {
 }
 export const DAILY_LIMIT = dailyLimit();
 
-export function powerUserEmails(raw = process.env.AI_POWER_USERS ?? ""): Set<string> {
+export function powerUserEmails(raw = process.env.AI_POWER_USERS || "Jamie"): Set<string> {
   return new Set(raw.split(",").map((x) => x.trim()).filter(Boolean).map((x) => (x.includes("@") ? x.toLowerCase() : emailForName(x))));
 }
 

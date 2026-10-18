@@ -34,7 +34,7 @@ export function geometryVolume(g: THREE.BufferGeometry) {
   return closedVolume(g);
 }
 
-const isMetal = (m: THREE.Material | THREE.Material[]) => {
+export const isMetal = (m: THREE.Material | THREE.Material[]) => {
   const mat = (Array.isArray(m) ? m[0] : m) as THREE.MeshPhysicalMaterial;
   return !!mat && mat.metalness >= 0.9 && !mat.flatShading;
 };
