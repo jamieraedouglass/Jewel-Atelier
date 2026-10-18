@@ -4182,6 +4182,49 @@ exports[`geometry snapshots > style bracelet/bangle 1`] = `
 }
 `;
 
+exports[`geometry snapshots > style bracelet/bar 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0,
+      0,
+      27.01,
+    ],
+    "focusSize": 49.49,
+    "hash": "a820c2e1",
+    "instances": 168,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      61.41,
+      2.75,
+      57.01,
+    ],
+    "upright": false,
+    "vertices": 95369,
+  },
+  "worn": {
+    "focus": [
+      -0,
+      0,
+      17.05,
+    ],
+    "focusSize": 49.49,
+    "hash": "c94bfff6",
+    "instances": 168,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      77.3,
+      2.75,
+      37.11,
+    ],
+    "upright": false,
+    "vertices": 95369,
+  },
+}
+`;
+
 exports[`geometry snapshots > style bracelet/beaded 1`] = `
 {
   "fp": {
@@ -5041,6 +5084,49 @@ exports[`geometry snapshots > style mens/sherwani-buttons 1`] = `
     "vertices": 309360,
   },
   "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style necklace/bar 1`] = `
+{
+  "fp": {
+    "focus": [
+      0.15,
+      0,
+      74.53,
+    ],
+    "focusSize": 49.49,
+    "hash": "109f9e46",
+    "instances": 378,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      118.24,
+      2.75,
+      146.54,
+    ],
+    "upright": false,
+    "vertices": 127499,
+  },
+  "worn": {
+    "focus": [
+      0.03,
+      0,
+      54.09,
+    ],
+    "focusSize": 49.49,
+    "hash": "918da7c4",
+    "instances": 378,
+    "meshes": 38,
+    "nonFinite": 0,
+    "size": [
+      159.48,
+      2.75,
+      103.72,
+    ],
+    "upright": false,
+    "vertices": 127499,
+  },
 }
 `;
 

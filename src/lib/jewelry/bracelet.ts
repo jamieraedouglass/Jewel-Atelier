@@ -8,6 +8,7 @@ import { type Item, accents, balls, chainAlong } from "./elements";
 import { patternMaxW, patternRun } from "./patterns";
 import { beadStrand, loopCurve, outwardAt, place, spreadParams, wrap, yawAt } from "./curves";
 import { decoFrames, haloRing } from "./ringHeads";
+import { graduatedBar } from "./bar";
 import { type Mats as M } from "./materials";
 
 export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece {
@@ -145,6 +146,12 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       group.add(s, place(new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.25, 8, 20), m.metal), curve.getPointAt(u).addScaledVector(out, 1.4), yawAt(curve, u)));
     }
     focusSize = 40;
+  } else if (st === "bar") {
+    const bar = graduatedBar(d, m, curve, front);
+    group.add(bar.group);
+    const end = bar.halfMm / curve.getLength();
+    group.add(chainAlong(curve, o.chain, m, front + end, front + 1 - end));
+    focusSize = Math.max(24, bar.halfMm * 2.6);
   } else {
     group.add(chainAlong(curve, o.chain, m));
     for (let i = 0; i < o.count; i++) {
@@ -152,7 +159,7 @@ export function braceletPiece(d: Design, m: Mats, circumference?: number): Piece
       group.add(place(setStone(c, d.setting.style, m), curve.getPointAt(u).add(v3(0, 0.2, 0)), yawAt(curve, u)));
     }
   }
-  if (st === "station" || st === "charm" || st === "beaded") {
+  if (st === "bar" || st === "station" || st === "charm" || st === "beaded") {
     const kind = resolveClasp(st, o.clasp);
     if (kind !== "none" && kind !== "hidden") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), st === "beaded" ? Math.max(3, d.fringe.sizeMm) : 3.2));
   }

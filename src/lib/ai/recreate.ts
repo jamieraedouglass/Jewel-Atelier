@@ -95,6 +95,11 @@ How to choose:
 - Panels of repeated open motifs (a "carpet" bracelet: marquise or round centres in pavé frames edged with seed pearls, joined
   by little diamonds): bracelet "openwork", with the motif's centre stone in center and its bands in frames (gem pearl, cut bead
   for a pearl edge; fit "point" keeps a pointed lozenge); options.layers = rows of motifs.
+- A short bar of stones set into a chain (a centre stone with graduated stones on each side, usually bezel-set and linked
+  end to end): necklace or bracelet "bar". The middle stone goes in center (its own shape, e.g. cushion or princess), the
+  side stones in accents (shapes, gem, cut; sizeCt = the largest side stone, next to the centre), options.count = all the
+  side stones on both sides together (8 for four each side). accents.sizes lists each side stone's size relative to the
+  largest, from the centre outwards (e.g. [1, 0.9, 0.8, 0.7]); leave it empty for an even taper.
 - A necklace with a line of stones across the front and drops hanging from it (pear fringes, baguette lines with pears): necklace
   "collar", the line in accents (e.g. shapes [baguette], orientation across), the drop in center, options.count drops.
 - Stones linked along a chain with no rim round them, each joined by a little ring through a hole near its edge (drilled
@@ -155,6 +160,9 @@ shape, the same relative size and in the same place. Never add stones, rings of 
 spread a cluster that sits under one end of a stone all the way round it (use the drop part's arc for a cluster on part of the
 outline, and small.sizes when the stones in it differ in size). If the app can't place something exactly, build the nearest
 honest version and list the difference in not_modelled; don't fill the gap with invented detail.
+The main stone is never dropped: when the piece has a centre or main stone that differs from the rest (bigger, another shape
+or colour), it goes in center and the style must be one that shows center. Never fold it into a run of accents or a riviera
+of identical stones; check the finished design has it, at its size and shape, in the middle.
 How each stone is held matters: separate metal prongs round a stone (even a cabochon) are a claw setting (four-claw for single
 prongs, double-claw only when the prongs come in pairs, six-claw for six); a continuous metal rim is a bezel. For drop parts set
 part.setting; otherwise setting.style. Cabochons are domed, never flat.
