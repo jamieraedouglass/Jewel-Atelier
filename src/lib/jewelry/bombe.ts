@@ -67,7 +67,6 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   // Heights (relative to the centre stone's girdle): the dome falls from the bezel to the rim, then the side sweeps
   // down to the finger, landing on the shoulders across the finger.
   const yTop = 0, drop = 1.4 + 2.4 * Math.min(1, o.decoDome);
-  const fingerY = (x: number) => -finger.gy + Math.sqrt(Math.max(0, finger.r * finger.r - x * x)) + 0.4;
   const grid: THREE.Vector3[][] = outline.map((O) => {
     // The shell starts against the bezel wall, so the setting and the dome are one piece of metal.
     const dir = v3(O.x, 0, O.z).normalize(), a = Math.atan2(O.z, O.x), rb = edge(a) + 0.3, ro = Math.hypot(O.x, O.z);
@@ -76,8 +75,11 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
       return dir.clone().multiplyScalar(r).setY(yTop - drop * t ** 1.7);
     });
     const R = top[top.length - 1];
-    const ex = Math.sign(O.x) * Math.min(Math.abs(O.x) * 0.9, finger.r * 0.95), ez = O.z * 0.88;
-    const E = v3(ex, fingerY(ex), ez);
+    // The foot of the side lands on the outside of the band (on top of it at the front and back, on the shoulders at
+    // the sides), so the head flows into the shoulders instead of pinching in under itself.
+    const bandOut = finger.r + 1.3;
+    const ex = Math.sign(O.x) * Math.min(Math.abs(O.x) * 0.92, bandOut * 0.95), ez = O.z * 0.9;
+    const E = v3(ex, -finger.gy + Math.sqrt(bandOut * bandOut - ex * ex), ez);
     const span = Math.max(1, R.y - E.y), outward = dir.clone();
     // The rim rolls over, then the side tucks in a little as it runs down to the finger.
     const P1 = R.clone().addScaledVector(outward, span * 0.14).add(v3(0, -span * 0.32, 0));
@@ -136,7 +138,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   // in pairs along them.
   const leafShape = f.alt.shape, leafL = Math.min(3.4, Math.max(2.2, (f.widthMm || 2.5) * 1.1)), leafW = leafL / ASPECT[leafShape];
   const leafKey = `${f.alt.gem}|${f.alt.color}|${f.alt.cut}|${leafShape}`;
-  const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [];
+  const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [], leaves: THREE.Vector3[] = [];
   const stems = 8;
   for (let jn = 0; jn < stems; jn++) {
     const u0 = ((jn + 0.5) / stems) * NT, drift = (jn % 2 ? 1 : -1) * NT * 0.05;
@@ -150,16 +152,22 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
       if (run >= nextLeaf) {
         nextLeaf += leafL * 1.25;
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
+        const pair: THREE.Vector3[] = [];
         for (const sgn of [-1, 1]) {
           const c0 = pt.clone().addScaledVector(side, sgn * leafW * 0.8).addScaledVector(tan, leafL * 0.12);
+          // Where a branch turns steeply down the side, leaves can bunch up; one that would touch a leaf of another
+          // pair is left out (the two leaves of a pair sit side by side by design).
+          if (leaves.some((q) => q.distanceTo(c0) < leafL * 0.98)) continue;
+          pair.push(c0);
           const facing = tan.clone().applyAxisAngle(n, sgn * 0.62);
           put(leafKey, { pos: c0.clone().addScaledVector(n, 0.3), dia: leafW, quat: orient(n, facing), up: n });
           // Each leaf sits in its own cell edged with milgrain that follows the leaf's outline.
           const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
           const rim = leafOutline(leafL * 1.12, leafW * 1.18);
           for (const [x, z] of rim) beads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.22), dia: 0.26 });
-          for (const k of [-0.3, 0, 0.3]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * (k ? 0.36 : 0.5) });
+          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * r + 0.08 });
         }
+        leaves.push(...pair);
       }
     }
   }
@@ -192,7 +200,8 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     for (const b of blocks) room = Math.min(room, b.p.distanceTo(st.p) - b.r);
     if (room < cell * 0.25) continue;
     const facing = v3(Math.cos(rnd() * 6.283), 0, Math.sin(rnd() * 6.283));
-    put(key, { pos: st.p.clone().addScaledVector(st.n, 0.28), dia: (room * 2 * 1.06) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
+    // A cushion's corners reach past its width, so it is sized to sit inside its room without touching a neighbour.
+    put(key, { pos: st.p.clone().addScaledVector(st.n, 0.28), dia: (room * 2 * 0.9) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
   }
 
   // Milgrain beading round the bezel, and along the dome's edge where it rolls over into the sides.
