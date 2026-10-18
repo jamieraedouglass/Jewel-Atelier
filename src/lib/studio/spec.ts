@@ -123,6 +123,7 @@ export function buildSpec(d: Design): Spec {
   if (d.type === "earrings") facts.push(["Pair", d.rightEar ? "Left and right differ" : d.mirrorPair ? "Matching, mirrored" : "Matching"]);
 
   const notes: string[] = [];
+  if (d.mood) notes.push(`The feel the client wants: ${d.mood}.`);
   if (d.enamel.enabled && uses(d, "enamel")) notes.push(`Meenakari enamel, colour ${d.enamel.color}.`);
   if (d.fringe.enabled && uses(d, "fringe")) notes.push(`${gemLabel(d.fringe.gem)} fringe beads, ${d.fringe.sizeMm} mm.`);
   if (d.type === "ring" && d.gallery.roseCut) notes.push(d.gallery.under === "hidden-halo" ? "Hidden halo of small rose-cuts round the gallery." : "Two rose-cut diamonds peeking out of the gallery.");

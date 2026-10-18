@@ -132,6 +132,7 @@ export const DesignSchema = z
     type: z.enum(TYPES).default("ring"),
     style: z.string().default("three-stone"),
     name: z.string().max(80).default("Untitled piece"),
+    mood: z.string().max(80).default(""),
     center: CenterStoneSchema.default({}),
     accents: z.object({
       gem: z.enum(GEMS).default("diamond"), color: hex.default("#f4f6fb"), cut: z.enum(["faceted", "polki", "rose-cut"]).default("faceted"),

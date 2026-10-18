@@ -27,6 +27,7 @@ export function describeDesign(d: Design): string {
   if (d.type === "ring") parts.push(`US ${d.ringSize} / Indian ${indianRingSize(d.ringSize)}`);
   if (m.uses.includes("wrist") && isSolidBracelet(d)) parts.push(`size ${o.bangleSize}`);
   parts.push(metalName(d));
+  if (d.mood) parts.push(`feel: ${d.mood}`);
   return parts.filter(Boolean).join(" · ");
 }
 

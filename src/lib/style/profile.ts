@@ -69,6 +69,7 @@ export type Taste = {
   gems: [string, number][];
   shapes: [string, number][];
   grades: [string, number][];
+  moods?: [string, number][];
   ringUs: number | null;
   wristCm: number | null;
 };
@@ -89,7 +90,7 @@ const mostCommon = (xs: { v: number; w: number }[]) => {
 
 export function summarizeTaste(designs: Design[], weights?: number[], made = 0): Taste {
   const types = new Tally<PieceType>(), styles = new Tally<string>(), metals = new Tally<string>();
-  const gems = new Tally<string>(), shapes = new Tally<string>(), grades = new Tally<string>();
+  const gems = new Tally<string>(), shapes = new Tally<string>(), grades = new Tally<string>(), moods = new Tally<string>();
   const rings: { v: number; w: number }[] = [], wrists: { v: number; w: number }[] = [];
   designs.forEach((d, i) => {
     const w = weights?.[i] ?? 1;
@@ -104,12 +105,13 @@ export function summarizeTaste(designs: Design[], weights?: number[], made = 0):
       if (g) grades.add(`${g.name} ${gemLabel(d.center.gem).toLowerCase()}`, w);
     }
     if (d.accents.enabled && d.accents.gem !== "diamond") gems.add(d.accents.gem, w);
+    if (d.mood) moods.add(d.mood.toLowerCase(), w);
     if (d.type === "ring") rings.push({ v: d.ringSize, w });
     if (d.type === "bracelet") wrists.push({ v: d.options.wristCm, w });
   });
   return {
     designs: designs.length, made,
-    types: types.top(4), styles: styles.top(5), metals: metals.top(3), gems: gems.top(6), shapes: shapes.top(4), grades: grades.top(3),
+    types: types.top(4), styles: styles.top(5), metals: metals.top(3), gems: gems.top(6), shapes: shapes.top(4), grades: grades.top(3), moods: moods.top(4),
     ringUs: mostCommon(rings), wristCm: mostCommon(wrists),
   };
 }
@@ -180,6 +182,7 @@ export function describeProfile({ prefs: p, icons, notes, taste, applied = [], d
     if (taste.gems.length) t.push(`stones ${counted(taste.gems.map(([g, n]) => [gemLabel(g).toLowerCase(), n]))};`);
     if (taste.grades.length) t.push(`colour grades ${counted(taste.grades)};`);
     if (taste.shapes.length) t.push(`shapes ${counted(taste.shapes)}.`);
+    if (taste.moods?.length) t.push(`The feelings they have asked for: ${counted(taste.moods)}.`);
     lines.push(t.join(" ").replace(/;$/, "."));
   }
   if (applied.length) lines.push(`Suggestions they applied recently (build on these): ${applied.slice(0, 10).join("; ")}.`);

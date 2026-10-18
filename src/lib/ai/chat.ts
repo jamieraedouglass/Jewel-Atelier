@@ -14,6 +14,7 @@ export const designPatchSchema = {
   description: "Only the fields to change. Omit everything that should stay the same. To change the piece type or style, set both type and style.",
   properties: {
     name: { type: "string" },
+    mood: { type: "string", description: "the feeling the piece should have, in a few words (e.g. 'whimsical, garden party', 'quiet heirloom', 'boardroom serious'). Set it whenever a change is made for a feeling, and keep it when other changes are made" },
     type: { type: "string", enum: [...TYPES] },
     style: { type: "string", enum: ALL_STYLES, description: `Must belong to the type. ${STYLE_GUIDE}` },
     center: { type: "object", properties: { gem: gemProp, cut: { type: "string", enum: [...CUTS] }, shape: { type: "string", enum: [...SHAPES] }, color: hexProp, clarity: { type: "number", minimum: 0, maximum: 1, description: "0 opaque … 1 water-clear" }, glow: glowProp, lengthMm: { type: "number" }, widthMm: { type: "number" }, rotation: { type: "number", description: "degrees the stone is turned in its setting" } } },
@@ -130,6 +131,26 @@ Keep replies short (under 150 words) and conversational. When you recommend a co
 When they want a shape the styles don't cover (a peacock, a monogram, a lotus, an Art Deco fan), call create_motif to draw it.
 The app can only change the fields in propose_design and create_motif; for anything else (filigree, nakashi, engraving, jadau detailing, sahara ear chains), describe it in words.
 Never claim a stone's origin or treatment without a lab report.
+
+FEELINGS AND MOOD. People often ask for a feeling rather than a part: more whimsical, heirloom, romantic, serious, bold,
+quiet, regal, playful, modern, boho, "for my grandmother's 80th", "for board meetings". Notice the feeling in what they say and
+how they say it, even when they don't name it, and turn it into concrete, buildable changes. Read it through THEIR taste first
+(style profile, likes, the pieces they own and have saved): their "whimsical" might be a tilted pear and a pop of colour, not
+cartoon motifs, if their taste is refined. Then use these levers, combining several:
+- Whimsical / playful: asymmetry and toi-et-moi, mixed shapes (pear, marquise, heart), colour (pink, yellow, mint), turned or
+  tilted stones, flowers, leaves and vines, a motif, rainbow or ombré lines, rose gold, cabochons, scattered or uneven layouts.
+- Heirloom / vintage: old-mine and old-European cuts, rose-cuts and polki, milgrain, Art Deco layers, cushion and Asscher
+  shapes, yellow gold or platinum, hand-set uneven stones, engraving-like knife-edge bands, a hidden halo, softer white (warmer) diamonds.
+- Romantic: hearts, pears, ovals, halos, pink and soft colours, curves and swirls, rose gold, petals and posies, pearls.
+- Serious / classic / boardroom: symmetry, one strong stone, clean claw or bezel, step cuts (emerald, Asscher, baguette),
+  white metals, restrained accents, straight lines, no motifs.
+- Bold / statement: scale, a big coloured centre, cocktail domes, wide bands, stacked layers, high contrast, chunky gold.
+- Quiet / minimal: smaller stones, low settings, flush or bezel, a fine band, one metal, little or no pavé.
+- Regal: deep saturated gems (Burmese ruby, Colombian emerald, royal blue sapphire), diamond halos, symmetry, tiers, platinum.
+- Boho / earthy: cabochons, opal, turquoise, yellow gold, organic uneven shapes, mixed beads, oxidised silver.
+When they ask for a feeling, give two or three different takes (each a propose_design), from subtle to strong, each saying in
+one line how it creates the feeling for them, and set patch.mood on each. Keep the piece's core (its main stone and type)
+unless they ask to change it. If the design already has a mood, keep later suggestions true to it.
 
 COLOUR GRADES. The same gem looks different by deposit. When someone asks for, say, a Colombian emerald or a Burmese ruby, set the stone's color, clarity and glow from this table (these describe a look; never claim where a real stone came from):
 ${GRADE_GUIDE}`;
