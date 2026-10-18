@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factsFromNotes, tipFromNotes, withConfirmedCounts } from "@/lib/ai/recreate";
+import { factsFromNotes, tipFromNotes, withConfirmedCounts, withStructure } from "@/lib/ai/recreate";
 
 describe("factsFromNotes", () => {
   it("reads the seller's details", () => {
@@ -41,5 +41,14 @@ describe("withConfirmedCounts", () => {
 describe("factsFromNotes at the end of a sentence", () => {
   it("reads a ring size followed by a full stop", () => {
     expect(factsFromNotes("18k yellow gold. Ring size 6. The whole top measures 20.4 mm", "ring").ringSize).toBe(6);
+  });
+});
+
+describe("withStructure", () => {
+  it("applies the confirmed shape of a ring", () => {
+    const notes = ["- Top measures 20.4 mm along the finger x 20.3 mm across.", "- Profile: high dome curving down into the shoulders.", "- Stones carry on down the sides of the top.", "- Shoulders: stones about a third of the way down.", "- Band 2.8 mm wide at the back."].join("\n");
+    const out = withStructure({ band: { widthMm: 2, pave: "none" }, options: { decoBend: 0.2 } }, "deco", notes) as { band: Record<string, unknown>; options: Record<string, unknown> };
+    expect(out.band).toMatchObject({ widthMm: 2.8, pave: "shoulders" });
+    expect(out.options).toMatchObject({ decoLengthMm: 20.4, decoWidthMm: 20.3, decoDome: 0.9, decoBend: 0.7, decoWrap: true });
   });
 });
