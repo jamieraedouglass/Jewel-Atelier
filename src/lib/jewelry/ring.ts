@@ -4,7 +4,7 @@ import { bandSection, buildRing, outlineFn, shankGeo } from "../ringModel";
 import { type Piece, v3 } from "./common";
 import { type Mats, makeMaterials } from "./materials";
 import { setStoneRaw, tube } from "./stones";
-import { accents, aroundOutline, backingPlate, balls } from "./elements";
+import { ASPECT, accents, aroundOutline, backingPlate, balls } from "./elements";
 import { halo, outlineCurve, patternMaxW, patternRun } from "./patterns";
 import { decoFrames, flowerCluster, halfFlower, swirlArms } from "./ringHeads";
 import { handPolished } from "../polish";
@@ -16,7 +16,15 @@ function edgeX(shape: CenterStone["shape"], L: number, W: number, deg: number, s
   return most;
 }
 
-export function ringPiece(d: Design): Piece {
+export function mosaicFrame(d: Design) {
+  if (d.type !== "ring" || d.style !== "deco" || !d.options.decoWrap) return null;
+  const stoneLayers = d.frames.filter((f) => f.kind === "fill" || f.kind === "stones");
+  return stoneLayers[stoneLayers.length - 1] ?? null;
+}
+
+export function ringPiece(d0: Design): Piece {
+  const mosaic = mosaicFrame(d0);
+  const d: Design = mosaic ? { ...d0, band: { ...d0.band, widthMm: Math.max(d0.band.widthMm, 7), shape: "flat", pave: d0.band.pave === "none" ? "full" : d0.band.pave } } : d0;
   const m = makeMaterials(d);
   const st = d.style;
   if (st === "eternity") {
@@ -145,10 +153,16 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
   const hx = box.isEmpty() ? 0 : top ? top.spread : 3.2;
   const start = hx ? Math.asin(Math.min(0.9, (hx + 0.6) / (RIN + 2.3))) : 0;
   const end = b.pave === "shoulders" ? start + 0.75 : b.pave === "half" ? Math.PI / 2 + 0.15 : Math.PI;
-  const rows = b.paveRows;
-  const W = b.paveMm;
+  const mosaic = mosaicFrame(d);
+  const W = mosaic ? Math.max(1.6, mosaic.widthMm * 0.9) : b.paveMm;
+  const rows = mosaic ? Math.max(2, Math.floor((b.widthMm - 0.6) / (W * ASPECT[mosaic.shape] + 0.15))) : b.paveRows;
   const ang = b.paveAngle;
-  const pd: Design = { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [] } };
+  const pd: Design = mosaic
+    ? { ...d, accents: { ...d.accents, gem: mosaic.gem, color: mosaic.color, cut: mosaic.cut === "cabochon" ? "cabochon" : "faceted", sizeCt: 6, orientation: "across",
+        shapes: mosaic.alt ? [mosaic.shape, mosaic.shape, mosaic.alt.shape] : [mosaic.shape],
+        turns: mosaic.alt ? [0, 0, 55] : [], twins: [], sizes: mosaic.alt ? [1, 1, 0.85] : [],
+        colors: mosaic.alt ? [mosaic.color, mosaic.color, mosaic.alt.color] : [] } as Design["accents"] }
+    : { ...d, accents: { ...d.accents, gem: b.paveGem, color: b.paveColor, cut: "faceted", sizeCt: 6, shapes: ang ? [b.paveShape, b.paveShape] : [b.paveShape], orientation: "along", turns: ang ? [ang, -ang] : [], twins: [], sizes: [], colors: [] } };
   const surf = (th: number) => { const s = bandSection(b.widthMm, th, top, b.shape, RIN); return { r: RIN + s.t, w: s.w }; };
   for (const sideSign of b.pave === "full" && !hx ? [1] : [1, -1]) {
     const a0 = sideSign * start, a1 = b.pave === "full" && !hx ? start + Math.PI * 2 : sideSign * end;
@@ -161,7 +175,7 @@ function bandPave(group: THREE.Group, d: Design, m: Mats) {
         return v3(Math.sin(th) * (R - W * 0.16), Math.cos(th) * (R - W * 0.16), z);
       });
       const curve = new THREE.CatmullRomCurve3(pts, false);
-      const g = patternRun(pd, m, curve, 0, 1, { maxW: W, gap: 0.2, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
+      const g = patternRun(pd, m, curve, mosaic ? (r % 2) * 0.012 : 0, 1, { maxW: mosaic ? W * ASPECT[mosaic.shape] : W, gap: mosaic ? 0.08 : 0.2, up: (u) => { const p = curve.getPointAt(u); return v3(p.x, p.y, 0).normalize(); } }).group;
       g.userData.part = "accents";
       g.userData.keep = true;
       group.add(g);

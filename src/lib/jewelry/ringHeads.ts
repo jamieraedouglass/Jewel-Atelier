@@ -22,11 +22,11 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
   const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12);
-  const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * 2 : f.widthMm), 0);
+  const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * ASPECT[f.shape] : f.widthMm), 0);
   const fit = centreHalf + growth > maxHalf ? Math.max(0.05, (maxHalf - centreHalf) / growth) : 1;
   const frames = fit < 1 ? d.frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * fit), gapMm: f.gapMm * fit })) : d.frames;
   const dome = d.options.decoDome;
-  const Rd = dome > 0 ? 70 - 45 * dome : 0;
+  const Rd = dome > 0 ? 70 - 54 * dome : 0;
   const r0 = centreHalf - 0.5;
   const domeY = (r: number) => y0 - Math.max(0, r * r - r0 * r0) / (2 * Rd);
   const tilt = (p: THREE.Vector3) => v3(p.x / Rd, 1, p.z / Rd).normalize();
@@ -109,8 +109,20 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     }
     let kScale = 0;
     for (const [x, z] of raw) kScale = Math.max(kScale, (prevAt(theta(x, z)) + f.gapMm) / (Math.hypot(x, z) || 1));
-    if (dome > 0) y = domeY(raw.reduce((a, [x, z]) => a + Math.hypot(x, z), 0) / S * kScale + thick / 2);
-    const ring = (extra: number) => raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
+    const hug = f.fit === "hug";
+    const hugRing = (dist: number) => {
+      const pts = Array.from({ length: N }, (_, b) => { const a = ((b + 0.5) / N) * Math.PI * 2; return [Math.cos(a) * prev[b], Math.sin(a) * prev[b]] as const; });
+      return pts.map((p, i) => {
+        const a = pts[(i + N - 1) % N], c2 = pts[(i + 1) % N];
+        let nx = c2[1] - a[1], nz = -(c2[0] - a[0]);
+        const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
+        if (nx * p[0] + nz * p[1] < 0) { nx = -nx; nz = -nz; }
+        return v3(p[0] + nx * dist, y, p[1] + nz * dist);
+      });
+    };
+    const meanR = hug ? prev.reduce((a, r) => a + r, 0) / N + f.gapMm : raw.reduce((a, [x, z]) => a + Math.hypot(x, z), 0) / S * kScale;
+    if (dome > 0) y = domeY(meanR + thick / 2);
+    const ring = (extra: number) => hug ? hugRing(f.gapMm + extra) : raw.map(([x, z]) => { const r = Math.hypot(x, z) || 1, rr = r * kScale + extra; return v3((x / r) * rr, y, (z / r) * rr); });
     const centre = new THREE.CatmullRomCurve3(ring(thick / 2), true, "centripetal");
     if (f.kind === "stones") {
       sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape, size: f.widthMm, alt: f.alt, every: f.every };
@@ -161,7 +173,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   }
   let extent = 0;
   for (let b = 0; b < N; b++) extent = Math.max(extent, prev[b]);
-  if (extent > maxHalf * 1.12 && pass < 3) {
+  if (extent > maxHalf * 1.12 && pass < 3 && !frames.some((f) => f.kind === "fill")) {
     const k = Math.max(0.2, (maxHalf - centreHalf) / Math.max(0.1, extent - centreHalf));
     return decoFrames({ ...d, frames: frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * k), gapMm: f.gapMm * k })) }, m, c, y0, pass + 1);
   }

@@ -59,6 +59,10 @@ export default function FramesEditor({ design: d, onChange }: Props) {
                 <input id={id("gap")} type="range" min={0} max={4} step={0.05} value={f.gapMm} onChange={(e) => set(i, { gapMm: Number(e.target.value) })} />
               </label>
             </div>
+            <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="checkbox" checked={f.fit === "hug"} onChange={(e) => set(i, { fit: e.target.checked ? "hug" : "scale" })} />
+              Hug the layer inside (no gaps, gently rounder outward)
+            </label>
             <label className="field" htmlFor={id("ratio")}><span>Layer proportions · {f.ratio === null ? "follow the centre stone" : f.ratio === 1 ? "square" : `${f.ratio.toFixed(2)} : 1`}</span>
               <input id={id("ratio")} type="range" min={0} max={2.5} step={0.05} value={f.ratio ?? 0} onChange={(e) => { const v = Number(e.target.value); set(i, { ratio: v < 0.4 ? null : v }); }} />
             </label>
