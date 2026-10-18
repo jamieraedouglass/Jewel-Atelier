@@ -50,6 +50,13 @@ How to choose:
     square or cushion top round a long marquise has no bare metal. Set the outline's ratio (1 = square) when the top's shape
     doesn't follow the centre stone's proportions.
   * When the stones carry on over the rounded sides of the top, set options.decoWrap true.
+  * Bands that sit tight against each other all the way round (echoing a marquise or pear, no metal showing between them):
+    give every layer fit "hug" and the centre stone's outline; each band then follows the one inside it.
+  * Look hard at how the stones are organised before choosing. Bands that follow the centre stone's outline (concentric rings
+    of stones, often separated by milgrain, growing rounder towards the edge) are several "stones" layers whose outline is the
+    centre's shape with a ratio that gets smaller outward (e.g. marquise, then marquise ratio 1.75, then 1.45). Use "fill" only
+    when the stones are packed with no banding.
+  * Judge the profile: if the top rises to the centre stone and curves down on every side, it is domed (decoDome 0.8–1).
   * The top's outline: "radiant" with ratio 1 is a square with its corners in line with the centre stone's points (a marquise
     running corner to corner); "cushion" with ratio 1 is a softer square with its flat sides facing the stone's points.
     center.rotation turns the stone and the layers that follow its shape (not the square).
