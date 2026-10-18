@@ -27,6 +27,19 @@ function stoneEdge(c: CenterStone) {
   return (a: number) => r[Math.round(((a / (2 * Math.PI)) * bins + bins * 2) % bins) % bins];
 }
 
+// Points every 0.33 mm round a leaf (marquise) outline of the given length and width, centred on the leaf.
+function leafOutline(L: number, W: number) {
+  const fn = outlineFn("marquise", L, W), pts: [number, number][] = [];
+  let last: [number, number] | null = null, run = 0;
+  for (let i = 0; i <= 400; i++) {
+    const [x, z] = fn(i / 400);
+    if (last) run += Math.hypot(x - last[0], z - last[1]);
+    if (!last || run >= 0.33) { pts.push([x, z]); run = 0; }
+    last = [x, z];
+  }
+  return pts;
+}
+
 export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: number; gy: number }) {
   const g = new THREE.Group();
   g.userData.part = "accents";
@@ -132,7 +145,8 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     for (let q = 1; q < path.length; q++) {
       run += path[q].p.distanceTo(path[q - 1].p);
       const { p: pt, n } = path[q], tan = pt.clone().sub(path[q - 1].p).normalize();
-      if (run >= nextBead) { beads.push({ pos: pt.clone().addScaledVector(n, 0.05), dia: 0.34 }); blocks.push({ p: pt, r: 0.2 }); nextBead += 0.4; }
+      // The branch itself is only a path: on the piece the leaves' own beaded cells trace it.
+      if (run >= nextBead) nextBead += 0.4;
       if (run >= nextLeaf) {
         nextLeaf += leafL * 1.25;
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
@@ -140,6 +154,10 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
           const c0 = pt.clone().addScaledVector(side, sgn * leafW * 0.8).addScaledVector(tan, leafL * 0.12);
           const facing = tan.clone().applyAxisAngle(n, sgn * 0.62);
           put(leafKey, { pos: c0.clone().addScaledVector(n, 0.3), dia: leafW, quat: orient(n, facing), up: n });
+          // Each leaf sits in its own cell edged with milgrain that follows the leaf's outline.
+          const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
+          const rim = leafOutline(leafL * 1.12, leafW * 1.18);
+          for (const [x, z] of rim) beads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.22), dia: 0.26 });
           for (const k of [-0.3, 0, 0.3]) blocks.push({ p: c0.clone().addScaledVector(facing, leafL * k), r: leafW * (k ? 0.36 : 0.5) });
         }
       }
@@ -177,8 +195,9 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     put(key, { pos: st.p.clone().addScaledVector(st.n, 0.28), dia: (room * 2 * 1.06) / ASPECT[fillShape], quat: orient(st.n, facing), up: st.n });
   }
 
-  // Milgrain beading round the bezel.
+  // Milgrain beading round the bezel, and along the dome's edge where it rolls over into the sides.
   beads.push(...Array.from({ length: NT }, (_, i) => ({ pos: grid[i][1].clone().addScaledVector(normals[i][1], 0.08), dia: 0.42 })));
+  beads.push(...Array.from({ length: NT }, (_, i) => ({ pos: grid[i][11].clone().addScaledVector(normals[i][11], 0.12), dia: 0.32 })));
   groups.forEach((items, k) => {
     const [gem, color, cut, shape] = k.split("|");
     const set = accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27);
