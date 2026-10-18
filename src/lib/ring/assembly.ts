@@ -259,17 +259,16 @@ export function buildRing(d: Design): THREE.Group {
       grp.add(new THREE.Mesh(g, mirror), new THREE.Mesh(g, diamond));
       if (!clawSet) grp.add(new THREE.Mesh(bz, metal));
       if (!clawSet && !hug) {
-        // the seat under the stone carries on down, narrowing, until it meets the band
         const across = gap + 0.13 + cx;
         const bandY = Math.sqrt(Math.max(0, (RIN + 2.1) ** 2 - across * across));
         const drop = Math.max(1, GY - 0.05 - bandY + 0.6);
-        const seat = new THREE.ExtrudeGeometry(new THREE.Shape(sc(1.0)), { depth: drop, bevelEnabled: false, curveSegments: 24 });
-        seat.rotateX(Math.PI / 2); seat.translate(0, -0.2, 0);
+        const seat = new THREE.ExtrudeGeometry(new THREE.Shape(sc(0.9)), { depth: drop, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.12, bevelSegments: 3, curveSegments: 24 });
+        seat.rotateX(Math.PI / 2); seat.translate(0, -0.35, 0);
         const sp = seat.getAttribute("position") as THREE.BufferAttribute;
         for (let i = 0; i < sp.count; i++) {
-          const t = Math.min(1, Math.max(0, -(sp.getY(i) + 0.2) / drop));
-          const k = 1 - 0.45 * t;
-          sp.setX(i, cx + (sp.getX(i) - cx) * k - t * Math.min(2, across * 0.12)); sp.setZ(i, sp.getZ(i) * k);
+          const t = Math.min(1, Math.max(0, -(sp.getY(i) + 0.35) / drop));
+          const k = 1 - 0.68 * Math.sqrt(t);
+          sp.setX(i, cx + (sp.getX(i) - cx) * k - t * Math.min(3, across * 0.28)); sp.setZ(i, sp.getZ(i) * (1 - 0.5 * Math.sqrt(t)));
         }
         sp.needsUpdate = true; seat.computeVertexNormals();
         grp.add(new THREE.Mesh(seat, metal));

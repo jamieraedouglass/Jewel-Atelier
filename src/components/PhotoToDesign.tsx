@@ -94,8 +94,8 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
     } finally { setBusy(null); }
   }
 
-  async function adjust() {
-    const request = ask.trim();
+  async function adjust(given?: string) {
+    const request = (given ?? ask).trim();
     if (!request || !capture || !paths.length) return;
     setError(null);
     setBusy("Making that change…");
@@ -108,6 +108,7 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
       if (!res.ok) throw new Error(json.error || "Couldn't make that change.");
       apply(json, design);
       setFixes((f) => [...f, { ask: request, done: json.description }]);
+      setBest((b) => (b ? { ...b, differences: request.startsWith("Fix all") ? [] : b.differences.filter((n) => `Fix this: ${n}` !== request) } : b));
       setAsk("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't make that change.");
@@ -166,8 +167,11 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
           )}
           {best && best.differences.length > 0 && (
             <>
-              <span className="small muted">Still different from the photo (say these in Ask the designer, or add them to Notes and recreate):</span>
-              <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>{best.differences.map((n) => <li key={n}>{n}</li>)}</ul>
+              <span className="small muted">Still different from the photo. Tap one to fix it, or fix them all:</span>
+              <div className="chips" role="group" aria-label="Differences to fix">
+                {best.differences.map((n) => <button key={n} type="button" className="chip" style={{ textTransform: "none", textAlign: "left" }} disabled={!!busy || !capture || !paths.length} onClick={() => adjust(`Fix this: ${n}`)}>{n}</button>)}
+              </div>
+              {capture && paths.length > 0 && <button className="btn" type="button" disabled={!!busy} onClick={() => adjust(`Fix all of these, in order of importance:\n${best.differences.map((n) => `- ${n}`).join("\n")}`)}>Fix all of these</button>}
             </>
           )}
           <p className="small" style={{ margin: 0 }}>{result.description}</p>
@@ -188,9 +192,9 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
                 </div>
               ))}
               <textarea aria-label="What to change" value={ask} onChange={(e) => setAsk(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); adjust(); } }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void adjust(); } }}
                 placeholder="e.g. the marquise should point along the finger · less gold showing · make the pink stones flatter and paler · the top curves down into the band at the sides" />
-              <button className="btn primary" type="button" disabled={!ask.trim() || !!busy} onClick={adjust}>{busy === "Making that change…" ? busy : "Change it"}</button>
+              <button className="btn primary" type="button" disabled={!ask.trim() || !!busy} onClick={() => adjust()}>{busy === "Making that change…" ? busy : "Change it"}</button>
               <span className="small muted">Undo goes back a step if you don&apos;t like a change.</span>
             </div>
           )}

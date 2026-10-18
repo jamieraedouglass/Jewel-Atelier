@@ -125,6 +125,12 @@ ${SHOWCASE.filter((x) => x.type === "ring" || x.type === "earrings" || x.type ==
     carried on down the sides and the band. For a piece like this, copy it closely and change only what the photo shows differently: ${MOSAIC_EXAMPLE}
   * When the stones carry on down the shank, set band.pave ("shoulders", "half" or "full") with paveRows, paveGem, paveColor and
     paveShape matching the stones on the top (a vine of angled marquise leaves for leaf patterns), and a wider band (widthMm 4–8).
+Old and antique diamonds (old-mine, old European, antique marquise, "moval" = a marquise with softly rounded sides) are
+faceted: cut "faceted" with the nearest shape (marquise for a moval or antique marquise, old-mine for an old cushion, round
+for an old European). Use "rose-cut" only for a flat-backed rose cut. A diamond is white (#f4f6fb, clarity 0.95) unless the
+photo or notes say it is coloured.
+Facts in the notes are exact, not hints: ring size (ringSize, US), karat (purity.karat), carat weight (center.carat, and size
+the stone from it), the whole top's measurements (options.decoLengthMm and decoWidthMm), and metal.
 How each stone is held matters: separate metal prongs round a stone (even a cabochon) are a claw setting (four-claw for single
 prongs, double-claw only when the prongs come in pairs, six-claw for six); a continuous metal rim is a bezel. For drop parts set
 part.setting; otherwise setting.style. Cabochons are domed, never flat.
@@ -168,9 +174,9 @@ export type Recreation = {
 
 export function directionFromNotes(notes?: string): number | null {
   const n = (notes ?? "").toLowerCase();
-  if (/diagonal|at an angle to the band|45/.test(n)) return 45;
-  if (/across the (finger|hand)|east[- ]west|side to side|parallel (to|with) the band|sideways/.test(n)) return 90;
   if (/along the (finger|hand)|north[- ]south|lengthwise|points? (up|down) the finger|towards? the (fingertip|knuckle|nail|hand)/.test(n)) return 0;
+  if (/across the (finger|hand)|east[- ]west|side to side|parallel (to|with) the band|sideways/.test(n)) return 90;
+  if (/(stone|diamond|centre|center|it)[^.]{0,40}\b(set |sits |turned |lies )?diagonal(ly)?\b|\b45 ?(°|deg)/.test(n)) return 45;
   return null;
 }
 
