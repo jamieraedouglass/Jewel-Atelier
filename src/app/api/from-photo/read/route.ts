@@ -2,6 +2,8 @@ import { z } from "zod";
 import { imageSize, marksToFractions, storageImages, streamReading } from "@/lib/ai";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { lessonsFrom } from "@/lib/readingLessons";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -23,7 +25,13 @@ export async function POST(req: Request) {
 
   const sizes = photos.map((p) => (p.source.type === "base64" ? imageSize(Buffer.from(p.source.data, "base64")) : null));
   const content = photos.flatMap((p, i) => [{ type: "text" as const, text: `Photo ${i}${sizes[i] ? `: ${sizes[i]!.w} × ${sizes[i]!.h} pixels` : ""}` }, p]);
-  const text = [photos.length > 1 ? `${photos.length} photos of the same piece, numbered from 0.` : "One photo (photo 0).", notes ? `Notes from the person: ${notes}` : null].filter(Boolean).join("\n");
+  // What people have corrected in earlier readings, so this one looks harder where readings tend to miss.
+  let lessons = "";
+  try {
+    const { data } = await createAdminClient().from("reading_corrections").select("groups").order("created_at", { ascending: false }).limit(300);
+    lessons = lessonsFrom(data ?? []);
+  } catch (e) { console.warn("Couldn't load reading lessons:", e instanceof Error ? e.message : e); }
+  const text = [photos.length > 1 ? `${photos.length} photos of the same piece, numbered from 0.` : "One photo (photo 0).", notes ? `Notes from the person: ${notes}` : null, lessons || null].filter(Boolean).join("\n");
   const enc = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {

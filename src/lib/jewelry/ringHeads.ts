@@ -110,6 +110,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         g.add(balls(m.satin, stemDots));
       }
       const blocked = (x: number, z: number, r: number) => blocks.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + r);
+      let wallStone: { shape: Frame["shape"]; size: number } | null = null;
       if (sprays) {
         // Every free spot between the leaves is filled with a tight honeycomb of cabochons, so no gold shows.
         const room = Array.from({ length: 16 }, (_, j) => { const a = (j / 16) * Math.PI * 2; return outerAt(a) - prevAt(a) - f.gapMm; }).sort((p, q) => p - q)[8];
@@ -117,6 +118,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         const reach = Math.max(...Array.from({ length: 64 }, (_, j) => outerAt((j / 64) * Math.PI * 2)));
         // Mosaic stones are cut close to square to fill their cells (sugarloaf), so an oval or long shape packs as a cushion.
         const fillShape = ASPECT[f.shape] > 1.1 ? "cushion" : f.shape;
+        // The same packed stones carry on down the dome's walls, several rows deep.
+        wallStone = { shape: fillShape, size: cell * 0.95 };
         const key = `${f.gem}|${f.color}|${f.cut}|${fillShape}`;
         // Stones packed into every free spot (tried in random order on a fine grid), then each grown to fill the
         // space round it, as a setter cuts sugarloaf stones to the gaps.
@@ -201,7 +204,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         const [gem, color, cut, shape] = key.split("|");
         g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
       });
-      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape, size: sz, alt: f.alt, every: f.every };
+      sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: wallStone?.shape ?? f.shape, size: wallStone?.size ?? sz, alt: f.alt, every: wallStone ? f.every + 3 : f.every };
       outer = ringPts.map((p) => v3(p.x, y, p.z));
       for (let b = 0; b < N; b++) prev[b] = Math.max(prev[b], outerR[b]);
       if (!(dome > 0)) y -= 0.12;

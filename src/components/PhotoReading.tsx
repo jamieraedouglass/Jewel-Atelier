@@ -9,8 +9,15 @@ export type Reading = {
   main?: { what?: string; shape?: string; cut?: string; color?: string; size_mm?: string; direction?: string; tip_clock?: number; photo?: number; x?: number; y?: number; w?: number; h?: number };
   groups?: Group[];
   overall?: { length_mm?: number; width_mm?: number; metal?: string; setting?: string };
+  structure?: Structure;
   questions?: { question?: string; options?: string[] }[];
 };
+
+export type Structure = {
+  top_outline?: string; top_length_mm?: number; top_width_mm?: number; top_height_mm?: number; profile?: string;
+  stones_down_sides?: boolean; shoulders?: string; band_width_back_mm?: number; band_width_shoulder_mm?: number; gallery?: string; notes?: string;
+};
+const STRUCT_NUMS: [keyof Structure, string][] = [["top_length_mm", "Top along the finger"], ["top_width_mm", "Top across"], ["top_height_mm", "Height above the finger"], ["band_width_back_mm", "Band at the back"], ["band_width_shoulder_mm", "Band at the shoulders"]];
 
 const COLORS = ["#e8b4d8", "#7fd6a4", "#8ec5ff", "#ffd27a", "#ff9e9e", "#c6a8ff", "#9ee6e6", "#f2f2f2"];
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -29,6 +36,19 @@ export function readingSummary(r: Reading, counts: Record<number, number>, remov
   });
   if (removed.size) lines.push(`- There are no other stones: the person removed ${removed.size} group${removed.size > 1 ? "s" : ""} that isn't there.`);
   if (num(r.overall?.length_mm) && num(r.overall?.width_mm)) lines.push(`- Whole piece about ${r.overall!.length_mm} x ${r.overall!.width_mm} mm.`);
+  const st = r.structure;
+  if (st) {
+    if (st.top_outline) lines.push(`- Top outline: ${st.top_outline}.`);
+    if (num(st.top_length_mm) && num(st.top_width_mm)) lines.push(`- Top measures ${st.top_length_mm} mm along the finger x ${st.top_width_mm} mm across.`);
+    if (num(st.top_height_mm)) lines.push(`- Top stands ${st.top_height_mm} mm above the finger.`);
+    if (st.profile) lines.push(`- Profile: ${st.profile}.`);
+    if (typeof st.stones_down_sides === "boolean") lines.push(`- Stones ${st.stones_down_sides ? "carry on down the sides of the top" : "cover only the face of the top"}.`);
+    if (st.shoulders) lines.push(`- Shoulders: ${st.shoulders}.`);
+    if (num(st.band_width_back_mm)) lines.push(`- Band ${st.band_width_back_mm} mm wide at the back.`);
+    if (num(st.band_width_shoulder_mm)) lines.push(`- Band ${st.band_width_shoulder_mm} mm wide at the shoulders.`);
+    if (st.gallery) lines.push(`- Underneath: ${st.gallery}.`);
+    if (st.notes) lines.push(`- Shape: ${st.notes}.`);
+  }
   if (r.overall?.metal) lines.push(`- Metal: ${r.overall.metal}.`);
   if (r.overall?.setting) lines.push(`- Setting: ${r.overall.setting}.`);
   (r.questions ?? []).forEach((q, i) => { if (answers[i] && q.question) lines.push(`- Q: ${q.question} A: ${answers[i]}`); });
@@ -48,12 +68,14 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
   // Once the reading is done the person can correct the marks: pick a group, tap the photo to add a stone it missed,
   // tap a circle to take one away, or add a group of stones it didn't see at all.
   const [edits, setEdits] = useState<Group[] | null>(null);
+  const [shape, setShape] = useState<Structure>({});
   const [active, setActive] = useState<number | null>(null);
   const [naming, setNaming] = useState(false);
   const [custom, setCustom] = useState("");
   const groups = (done && edits) || reading?.groups || [];
   const editable = () => edits ?? (reading?.groups ?? []).map((g) => ({ ...g, marks: [...(g.marks ?? [])] }));
-  const edited: Reading = { ...(reading ?? {}), groups };
+  const structure: Structure | undefined = reading?.structure || Object.keys(shape).length ? { ...(reading?.structure ?? {}), ...shape } : undefined;
+  const edited: Reading = { ...(reading ?? {}), groups, ...(structure ? { structure } : {}) };
   const [history, setHistory] = useState<Group[][]>([]);
   const [zoom, setZoom] = useState<number | null>(null);
   useEffect(() => {
@@ -221,6 +243,27 @@ export default function PhotoReading({ previews, reading, done, busy, onBuild, o
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {structure && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <span className="small"><b>Shape</b> <span className="muted">(from all the photos; fix any measurement)</span></span>
+          <p className="small" style={{ margin: 0 }}>
+            {[structure.top_outline, structure.profile, typeof structure.stones_down_sides === "boolean" ? (structure.stones_down_sides ? "stones carry on down the sides" : "stones only on the face") : null, structure.shoulders ? `shoulders: ${structure.shoulders}` : null, structure.gallery ? `underneath: ${structure.gallery}` : null].filter(Boolean).join(" · ")}
+          </p>
+          {done && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {STRUCT_NUMS.map(([k, label]) => (
+                <label key={k} className="small" style={{ display: "grid", gap: 2 }}>
+                  {label} (mm)
+                  <input type="number" step={0.1} min={0} value={num(structure[k]) ?? ""} placeholder="?"
+                    onChange={(e) => setShape((x) => ({ ...x, [k]: e.target.value === "" ? undefined : Number(e.target.value) }))} />
+                </label>
+              ))}
+            </div>
+          )}
+          {structure.notes && <p className="small muted" style={{ margin: 0 }}>{structure.notes}</p>}
         </div>
       )}
 

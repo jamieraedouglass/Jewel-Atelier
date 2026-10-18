@@ -52,6 +52,23 @@ export const readPieceTool: Anthropic.Tool = {
           required: ["what", "shape", "ratio", "where", "marks", "count"],
         },
       },
+      structure: {
+        type: "object",
+        description: "The piece's shape in 3D, read from EVERY photo (side, underside and worn photos especially), not just the top view. For rings this decides the profile, how the top meets the band and where the stones run.",
+        properties: {
+          top_outline: { type: "string", description: "outline of the whole top seen from above, e.g. 'rounded lozenge standing on its corner, points along the finger', 'oval', 'cushion'" },
+          top_length_mm: { type: "number", description: "whole top along the finger" },
+          top_width_mm: { type: "number", description: "whole top across the finger" },
+          top_height_mm: { type: "number", description: "how far the top of the piece stands above the finger (side view)" },
+          profile: { type: "string", enum: ["flat plaque", "gently domed", "high dome", "high dome curving down into the shoulders"], description: "the side view of the top" },
+          stones_down_sides: { type: "boolean", description: "do the stones carry on down the sides of the top (not just across its face)?" },
+          shoulders: { type: "string", enum: ["plain", "stones a short way down", "stones about a third of the way down", "stones halfway down", "stones all the way round"], description: "how far the stones run down the band from the top" },
+          band_width_back_mm: { type: "number", description: "band width at the back of the finger (under the hand)" },
+          band_width_shoulder_mm: { type: "number", description: "band width where it meets the top" },
+          gallery: { type: "string", description: "underneath the top: e.g. 'open, pierced with engraved scrolls', 'solid', 'basket'" },
+          notes: { type: "string", description: "anything else about the shape a jeweller would need: e.g. 'shoulders flare and sweep up into the dome like a saddle'" },
+        },
+      },
       overall: {
         type: "object",
         properties: { length_mm: { type: "number" }, width_mm: { type: "number" }, metal: { type: "string" }, setting: { type: "string", description: "how the stones are held: prongs, bezel, pavé..." } },
@@ -83,6 +100,9 @@ Work like a bench jeweller counting stones under a loupe: look, mark each stone 
   side almost to the tip of a pear. Mark every stone in the row, including the small ones near its ends; don't stop
   where the stones get small or hard to see. Your marks place the stones in the 3D build exactly where you put them.
 - Say exactly where each group sits relative to the main stone.
+- Read the 3D shape from all the photos, not just the top view: side and underside photos show the profile, how high
+  the top stands, how it curves down into the shoulders, how far the stones run down the band, the band's width at the
+  back and at the shoulders, and the gallery underneath. Fill in structure from them.
 - Ask a question only when the answer would change the build and the photos can't settle it. Never ask what the photo shows.
 The person's notes are facts; use them. Call read_piece once.`;
 

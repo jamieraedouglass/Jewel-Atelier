@@ -7,6 +7,7 @@ import { photoPixels, withPhotoColours, type Sample } from "@/lib/colourSample";
 import { createClient } from "@/lib/supabase/client";
 import PhotoReading, { type Reading } from "./PhotoReading";
 import { type PhotoSize, traceDrops } from "@/lib/photoTrace";
+import { correctionsOf } from "@/lib/readingLessons";
 
 type Result = { title: string; type: PieceType; style: string; patch: DesignPatch; description: string; notModelled: string[]; analysis?: string; samples?: Sample[]; inventory?: { what: string; count: number; size: string; where: string }[]; base?: Design | null; score?: number | null; differences?: string[] };
 type Props = {
@@ -204,7 +205,12 @@ export default function PhotoToDesign({ userId, design, onReplace, capture }: Pr
         <button className="btn" type="button" disabled={!files.length || !!busy} onClick={() => { traced.current = null; recreate(); }} style={{ justifySelf: "start" }}>Skip the check and build now</button>
         {reading && (
           <PhotoReading key={paths.join("|")} previews={previews} reading={reading} done={readingDone} busy={!!busy}
-            onBuild={(summary, removed, edited) => { traced.current = { reading: edited, removed }; recreate(summary, paths); }} onCancel={() => { setReading(null); setReadingDone(false); }} />
+            onBuild={(summary, removed, edited) => {
+              traced.current = { reading: edited, removed };
+              const groups = correctionsOf(reading?.groups ?? [], edited.groups ?? [], reading?.main);
+              if (groups.length) fetch("/api/from-photo/corrections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ piece: reading?.piece?.kind ?? "", groups }) }).catch(() => {});
+              recreate(summary, paths);
+            }} onCancel={() => { setReading(null); setReadingDone(false); }} />
         )}
         {error && <p className="error">{error}</p>}
       </section>

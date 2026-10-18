@@ -247,6 +247,31 @@ export function withConfirmedCounts(parts: Record<string, unknown>[], notes?: st
   return out;
 }
 
+// The ring's 3D shape as confirmed in the reading (band widths, how far stones run down the shoulders, the profile)
+// is applied as fact, so the build follows the side and underside photos.
+export function withStructure(patch: Record<string, unknown>, style: string, notes?: string) {
+  const n = notes ?? "";
+  const obj = (k: string) => ((patch[k] && typeof patch[k] === "object" ? patch[k] : {}) as Record<string, unknown>);
+  const band = { ...obj("band") }, options = { ...obj("options") };
+  const back = n.match(/^- Band (\d+(?:\.\d+)?) mm wide at the back/m);
+  if (back) band.widthMm = Math.min(16, Math.max(1.5, Number(back[1])));
+  const sh = n.match(/^- Shoulders: ([^\n.]+)/m)?.[1].toLowerCase();
+  if (sh) band.pave = /plain/.test(sh) ? "none" : /all the way/.test(sh) ? "full" : /halfway/.test(sh) ? "half" : "shoulders";
+  if (style === "deco") {
+    const top = n.match(/^- Top measures (\d+(?:\.\d+)?) mm along the finger x (\d+(?:\.\d+)?) mm across/m);
+    if (top) { options.decoLengthMm = Number(top[1]); options.decoWidthMm = Number(top[2]); }
+    const prof = n.match(/^- Profile: ([^\n.]+)/m)?.[1].toLowerCase();
+    if (prof) {
+      const dome = /flat/.test(prof) ? 0 : /gently/.test(prof) ? 0.45 : 0.9;
+      options.decoDome = dome;
+      if (/curving down|shoulders/.test(prof)) options.decoBend = Math.max(Number(options.decoBend) || 0, 0.7);
+    }
+    if (/^- Stones carry on down the sides of the top/m.test(n)) options.decoWrap = true;
+    else if (/^- Stones cover only the face of the top/m.test(n)) options.decoWrap = false;
+  }
+  return { ...patch, band, options };
+}
+
 const TIPPED = new Set(["pear", "marquise", "heart", "kite", "trillion"]);
 // "the tip points to about 10 o'clock" (left piece) -> drop-stone rotation: 0 tip down, 180 up, 90 right, -90 left.
 export function tipFromNotes(notes?: string): number | null {
@@ -303,6 +328,7 @@ function tidy(input: unknown, notes?: string): Recreation | null {
     const drop = (d.patch.drop && typeof d.patch.drop === "object" ? d.patch.drop : null) as { parts?: Record<string, unknown>[] } | null;
     if (drop?.parts?.length) d.patch = { ...d.patch, drop: { ...drop, parts: withConfirmedCounts(drop.parts, notes) } };
   }
+  if (d.type === "ring") d.patch = withStructure(d.patch, d.style, notes);
   const facts = factsFromNotes(notes, d.type);
   if (facts.ringSize) d.patch = { ...d.patch, ringSize: facts.ringSize };
   if (facts.karat) d.patch = { ...d.patch, purity: { karat: facts.karat } };
