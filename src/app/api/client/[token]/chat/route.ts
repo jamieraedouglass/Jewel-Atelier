@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL, proposeDesignTool } from "@/lib/ai";
+import { createMessage, proposeDesignTool } from "@/lib/ai";
 import { applyPatchLenient, designForAi, normalizeDesign, type DesignPatch } from "@/lib/design";
 import { normalizeChat, plainReply } from "@/lib/chat";
 import { aiFailure } from "@/lib/apiError";
@@ -51,8 +51,7 @@ export async function POST(req: Request, { params }: { params: { token: string }
       ? { role: "user", content: `${m.content}\n\n<current_design>${JSON.stringify(designForAi(current))}</current_design>` }
       : { role: m.role, content: m.content });
   try {
-    const msg = await anthropic().messages.create({
-      model: MODEL, max_tokens: 2000,
+    const msg = await createMessage({ max_tokens: 2000,
       system: `${clientChatSystem(BRAND.studioName, bundle.link.client_name, bundle.link.note)}\n${allowText(bundle.allow, piece.base)}`,
       tools: [proposeDesignTool], messages: apiMessages,
     });
