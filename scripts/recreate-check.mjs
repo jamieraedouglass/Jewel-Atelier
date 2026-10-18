@@ -5,7 +5,7 @@ import path from "node:path";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => { const i = args.indexOf(name); if (i < 0) return fallback; const v = args[i + 1]; args.splice(i, 2); return v; };
-const rounds = Number(opt("--rounds", "2"));
+const rounds = Number(opt("--rounds", "3"));
 const notes = opt("--notes", undefined);
 const photos = args;
 if (!photos.length) { console.error("Give at least one photo: npm run check:recreate -- photo.jpg"); process.exit(1); }
@@ -56,19 +56,24 @@ const apply = async (r, name) => {
   await js(`window.__apply(${JSON.stringify(r)}) && true`);
   const design = await js("JSON.stringify(window.__design)");
   writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify({ recreation: r, design: JSON.parse(design) }, null, 1));
-  steps.push({ name, title: r.title, description: r.description });
+  steps.push({ name, title: r.title, description: r.description, analysis: r.analysis, base: r.base ? "started from a showcase piece" : "" });
   return { render: await shot(name), design: JSON.parse(design) };
 };
 
 try {
   console.log("Rebuilding from the photo…");
   let now = await apply(await ask({ photos: photoUrls, notes }), "round-0");
+  console.log("Analysis:\n" + steps[0].analysis + (steps[0].base ? `\n(${steps[0].base})` : ""));
   for (let round = 1; round <= rounds; round++) {
     console.log(`Comparing with the photo (check ${round} of ${rounds})…`);
-    now = await apply(await ask({ photos: photoUrls, notes, design: now.design, render: now.render, round }), `round-${round}`);
+    const r = await ask({ photos: photoUrls, notes, design: now.design, render: now.render, round });
+    steps[steps.length - 1].score = r.score; steps[steps.length - 1].differences = r.differences;
+    console.log(`  build ${round - 1} scored ${r.score}/10: ${(r.differences || []).join("; ")}`);
+    if (r.score >= 9 || round === rounds) break;
+    now = await apply(r, `round-${round}`);
   }
   const photoImgs = photos.map((_, i) => `<figure><img src="photo-${i}.jpg"><figcaption>The photo</figcaption></figure>`).join("");
-  const stepImgs = steps.map((s) => `<figure><img src="${s.name}.jpg"><figcaption><b>${s.name === "round-0" ? "First build" : s.name.replace("round-", "After check ")}</b> · ${s.title}<br><small>${s.description}</small></figcaption></figure>`).join("");
+  const stepImgs = steps.map((s) => `<figure><img src="${s.name}.jpg"><figcaption><b>${s.name === "round-0" ? "First build" : s.name.replace("round-", "After check ")}</b>${s.score != null ? ` · <b>${s.score}/10</b>` : ""} · ${s.title}<br><small>${s.description}${s.differences?.length ? "<br>Still different: " + s.differences.join("; ") : ""}</small></figcaption></figure>`).join("");
   writeFileSync(path.join(OUT, "index.html"), `<!doctype html><meta charset=utf-8><title>Recreate check</title><style>body{margin:0;padding:16px;background:#111;color:#eee;font:14px sans-serif;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}figure{margin:0}img{width:100%;display:block;border-radius:4px}small{color:#aaa}</style>${photoImgs}${stepImgs}`);
   console.log(`Done: open ${path.join(OUT, "index.html")}`);
 } finally {

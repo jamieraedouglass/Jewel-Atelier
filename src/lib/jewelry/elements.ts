@@ -35,7 +35,7 @@ function prongAt(shape: CenterStone["shape"], asp: number, k: number): [number, 
 
 export const ASPECT = SHAPE_RATIO;
 
-export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round") {
+export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cut"], items: Item[], shape: CenterStone["shape"] = "round", dome = 0.42) {
   const g = new THREE.Group();
   g.userData.part = "accents";
   if (!items.length) return g;
@@ -43,7 +43,7 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
   if (cutIn === "cabochon" || cutIn === "carved") {
     const asp0 = ASPECT[shape];
     const meshes = [
-      new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, 0.42), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.72 }, 1), items.length),
+      new THREE.InstancedMesh(cutGeometry(cutIn, shape, asp0, 1, dome), BEAD_GEMS.has(gem) ? m.bead(gem, color) : m.stone({ gem, cut: cutIn, color, clarity: 0.72 }, 1), items.length),
       new THREE.InstancedMesh(shapedRim(shape, asp0, 0.06), m.metal, items.length),
     ];
     items.forEach((it, i) => { orient(o, it); meshes.forEach((x) => x.setMatrixAt(i, o.matrix)); });

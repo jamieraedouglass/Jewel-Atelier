@@ -34,7 +34,9 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const bin = (a: number) => Math.floor((a / (Math.PI * 2)) * N) % N;
   let y = y0, outer: THREE.Vector3[] = [];
   let sideStone: SideStone | null = null;
-  frames.forEach((f) => {
+  frames.forEach((f0, fi) => {
+    const before = frames[fi - 1];
+    const f = f0.ratio == null && before && before.outline === f0.outline && before.ratio != null ? { ...f0, ratio: before.ratio } : f0;
     const stoneL = f.widthMm * ASPECT[f.shape];
     const thick = f.kind === "stones" ? (f.direction === "radial" ? stoneL : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.widthMm;
     const unit = f.ratio != null ? outlineFn(f.outline, (c.widthMm + 1) * f.ratio, c.widthMm + 1) : outlineFn(f.outline, c.lengthMm + 1, c.widthMm + 1);
@@ -45,13 +47,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const slotAlong = (radial ? sz : sz * ASPECT[f.shape]) + 0.05, slotAcross = (radial ? sz * ASPECT[f.shape] : sz) + 0.05;
       let seed = 17;
       const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      const vine = (p: THREE.Vector3) => {
-        const u = Math.abs(p.x + p.z) / Math.SQRT2, w = Math.abs(p.x - p.z) / Math.SQRT2;
-        const sp = slotAcross * 3.4;
-        return (u % sp) < slotAcross * 0.55 || (w % sp) < slotAcross * 0.25;
-      };
       let k2 = 0;
-      for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross) / (Math.hypot(x, z) || 1));
+      for (const [x, z] of raw) k2 = Math.max(k2, (prevAt(theta(x, z)) + f.gapMm + slotAcross * 2) / (Math.hypot(x, z) || 1));
       const ringPts = raw.map(([x, z]) => v3(x * k2, 0, z * k2));
       const outerR = new Float32Array(N);
       for (const p of ringPts) { const b = bin(theta(p.x, p.z)); outerR[b] = Math.max(outerR[b], Math.hypot(p.x, p.z)); }
@@ -62,7 +59,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const A = 1440;
       let n = 0;
       for (let row = 0; row < 60; row++) {
-        let any = false, acc = slotAlong / 2 + (row % 2) * slotAlong / 2, last: THREE.Vector3 | null = null;
+        let any = false, acc = slotAlong / 2 + (row % 2) * slotAlong / 2, last: THREE.Vector3 | null = null, k = 0;
         const rowsAt = (th: number) => Math.max(1, Math.round((outerAt(th) - prevAt(th) - f.gapMm) / slotAcross));
         const rAt = (th: number) => { const inner = prevAt(th) + f.gapMm; return inner + ((row + 0.5) * (outerAt(th) - inner)) / rowsAt(th); };
         for (let a = 0; a < A; a++) {
@@ -78,7 +75,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           const tan = v3(Math.cos(th2) * r2 - p.x, 0, Math.sin(th2) * r2 - p.z).normalize();
           p.y = dome > 0 ? domeY(r) : y;
           const up = dome > 0 ? tilt(p) : Y.clone();
-          const isAlt = !!f.alt && (f.pattern === "vines" ? vine(p) : n % (f.every + 1) === f.every);
+          const isAlt = !!f.alt && (f.pattern === "vines" ? (((k - row) % (f.every + 1)) + (f.every + 1)) % (f.every + 1) === 0 : n % (f.every + 1) === f.every);
+          k++;
           const shape = isAlt ? f.alt!.shape : f.shape;
           const out = v3(p.x, 0, p.z).normalize();
           const diag = v3(Math.sign(p.x || 1), 0, Math.sign(p.z || 1)).normalize();
@@ -87,20 +85,22 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
           const X = new THREE.Vector3().crossVectors(up, dir).normalize();
           const quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, up, dir));
           if (isAlt && f.pattern !== "vines") quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(n % 2 ? 35 : -35)));
+          else if (!isAlt && f.cut === "cabochon") quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, (rnd() * 2 - 1) * 0.45));
           const rowGap = (outerAt(th) - prevAt(th) - f.gapMm) / rowsAt(th);
           const room = radial ? Math.min(slotAlong - 0.06, (rowGap - 0.06) / ASPECT[f.shape]) : Math.min(rowGap - 0.06, (slotAlong - 0.06) / ASPECT[f.shape]);
-          const fitted = Math.min(sz * 1.6, Math.max(sz * 0.85, room + 0.1));
-          const jitter = 1 + (rnd() * 2 - 1) * f.vary;
-          const dia = (isAlt ? Math.min(fitted, Math.max(slotAlong, rowGap) / ASPECT[shape]) : fitted) * jitter;
+          const fitted = Math.min(sz * 1.8, Math.max(sz * 0.9, room + 0.3));
+          const jitter = 1 + (rnd() * 2 - 1) * Math.max(f.vary, f.cut === "cabochon" ? 0.12 : 0);
+          const leaf = (Math.max(slotAlong, rowGap) * (f.pattern === "vines" ? 1.55 : 1)) / ASPECT[shape];
+          const dia = (isAlt ? Math.max(Math.min(fitted, leaf), f.pattern === "vines" ? leaf : 0) : fitted) * jitter;
           const look = isAlt ? f.alt! : f;
-          put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: p, dia, quat, up });
+          put(`${look.gem}|${look.color}|${look.cut}|${shape}`, { pos: isAlt ? p.clone().addScaledVector(up, 0.25) : p, dia, quat, up });
           n++;
         }
         if (!any) break;
       }
       groups.forEach((items, key) => {
         const [gem, color, cut, shape] = key.split("|");
-        g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"]));
+        g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
       });
       sideStone = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape, size: sz, alt: f.alt, every: f.every };
       outer = ringPts.map((p) => v3(p.x, y, p.z));
@@ -159,7 +159,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
     const rim = outer.map((p) => new THREE.Vector2(p.x, p.z));
     const flatY = y;
     const topY = dome > 0 ? (r: number) => domeY(r) - 0.75 : () => flatY - 0.75;
-    const depth = wrap ? 1.6 + 3.4 * sideStone!.size : 1.6;
+    const depth = wrap ? 1.6 + Math.min(3.4 * sideStone!.size, 5) : 1.6;
     const plate = new THREE.Mesh(domedPlate(rim, topY, depth), plateMetal(m));
     plate.userData.part = "metal";
     g.add(plate);
@@ -184,7 +184,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   }
   let extent = 0;
   for (let b = 0; b < N; b++) extent = Math.max(extent, prev[b]);
-  if (extent > maxHalf * 1.12 && pass < 3 && !frames.some((f) => f.kind === "fill")) {
+  if (extent > maxHalf * 1.12 && pass < 3 && !pointed && !frames.some((f) => f.kind === "fill")) {
     const k = Math.max(0.2, (maxHalf - centreHalf) / Math.max(0.1, extent - centreHalf));
     return decoFrames({ ...d, frames: frames.map((f) => ({ ...f, widthMm: Math.max(0.6, f.widthMm * k), gapMm: f.gapMm * k })) }, m, c, y0, pass + 1);
   }
@@ -242,7 +242,7 @@ function wrapStones(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
   });
   groups.forEach((items, key) => {
     const [gem, color, cut, shape] = key.split("|");
-    g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"]));
+    g.add(accents(m, gem as Frame["gem"], color, cut as Frame["cut"], items, shape as Frame["shape"], 0.27));
   });
   return g;
 }
