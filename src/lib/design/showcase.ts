@@ -42,6 +42,12 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Hexagon ruby Deco ring", type: "ring", style: "deco", patch: { metal: "platinum", center: diamond("old-mine", 1.5, "Old-mine diamond"), frames: FRAME_PRESETS[0].frames } as DesignPatch },
   { name: "Ballerina ring", type: "ring", style: "deco", patch: { metal: "yellow-gold", center: diamond("round", 1, "Round brilliant"), frames: FRAME_PRESETS[6].frames } as DesignPatch },
   { name: "Sapphire petal ring", type: "ring", style: "deco", patch: { metal: "platinum", center: diamond("cushion", 2, "Old cushion diamond"), frames: FRAME_PRESETS[4].frames } as DesignPatch },
+  { name: "Moval in a leaf-mosaic dome", type: "ring", style: "deco", patch: { metal: "yellow-gold", ringSize: 6, center: { ...diamond("marquise", 1.72, "Antique moval diamond"), lengthMm: 11, widthMm: 7 }, setting: { style: "bezel", height: 0 }, band: { widthMm: 3, profile: "raised", pave: "shoulders" },
+    frames: [
+      { kind: "milgrain", outline: "marquise", gem: "diamond", color: "#f4f6fb", cut: "faceted", shape: "round", widthMm: 0.6, fit: "point" },
+      { kind: "fill", outline: "cushion", ratio: 1, turn: 45, gem: "sapphire", color: "#e7b2d0", cut: "cabochon", shape: "cushion", widthMm: 2.5, alt: { gem: "emerald", color: "#1b8a4c", shape: "marquise", cut: "cabochon" }, every: 1, pattern: "sprays", vary: 0.2 },
+    ],
+    options: { decoDome: 0.9, decoWrap: true, decoBend: 0.6, decoSpread: 0, decoLengthMm: 20.4, decoWidthMm: 20.3 } } as DesignPatch },
   { name: "Marquise mosaic cocktail ring", type: "ring", style: "deco", patch: { metal: "yellow-gold", center: diamond("marquise", 2.5, "Marquise diamond"), setting: { style: "bezel" }, frames: FRAME_PRESETS[8].frames, options: { decoDome: 0.8, decoWrap: true, decoBend: 0.5, decoSpread: 0.6, decoLengthMm: 26, decoWidthMm: 25 }, band: { widthMm: 6, pave: "full", paveRows: 2, paveGem: "emerald", paveColor: GEM_LOOK.emerald.color, paveShape: "marquise", paveMm: 1.8, paveAngle: 35 } } as DesignPatch },
   { name: "Pavé swirl ring", type: "ring", style: "swirl", patch: { metal: "white-gold", center: diamond("round", 1.2, "Round brilliant"), options: { count: 3 }, accents: { sizeCt: 0.012 } } },
   { name: "Oval trilogy ring", type: "ring", style: "three-stone", patch: { metal: "platinum", center: diamond("oval", 2, "Oval diamond"), sides: { kind: "oval", sizeCt: 0.6 } } },

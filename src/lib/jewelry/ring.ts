@@ -37,7 +37,8 @@ function dispose(g: THREE.Object3D) { g.traverse((o) => (o as THREE.Mesh).geomet
 // The stones round the edge and the bend over the finger both add to the top, so a measured size is checked on the
 // finished ring and the fit aimed again until it matches.
 export function ringPiece(d00: Design): Piece {
-  if (isBombe(d00)) return ringPieceOnce(d00);
+  // In a bombé dome the centre stone sits down in the dome, not up on a collar.
+  if (isBombe(d00)) return ringPieceOnce({ ...d00, setting: { ...d00.setting, height: 0 } });
   let d0 = d00;
   const o = d0.options, wantL = o.decoLengthMm, wantW = o.decoWidthMm;
   if (d0.type !== "ring" || d0.style !== "deco" || !(wantL > 0 || wantW > 0) || !d0.frames.length) return ringPieceOnce(d0);
@@ -288,7 +289,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     group.children.forEach((o) => { if (o !== shank && !o.userData.onBand) box.expandByObject(o); });
     if (!box.isEmpty()) {
       const hx = Math.max(Math.abs(box.min.x), Math.abs(box.max.x)), hz = Math.max(Math.abs(box.min.z), Math.abs(box.max.z));
-      const top = { topW: Math.min(11, Math.max(d.band.widthMm + 2, hz * 0.9)), topT: 2.2, spread: hx * 0.9 };
+      const top = { topW: Math.min(9, Math.max(d.band.widthMm + 2, hz * 0.7)), topT: 1.3, spread: hx * 0.85 };
       shank.geometry.dispose();
       shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
       shank.userData.top = top;

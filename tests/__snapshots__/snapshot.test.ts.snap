@@ -2804,6 +2804,31 @@ exports[`geometry snapshots > showcase Matched Asscher studs 1`] = `
 }
 `;
 
+exports[`geometry snapshots > showcase Moval in a leaf-mosaic dome 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      10.91,
+      0,
+    ],
+    "focusSize": 26,
+    "hash": "92c0455a",
+    "instances": 928,
+    "meshes": 46,
+    "nonFinite": 0,
+    "size": [
+      20.34,
+      22.81,
+      19.9,
+    ],
+    "upright": true,
+    "vertices": 3453207,
+  },
+  "worn": null,
+}
+`;
+
 exports[`geometry snapshots > showcase Mughal carved emerald ring 1`] = `
 {
   "fp": {
