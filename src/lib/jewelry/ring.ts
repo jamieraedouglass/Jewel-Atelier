@@ -105,7 +105,8 @@ export function ringPiece(d0: Design): Piece {
   const at = (o: THREE.Object3D) => { o.position.y += gy; group.add(o); };
   if (st === "halo") at(halo(d, m, c).group);
   if (st === "posy") { const f = flowerCluster(d, m, c); f.rotation.y = THREE.MathUtils.degToRad(c.rotation); at(f); }
-  if (st === "deco") at(decoFrames(d, m, c).group);
+  let decoTop: THREE.Object3D | null = null;
+  if (st === "deco") { decoTop = decoFrames(d, m, c).group; at(decoTop); }
   if (st === "half-flower") {
     const f = new THREE.Group();
     f.add(halfFlower(d, m, c, d.options.halo, d.options.flowerPlace === "band"));
@@ -136,6 +137,7 @@ export function ringPiece(d0: Design): Piece {
     at(backingPlate(m, outlineFn("round", 1, 1), (R + dia + 1) * 2, -0.9, 0.8));
   }
   applyProfile(group, d, gy);
+  if (decoTop && d.options.decoBend > 0) bendOverFinger(group, decoTop, d.options.decoBend, ringInnerDiameter(d.ringSize) / 2 + 2.1);
   bandPave(group, d, m);
   const top = new THREE.Box3().setFromObject(group).max.y;
   return { group, focus: v3(0, top - c.domeMm - 1, 0), focusSize: 26, upright: true };
@@ -225,4 +227,69 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     drop = Math.max(0, gy - (RIN + 2.3 + belly * 0.25) + Math.min(1.2, d.setting.height * 4));
   }
   if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
+}
+
+export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: number, floor: number) {
+  root.updateMatrixWorld(true);
+  const toRoot = root.matrixWorld.clone().invert();
+  const box = new THREE.Box3().setFromObject(part);
+  const R = box.max.y - 1;
+  if (!(R > 1)) return;
+  const edge = Math.max(Math.abs(box.min.x), box.max.x) * 0.6;
+  let sideLow = Infinity;
+  const w = new THREE.Vector3(), mm = new THREE.Matrix4();
+  part.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const inst = o as THREE.InstancedMesh;
+    if (inst.isInstancedMesh) {
+      for (let i = 0; i < inst.count; i++) { inst.getMatrixAt(i, mm); w.setFromMatrixPosition(mm.premultiply(mesh.matrixWorld).premultiply(toRoot)); if (Math.abs(w.x) > edge) sideLow = Math.min(sideLow, w.y); }
+      return;
+    }
+    const ps = mesh.geometry.getAttribute("position");
+    mm.multiplyMatrices(toRoot, mesh.matrixWorld);
+    for (let i = 0; i < ps.count; i += 3) { w.fromBufferAttribute(ps, i).applyMatrix4(mm); if (Math.abs(w.x) > edge) sideLow = Math.min(sideLow, w.y); }
+  });
+  const settle = Number.isFinite(sideLow) ? Math.min(4, Math.max(0, sideLow - floor)) : 0;
+  const angleAt = (x: number) => (amount * x) / R;
+  const place = (p: THREE.Vector3) => { const a = angleAt(p.x), r = Math.max(floor, p.y - settle * Math.min(1, Math.sin(a) ** 2 * 4)); return { a, p: v3(r * Math.sin(a), r * Math.cos(a), p.z) }; };
+  const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), rz = new THREE.Matrix4();
+  const pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  part.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    rel.multiplyMatrices(toRoot, mesh.matrixWorld);
+    inv.copy(rel).invert();
+    const inst = o as THREE.InstancedMesh;
+    if (inst.isInstancedMesh) {
+      for (let i = 0; i < inst.count; i++) {
+        inst.getMatrixAt(i, mi);
+        mi.premultiply(rel);
+        mi.decompose(pos, q, sc);
+        const { a, p } = place(pos);
+        rz.makeRotationZ(-a);
+        q.premultiply(new THREE.Quaternion().setFromRotationMatrix(rz));
+        mi.compose(p, q, sc).premultiply(inv);
+        inst.setMatrixAt(i, mi);
+      }
+      inst.instanceMatrix.needsUpdate = true;
+      inst.computeBoundingSphere();
+      inst.computeBoundingBox();
+      return;
+    }
+    const geo = mesh.geometry.clone();
+    const ps = geo.getAttribute("position") as THREE.BufferAttribute, ns = geo.getAttribute("normal") as THREE.BufferAttribute | undefined;
+    const nm = new THREE.Matrix3().getNormalMatrix(rel), nmInv = new THREE.Matrix3().getNormalMatrix(inv);
+    const v = new THREE.Vector3(), n = new THREE.Vector3();
+    for (let i = 0; i < ps.count; i++) {
+      v.fromBufferAttribute(ps, i).applyMatrix4(rel);
+      const { a, p } = place(v);
+      ps.setXYZ(i, ...p.applyMatrix4(inv).toArray());
+      if (ns) { n.fromBufferAttribute(ns, i).applyMatrix3(nm).applyAxisAngle(new THREE.Vector3(0, 0, 1), -a).applyMatrix3(nmInv).normalize(); ns.setXYZ(i, n.x, n.y, n.z); }
+    }
+    ps.needsUpdate = true;
+    if (ns) ns.needsUpdate = true;
+    geo.computeBoundingBox(); geo.computeBoundingSphere();
+    mesh.geometry = geo;
+  });
 }

@@ -50,10 +50,14 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
             fmt={(v) => (v === "finger" ? "At the ends, along the finger" : "At the sides, along the band")} onPick={(flowerPlace) => setOpt({ flowerPlace })} />
         </>
       )}
-      {d.style === "deco" && (
+      {d.style === "deco" && (<>
         <Range id="deco-dome" label="Top" value={o.decoDome} min={0} max={1} step={0.05}
           format={(n) => (n === 0 ? "Flat (Art Deco plaque)" : n < 0.5 ? "Gently domed" : "Domed (bombé cocktail)")} onChange={(decoDome) => setOpt({ decoDome })} />
-      )}
+        {d.type === "ring" && (
+          <Range id="deco-bend" label="Sides" value={o.decoBend} min={0} max={1} step={0.05}
+            format={(n) => (n === 0 ? "Straight across the finger" : n < 0.5 ? "Curving a little over the finger" : "Curving down into the band")} onChange={(decoBend) => setOpt({ decoBend })} />
+        )}
+      </>)}
       {d.style === "deco" && <Toggle id="deco-wrap" checked={o.decoWrap} onChange={(decoWrap) => setOpt({ decoWrap })}>Stones wrap down the rounded sides</Toggle>}
       {d.style === "two-stone" && d.type === "ring" && (
         <>

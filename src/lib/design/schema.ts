@@ -197,6 +197,7 @@ export const DesignSchema = z
         pairSpacing: z.enum(["apart", "touching"]).default("apart"),
         decoDome: z.number().min(0).max(1).default(0),
         decoWrap: z.boolean().default(false),
+        decoBend: z.number().min(0).max(1).default(0),
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         hoopFace: z.enum(["front", "outer", "inner"]).default("front"),
         charmTurn: z.number().min(-180).max(180).default(0),
