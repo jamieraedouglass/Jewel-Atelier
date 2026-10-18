@@ -15,6 +15,8 @@ const STARTERS = [
   "What should I tell the karigar about construction and weight?",
 ];
 
+const MOODS = ["Whimsical", "Heirloom", "Romantic", "Serious", "Bold", "Quiet", "Regal", "Playful", "Modern", "Boho"];
+
 export default function DesignChat({ userId, designId, design, onApply }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -79,6 +81,16 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
         Use my <Link href="/style">style profile</Link>
       </label>
 
+      {ready && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <span className="small muted">Change the feel{design.mood ? ` (now: ${design.mood})` : ""}</span>
+          <div className="chips" role="group" aria-label="Change the feel">
+            {MOODS.map((m) => <button key={m} type="button" className="chip" style={{ textTransform: "none" }} disabled={busy}
+              onClick={() => send(`Make this feel more ${m.toLowerCase()}, in my own taste. Show me two or three different takes, from subtle to strong.`)}>{m}</button>)}
+          </div>
+        </div>
+      )}
+
       {messages.length === 0 && ready && (
         <div className="chips">
           {STARTERS.map((s) => <button key={s} type="button" className="chip" style={{ textTransform: "none" }} onClick={() => send(s)}>{s}</button>)}
@@ -114,7 +126,7 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
       <div ref={end} />
 
       <form onSubmit={(e) => { e.preventDefault(); send(draft); }} style={{ display: "grid", gap: 8 }}>
-        <textarea id="chat-input" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about side stones, proportions, wearability…"
+        <textarea id="chat-input" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about side stones, proportions, wearability… or a feeling: more whimsical, something that feels like an heirloom"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }} />
         <button className="btn primary" disabled={busy || !draft.trim()}>Send</button>
       </form>

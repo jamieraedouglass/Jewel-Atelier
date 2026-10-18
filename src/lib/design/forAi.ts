@@ -7,6 +7,7 @@ export function designForAi(d: Design) {
   const out: Record<string, unknown> = {
     inWords: describeDesign(d),
     label: d.name,
+    ...(d.mood ? { mood: d.mood } : {}),
     type: d.type, style: d.style, metal: d.metal, purity: d.purity, options: d.options,
   };
   if (has("center") && !d.center.none) out.center = d.center;
