@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { storageImages, streamReading } from "@/lib/ai";
+import { imageSize, marksToFractions, storageImages, streamReading } from "@/lib/ai";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 
@@ -21,6 +21,8 @@ export async function POST(req: Request) {
   const charge = await chargeAiCall(supabase, user.id);
   if ("error" in charge) return json({ error: charge.error }, 429);
 
+  const sizes = photos.map((p) => (p.source.type === "base64" ? imageSize(Buffer.from(p.source.data, "base64")) : null));
+  const content = photos.flatMap((p, i) => [{ type: "text" as const, text: `Photo ${i}${sizes[i] ? `: ${sizes[i]!.w} × ${sizes[i]!.h} pixels` : ""}` }, p]);
   const text = [photos.length > 1 ? `${photos.length} photos of the same piece, numbered from 0.` : "One photo (photo 0).", notes ? `Notes from the person: ${notes}` : null].filter(Boolean).join("\n");
   const enc = new TextEncoder();
   const stream = new ReadableStream({
@@ -28,12 +30,12 @@ export async function POST(req: Request) {
       const send = (o: unknown) => controller.enqueue(enc.encode(`${JSON.stringify(o)}\n`));
       let last = 0;
       try {
-        const result = await streamReading([...photos, { type: "text", text }], (snapshot) => {
+        const result = await streamReading([...content, { type: "text", text }], (snapshot) => {
           const now = Date.now();
-          if (now - last > 250) { last = now; send({ type: "snapshot", data: snapshot }); }
+          if (now - last > 250) { last = now; send({ type: "snapshot", data: marksToFractions(snapshot, sizes) }); }
         });
         if (!result) { await charge.refund(); send({ type: "error", error: "Couldn't read the piece clearly. Try a closer, brighter photo." }); }
-        else send({ type: "done", data: result });
+        else send({ type: "done", data: marksToFractions(result, sizes) });
       } catch (e) {
         await charge.refund();
         console.error("Photo reading failed:", e);

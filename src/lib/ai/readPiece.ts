@@ -25,7 +25,9 @@ export const readPieceTool: Anthropic.Tool = {
           what: { type: "string" }, shape: { type: "string" }, cut: { type: "string" }, color: { type: "string" },
           size_mm: { type: "string", description: "estimated length x width in mm only, e.g. '15 x 8 mm'" },
           direction: { type: "string", enum: ["along the finger", "across the finger", "diagonal to the band", "not a ring or round stone"], description: "rings: which way the main stone's long axis runs compared with the FINGER (find the band first; ignore how the photo is tilted). Almost every ring is along or across." },
-          photo: { type: "integer" }, x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" },
+          photo: { type: "integer" },
+          x: { type: "number", description: "left edge of the box round the main stone, in pixels of that photo" },
+          y: { type: "number", description: "top edge, in pixels" }, w: { type: "number", description: "box width in pixels" }, h: { type: "number", description: "box height in pixels" },
         },
         required: ["what", "shape", "photo", "x", "y", "w", "h"],
       },
@@ -41,7 +43,7 @@ export const readPieceTool: Anthropic.Tool = {
             where: { type: "string", description: "exactly where they sit relative to the main stone, e.g. 'tight cluster under the rounded end only, about 4 to 8 o'clock'" },
             marks: {
               type: "array",
-              description: "one mark per stone you can see, on ONE piece: its centre (x, y from the photo's top-left, 0–1) and radius r as a fraction of the photo's width",
+              description: "one mark per stone you can see, on ONE piece: its centre (x, y in pixels of that photo, from its top-left corner) and its radius r in pixels. Put each mark on the stone itself, never on skin, background or bare metal.",
               items: { type: "object", properties: { photo: { type: "integer" }, x: { type: "number" }, y: { type: "number" }, r: { type: "number" } }, required: ["photo", "x", "y", "r"] },
             },
             count: { type: "integer", description: "how many there are in ONE piece, counted from your marks plus any you're sure are hidden" },
@@ -67,7 +69,10 @@ export const readPieceTool: Anthropic.Tool = {
 export const READ_SYSTEM = `You are a master jeweller and gem setter mapping a piece of jewellery from photos before it is rebuilt in 3D.
 Work like a bench jeweller counting stones under a loupe: look, mark each stone where it is, then count from your marks.
 - First say what kind of piece it is. If the photo shows a pair, map ONE piece.
-- Mark the main stone with a box (x, y = top-left corner, w, h; all 0–1 of the photo).
+- Each photo's size in pixels is given just before it. Give every position in pixels of that photo, measured from its
+  top-left corner. Mark the main stone with a box (x, y = top-left corner, w, h) that fits tightly round the stone.
+- Before marking, find the piece in the photo: fingers, skin, cloth and background are not stones. Every mark must sit on a
+  stone you can see, inside the outline of the piece.
 - For every other group of stones, mark each stone's centre where you actually see it. Never mark a stone you can't see,
   and never spread a group further round the main stone than it really goes.
 - Judge sizes against the main stone (ratio) and say when sizes vary inside a group.
@@ -100,4 +105,48 @@ export async function streamReading(content: Anthropic.MessageParam["content"], 
     if (!refused || MODEL === FALLBACK) throw e;
     return run(FALLBACK);
   }
+}
+
+export type PhotoSize = { w: number; h: number };
+
+// Reads width and height from a JPEG or PNG header.
+export function imageSize(bytes: Uint8Array): PhotoSize | null {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes.length > 24) {
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return { w: v.getUint32(16), h: v.getUint32(20) };
+  }
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < bytes.length) {
+    if (bytes[i] !== 0xff) { i++; continue; }
+    const marker = bytes[i + 1];
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
+    const len = (bytes[i + 2] << 8) | bytes[i + 3];
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc)
+      return { h: (bytes[i + 5] << 8) | bytes[i + 6], w: (bytes[i + 7] << 8) | bytes[i + 8] };
+    i += 2 + len;
+  }
+  return null;
+}
+
+type Pt = { photo?: unknown; x?: unknown; y?: unknown; r?: unknown; w?: unknown; h?: unknown };
+const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+// The model marks stones in pixels; the page draws them as fractions of each photo. Values that are already fractions stay.
+export function marksToFractions(reading: unknown, sizes: (PhotoSize | null)[]): unknown {
+  if (!reading || typeof reading !== "object") return reading;
+  const r = structuredClone(reading) as { main?: Pt; groups?: { marks?: Pt[] }[] };
+  const pts: Pt[] = [...(r.main ? [r.main] : []), ...(r.groups ?? []).flatMap((g) => (Array.isArray(g?.marks) ? g.marks : []))];
+  const pixels = pts.some((p) => [p.x, p.y, p.w, p.h].some((v) => (n(v) ?? 0) > 1.5));
+  if (!pixels) return r;
+  for (const p of pts) {
+    const size = sizes[n(p.photo) ?? 0] ?? sizes[0];
+    if (!size) continue;
+    if (n(p.x) !== null) p.x = (p.x as number) / size.w;
+    if (n(p.w) !== null) p.w = (p.w as number) / size.w;
+    if (n(p.r) !== null) p.r = (p.r as number) / size.w;
+    if (n(p.y) !== null) p.y = (p.y as number) / size.h;
+    if (n(p.h) !== null) p.h = (p.h as number) / size.h;
+  }
+  return r;
 }
