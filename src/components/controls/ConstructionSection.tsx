@@ -53,6 +53,8 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
       {d.style === "deco" && (<>
         <Range id="deco-dome" label="Top" value={o.decoDome} min={0} max={1} step={0.05}
           format={(n) => (n === 0 ? "Flat (Art Deco plaque)" : n < 0.5 ? "Gently domed" : "Domed (bombé cocktail)")} onChange={(decoDome) => setOpt({ decoDome })} />
+        <Range id="deco-spread" label="Shape of the top" value={o.decoSpread} min={0} max={1} step={0.05}
+          format={(n) => (n === 0 ? "Follows the centre stone" : n < 0.5 ? "A little wider" : "Nearly as wide as it is long")} onChange={(decoSpread) => setOpt({ decoSpread })} />
         {d.type === "ring" && (
           <Range id="deco-bend" label="Sides" value={o.decoBend} min={0} max={1} step={0.05}
             format={(n) => (n === 0 ? "Straight across the finger" : n < 0.5 ? "Curving a little over the finger" : "Curving down into the band")} onChange={(decoBend) => setOpt({ decoBend })} />

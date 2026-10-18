@@ -86,6 +86,15 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  async function downloadCad() {
+    const { cadZip } = await import("@/lib/cadExport");
+    const bytes = cadZip(designRef.current);
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/zip" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName(designRef.current).replace(/\.png$/, "-CAD.zip"); a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function whatsapp() {
     const link = await shareLink();
     if (!link) return;
@@ -117,5 +126,5 @@ export function useSaving({ initialId, initialPublic, userId, designRef, canvas,
     router.push(`/design/${r.id}`);
   }
 
-  return { id, isPublic, save, saveThumbnail, copyLink, downloadImage, whatsapp, makePrivate, makeCopy };
+  return { id, isPublic, save, saveThumbnail, copyLink, downloadImage, downloadCad, whatsapp, makePrivate, makeCopy };
 }

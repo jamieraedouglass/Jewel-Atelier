@@ -89,6 +89,7 @@ export const designPatchSchema = {
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
         decoWrap: { type: "boolean", description: "deco style: the top's stones carry on over its rounded sides, down towards the band (cushion cocktail rings covered all over)" },
+        decoSpread: { type: "number", description: "deco: 0 = the bands keep the centre stone's long shape; up to 1 = they widen more across it, so the top becomes nearly as wide as it is long (a squarer kite or cushion round a long marquise), still hugging" },
         decoBend: { type: "number", description: "deco rings: 0 the top runs straight across the finger; 0.5–1 its sides curve down over the finger into the band (where the fingers grip a cocktail ring, the top slopes away to the shank), while the front and back stay full" },
         decoDome: { type: "number", description: "deco style: 0 a flat Art Deco plaque, 0.5–1 a domed (bombé) cocktail ring whose layers curve down and out" },
       },

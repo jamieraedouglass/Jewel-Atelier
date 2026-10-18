@@ -155,6 +155,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
         <div className="panel-foot">
           <button className="btn primary" type="button" onClick={saving.save}>{dirty || !saving.id ? "Save" : "Saved"}</button>
           <button className="btn" type="button" onClick={saving.downloadImage}>Download image</button>
+          <button className="btn" type="button" onClick={saving.downloadCad} title="STL files at real size in millimetres, for Rhino, MatrixGold or JewelCAD and for printing">Download for CAD</button>
           <button className="btn" type="button" onClick={saving.whatsapp}>WhatsApp</button>
           <button className="btn" type="button" onClick={saving.copyLink}>Copy link</button>
           <button className="btn" type="button" onClick={saving.makeCopy} title="Try a variation without changing this one">Make a copy</button>
