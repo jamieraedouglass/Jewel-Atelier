@@ -24,6 +24,7 @@ export const readPieceTool: Anthropic.Tool = {
         properties: {
           what: { type: "string" }, shape: { type: "string" }, cut: { type: "string" }, color: { type: "string" },
           size_mm: { type: "string", description: "estimated length x width in mm only, e.g. '15 x 8 mm'" },
+          tip_clock: { type: "number", description: "pear, marquise, heart and other pointed stones: the clock hour the TIP points to in the photo (12 = straight up, 3 = right, 9 = left; 10.5 for half past ten), on the piece on the LEFT of the photo. Look at where the narrow point is, not the rounded end." },
           direction: { type: "string", enum: ["along the finger", "across the finger", "diagonal to the band", "not a ring or round stone"], description: "rings: which way the main stone's long axis runs compared with the FINGER (find the band first; ignore how the photo is tilted). Almost every ring is along or across." },
           photo: { type: "integer" },
           x: { type: "number", description: "left edge of the box round the main stone, in pixels of that photo" },
@@ -76,6 +77,8 @@ Work like a bench jeweller counting stones under a loupe: look, mark each stone 
 - For every other group of stones, mark each stone's centre where you actually see it. Never mark a stone you can't see,
   and never spread a group further round the main stone than it really goes.
 - Judge sizes against the main stone (ratio) and say when sizes vary inside a group.
+- Drops in a cascade overlap: count every one, front and back tier (a cluster of briolettes is often 12–20), and say
+  where the largest hang. Small stones set right along a stone's edge are their own group.
 - Say exactly where each group sits relative to the main stone.
 - Ask a question only when the answer would change the build and the photos can't settle it. Never ask what the photo shows.
 The person's notes are facts; use them. Call read_piece once.`;

@@ -87,16 +87,23 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
       const own = THREE.MathUtils.degToRad(p.small.turns[slot] ?? 0);
       const hangs = sc.cut === "briolette";
       const down = v3(0, 0, 1);
-      const fall = hangs ? dir.clone().multiplyScalar(0.45).add(down).normalize() : dir;
+      // Briolettes hang under gravity: nearly straight down below the stone, swinging out a little more up its sides.
+      const fall = hangs ? dir.clone().multiplyScalar(0.2 + 0.5 * (1 - Math.max(0, dir.z))).add(down).normalize() : dir;
       const turn = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
       const room = Math.max(0, ...skirt.map((k) => (k.to - k.from > 6.2 || (turn(phi - k.from) >= 0 && turn(k.to - phi) >= 0) ? k.room : 0)));
       const hangFrom = rEdge * 0.97 + room;
-      const pos = hangs ? dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, sc.lengthMm * 0.45) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
+      // Packed tighter than they fit side by side, every other briolette drops into a second, lower tier.
+      const step = n > 1 ? Math.abs(angles[Math.min(n - 1, i + 1)] - angles[Math.max(0, i - 1)]) / (i === 0 || i === n - 1 ? 1 : 2) : Math.PI;
+      const tier = hangs && n >= 6 && sc.widthMm > hangFrom * step * 1.1 && i % 2 === 1 ? 1 : 0;
+      const drop = tier * sc.lengthMm * 0.6;
+      const pos = hangs ? dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, sc.lengthMm * 0.45 + drop) : dir.clone().multiplyScalar(rEdge + 0.3 + sc.lengthMm / 2);
+      if (drop) g.add(tube(m, [dir.clone().multiplyScalar(hangFrom).setY(-0.6), dir.clone().multiplyScalar(hangFrom).addScaledVector(fall, drop).setY(-0.6)], 0.16));
       const s = setStoneRaw(sc, setFor(d, sc), m);
-      s.position.copy(pos).setY(hangs ? -0.6 : -0.15);
+      s.position.copy(pos).setY(hangs ? -0.6 - tier * 0.9 : -0.15);
       s.rotation.y = hangs ? Math.atan2(fall.x, fall.z) + Math.PI : Math.atan2(dir.x, dir.z) + (dir.x < -1e-6 ? -(rot + own) : rot + own);
       g.add(s);
-      g.add(tube(m, [v3(0, -0.9, 0), dir.clone().multiplyScalar(hangs ? hangFrom - rEdge * 0.05 : rEdge + 0.3 + sc.lengthMm / 2).setY(-0.9)], 0.3));
+      // A short wire behind the stones joins each one to the setting, out of sight from the front.
+      g.add(tube(m, [dir.clone().multiplyScalar(rEdge * 0.95).setY(-1.5), dir.clone().multiplyScalar(hangs ? hangFrom : rEdge + 0.3 + sc.lengthMm / 2).setY(-1.5)], 0.14));
     });
   }
   return { g };
