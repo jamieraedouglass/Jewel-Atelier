@@ -140,7 +140,14 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const pd: Design = { ...d, accents: { ...d.accents, gem: f.gem, color: f.color, cut: (f.cut === "polki" || f.cut === "rose-cut" || f.cut === "briolette" || f.cut === "bead" ? f.cut : "faceted") as Design["accents"]["cut"], sizeCt: 6, shapes: [f.shape], orientation: f.direction === "radial" ? "across" : "along", turns: [], twins: [], colors: [] } };
       const main = { gem: f.gem, color: f.color, cut: f.cut, shape: f.shape };
       const alt = f.alt ? { gem: f.alt.gem, color: f.alt.color, cut: f.alt.cut, shape: f.alt.shape } : null;
-      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt: (i) => (alt && i % (f.every + 1) === f.every ? alt : main), ...(dome > 0 ? { up: (u: number) => tilt(centre.getPointAt(u)) } : {}) }).group);
+      const spokes = Math.max(5, 12 - 2 * f.every), shift = fi * 0.42;
+      const vineAt = (pos: THREE.Vector3, count: number) => {
+        const phase = (theta(pos.x, pos.z) / (Math.PI * 2)) * spokes + shift, j = Math.round(phase);
+        return Math.abs(phase - j) * (count / spokes) < 0.5 ? { ...alt!, turn: (((j % 2) + 2) % 2 ? 40 : -40), scale: 1.15 } : null;
+      };
+      const gemAt = (i: number, pos: THREE.Vector3, count: number) => (!alt ? main : f.pattern === "vines" ? vineAt(pos, count) ?? main : i % (f.every + 1) === f.every ? alt : main);
+      const organic = f.cut === "cabochon" && (f.pattern === "vines" || f.vary > 0);
+      g.add(patternRun(pd, m, centre, 0, 1, { closed: true, gap: 0.14, maxW: thick, gemAt, ...(organic ? { dome: 0.27, vary: Math.max(f.vary, 0.15) } : f.vary ? { vary: f.vary } : {}), ...(dome > 0 ? { up: (u: number) => tilt(centre.getPointAt(u)) } : {}) }).group);
     } else if (f.kind === "milgrain") {
       const n = Math.max(12, Math.round(centre.getLength() / 0.5));
       g.add(balls(m.satin, Array.from({ length: n }, (_, k) => ({ pos: centre.getPointAt(k / n).add(v3(0, 0.12, 0)), dia: 0.42 }))));

@@ -6,13 +6,13 @@ import { Y, v3 } from "./common";
 import { type Mats } from "./materials";
 import { cutGeometry, isColorless } from "./stones";
 
-export type Item = { pos: THREE.Vector3; dia: number; up?: THREE.Vector3; yaw?: number; quat?: THREE.Quaternion };
+export type Item = { pos: THREE.Vector3; dia: number; up?: THREE.Vector3; yaw?: number; quat?: THREE.Quaternion; stretch?: number };
 
 export function orient(o: THREE.Object3D, it: Item) {
   o.position.copy(it.pos);
   if (it.quat) o.quaternion.copy(it.quat);
   else { o.quaternion.setFromUnitVectors(Y, it.up ?? Y); o.rotateY(it.yaw ?? 0); }
-  o.scale.setScalar(it.dia);
+  o.scale.set(it.dia, it.dia, it.dia * (it.stretch ?? 1));
   o.updateMatrix();
 }
 

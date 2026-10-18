@@ -23,7 +23,9 @@ export type RunOpts = {
   maxW?: number;
   gap?: number;
   closed?: boolean;
-  gemAt?: (i: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"] } | null;
+  gemAt?: (i: number, pos: THREE.Vector3, count: number) => { gem: Gem; color: string; cut: CenterStone["cut"]; shape?: CenterStone["shape"]; turn?: number; scale?: number } | null;
+  dome?: number;
+  vary?: number;
   onPlace?: (pos: THREE.Vector3, quat: THREE.Quaternion, W: number, L: number, shape: CenterStone["shape"]) => void;
   fade?: "start" | "middle";
 };
@@ -83,7 +85,8 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
   const spare = (total - usedLen) / Math.max(1, opts.closed ? seq.length : seq.length + 1);
   const byShape = new Map<string, Item[]>();
   const spineW = Math.max(0, ...dims.filter((x) => onSpine(x)).map((x) => x.W));
-  let leaf = 0;
+  let leaf = 0, seed = 29;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   let at = opts.closed ? 0 : spare;
   const basis = new THREE.Matrix4();
   seq.forEach((s, i) => {
@@ -110,21 +113,26 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     const cols = d.accents.colors, fadeCols = d.accents.ombre;
     const pos01 = seq.length > 1 ? i / (seq.length - 1) : 0;
     const fadeT = opts.fade === "start" ? pos01 : opts.closed ? 2 * Math.min(pos01, 1 - pos01) : Math.abs(pos01 - 0.5) * 2;
-    const gm = opts.gemAt?.(i) ?? (fadeCols.length ? { gem: d.accents.gem, color: ombreAt(fadeCols, fadeT), cut: d.accents.cut } : cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
+    const gm = opts.gemAt?.(i, pos, seq.length) ?? (fadeCols.length ? { gem: d.accents.gem, color: ombreAt(fadeCols, fadeT), cut: d.accents.cut } : cols.length ? { gem: d.accents.gem, color: cols[i % cols.length], cut: d.accents.cut } : null);
     const shape = gm?.shape ?? s.shape;
     const key = `${shape}|${gm ? `${gm.gem}|${gm.color}|${gm.cut}` : ""}`;
     const push = (it: Item) => (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(it);
-    const dia = s.W * fit(s, i);
+    const turn = gm && "turn" in gm ? gm.turn : undefined;
+    if (turn) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, THREE.MathUtils.degToRad(turn)));
+    const vary = opts.vary ?? 0;
+    if (vary && !turn) quat.multiply(new THREE.Quaternion().setFromAxisAngle(Y, (rnd() * 2 - 1) * vary * 1.6));
+    const dia = s.W * fit(s, i) * (gm && "scale" in gm ? gm.scale ?? 1 : 1) * (vary ? 1 + (rnd() * 2 - 1) * vary * 0.6 : 1);
+    const stretch = vary && !turn ? 1 + (rnd() * 2 - 1) * vary : undefined;
     if (d.accents.twins[i % dims.length]) {
       for (const k of [-1, 1]) push({ pos: pos.clone().addScaledVector(X, k * dia * 0.26), dia: dia * 0.48, quat });
-    } else push({ pos, dia, quat });
+    } else push({ pos, dia, quat, stretch });
     opts.onPlace?.(pos, quat, dia, dia * ASPECT[shape], shape);
     at += f + gap + spare;
   });
   const g = new THREE.Group();
   byShape.forEach((items, key) => {
     const [shape, gem, color, cut] = key.split("|");
-    g.add(gem ? accents(m, gem as Gem, color, cut as CenterStone["cut"], items, shape as CenterStone["shape"]) : accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"]));
+    g.add(gem ? accents(m, gem as Gem, color, cut as CenterStone["cut"], items, shape as CenterStone["shape"], opts.dome) : accents(m, d.accents.gem, d.accents.color, d.accents.cut, items, shape as CenterStone["shape"], opts.dome));
   });
   return { group: g, maxW: Math.max(...dims.map((x) => x.W)), count: seq.length };
 }
