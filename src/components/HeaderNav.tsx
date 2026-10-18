@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BRAND } from "@/lib/brand";
 
 export default function HeaderNav({ userName, isAdmin }: { userName: string | null; isAdmin: boolean }) {
   const path = usePathname() ?? "";
@@ -14,7 +15,7 @@ export default function HeaderNav({ userName, isAdmin }: { userName: string | nu
         <>
           <span className="muted" style={{ textTransform: "none", letterSpacing: 0 }}>{userName}</span>
           <Link href="/rings">My designs</Link>
-          <Link href="/inventory">Inventory</Link>
+          <Link href="/inventory">{BRAND.stockSheet ? "Inventory" : "My collection"}</Link>
           <Link href="/style">Style profile</Link>
           {isAdmin && <Link href="/studio">Studio</Link>}
           <form action="/auth/signout" method="post"><button className="btn" type="submit">Sign out</button></form>

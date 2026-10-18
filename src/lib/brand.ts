@@ -10,6 +10,7 @@ export type Brand = {
   showcaseCategory: "kothari" | "ring";
   studioName: string;
   private: boolean;
+  stockSheet: boolean;
 };
 
 export const BRANDS: Record<BrandId, Brand> = {
@@ -26,6 +27,7 @@ export const BRANDS: Record<BrandId, Brand> = {
     showcaseCategory: "ring",
     studioName: "Jewel Atelier",
     private: false,
+    stockSheet: false,
   },
   kothari: {
     id: "kothari",
@@ -40,6 +42,7 @@ export const BRANDS: Record<BrandId, Brand> = {
     showcaseCategory: "kothari",
     studioName: "Kotharis Jewellers",
     private: true,
+    stockSheet: true,
   },
 };
 

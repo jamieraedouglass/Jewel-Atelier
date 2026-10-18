@@ -11,7 +11,7 @@ type Row = InventoryRow & { thumb: string | null };
 const num = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Number(v));
 const money = (n: number, c: string) => `${n.toLocaleString("en-IN")} ${c}`;
 
-export default function InventoryTable({ rows: initial }: { rows: Row[] }) {
+export default function InventoryTable({ rows: initial, stockSheet = true }: { rows: Row[]; stockSheet?: boolean }) {
   const [rows, setRows] = useState(initial);
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [show, setShow] = useState<"all" | (typeof AVAILABILITY)[number]>("all");
@@ -42,6 +42,37 @@ export default function InventoryTable({ rows: initial }: { rows: Row[] }) {
     a.href = url; a.download = `inventory-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+
+  if (!stockSheet) return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <p className="muted" style={{ margin: 0 }}>{rows.length} {rows.length === 1 ? "piece" : "pieces"} you own. The stylist uses these to suggest what goes with what you already have.</p>
+      {status && <span className="small muted" role="status">{status}</span>}
+      <table className="inv-table">
+        <thead><tr><th>Piece</th><th>Since</th><th>Notes (how you wear it, what it&apos;s for)</th><th /></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td style={{ minWidth: 220 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {r.thumb && <img src={r.thumb} alt="" style={{ width: 54, height: 40, objectFit: "cover", borderRadius: 6 }} />}
+                  <div style={{ display: "grid", gap: 2 }}>
+                    <Link href={`/design/${r.id}`}><strong>{r.name}</strong></Link>
+                    <span className="small muted">{r.summary}</span>
+                  </div>
+                </div>
+              </td>
+              <td><input aria-label="Since" type="date" value={r.madeAt?.slice(0, 10) ?? ""} onChange={(e) => edit(r.id, {}, e.target.value || null)} /></td>
+              <td><textarea aria-label="Notes" value={r.inventory.notes} maxLength={1000} rows={2} style={{ minHeight: 0, minWidth: 260 }} placeholder="Everyday, weddings, worn with the emerald studs…" onChange={(e) => edit(r.id, { notes: e.target.value })} /></td>
+              <td style={{ display: "grid", gap: 6 }}>
+                <button type="button" className="btn primary" disabled={!dirty.has(r.id)} onClick={() => save(r)}>{dirty.has(r.id) ? "Save" : "Saved"}</button>
+                <button type="button" className="btn" title="Take it off the list (it stays in My designs)" onClick={() => unmark(r)}>Don&apos;t own it</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div style={{ display: "grid", gap: 14 }}>

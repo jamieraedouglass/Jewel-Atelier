@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/supabase/server";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: `Inventory · ${BRAND.name}` };
+export const metadata = { title: `${BRAND.stockSheet ? "Inventory" : "My collection"} · ${BRAND.name}` };
 
 export default async function InventoryPage() {
   const { supabase, user } = await requireUser();
@@ -20,15 +20,15 @@ export default async function InventoryPage() {
   return (
     <main className="page" style={{ display: "grid", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 40, margin: 0 }}>Inventory</h1>
+        <h1 style={{ fontSize: 40, margin: 0 }}>{BRAND.stockSheet ? "Inventory" : "My collection"}</h1>
         <Link href="/rings" className="btn">All designs</Link>
       </div>
       {error ? (
         <p className="error">The inventory needs a database update: run supabase/migrations/20261017_tracking_inventory_feedback.sql in Supabase, then reload.</p>
       ) : !rows.length ? (
-        <p className="muted">Nothing here yet. Open a design and mark it <b>Made</b> once it&apos;s been made; it will appear here to track its weight, price and where it is.</p>
+        <p className="muted">Nothing here yet. Open a design and mark it <b>Made</b> once it&apos;s been made; {BRAND.stockSheet ? "it will appear here to track its weight, price and where it is." : "it will appear here as a piece you own, and the stylist will take it into account."}</p>
       ) : (
-        <InventoryTable rows={rows} />
+        <InventoryTable rows={rows} stockSheet={BRAND.stockSheet} />
       )}
     </main>
   );

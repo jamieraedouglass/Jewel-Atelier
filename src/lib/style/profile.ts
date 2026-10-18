@@ -143,10 +143,12 @@ export type ProfileInput = {
   prefs: StylePrefs; icons: string[]; notes: string; taste?: Taste | null; applied?: string[]; dismissed?: string[];
   photos?: number;
   photoRead?: string;
+  owned?: { name: string; summary: string; notes: string }[];
 };
 
-export function describeProfile({ prefs: p, icons, notes, taste, applied = [], dismissed = [], photos = 0, photoRead = "" }: ProfileInput): string {
+export function describeProfile({ prefs: p, icons, notes, taste, applied = [], dismissed = [], photos = 0, photoRead = "", owned = [] }: ProfileInput): string {
   const lines: string[] = [];
+  if (owned.length) lines.push(`Pieces they already own (suggest what complements these, don't repeat them): ${owned.slice(0, 20).map((o) => `${o.name} (${o.summary})${o.notes.trim() ? `: ${o.notes.trim().slice(0, 160)}` : ""}`).join("; ")}.`);
   if (p.designingFor === "clients") lines.push("They are a jeweller designing for clients: suggest options a client could choose between, and say who each suits.");
   if (p.designingFor === "gift") lines.push("They are designing a gift for someone else: favour wearable, versatile pieces and say why each would suit the wearer.");
   if (p.aesthetics.length) lines.push(`Their style: ${list(p.aesthetics.map((a) => AESTHETIC_LABEL[a].toLowerCase()))}.`);

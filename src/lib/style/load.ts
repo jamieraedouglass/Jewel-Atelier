@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizeDesign } from "../design";
-import { normalizeStatus, tasteWeight } from "../inventory";
+import { describeDesign, normalizeDesign } from "../design";
+import { normalizeInventory, normalizeStatus, tasteWeight } from "../inventory";
 import { normalizePrefs, summarizeTaste, type StylePrefs, type Taste } from "./profile";
 
 export type StyleProfile = {
@@ -41,4 +41,10 @@ export async function loadTaste(supabase: SupabaseClient, userId: string): Promi
   const rows = res.data as unknown as { data: unknown; status?: string; updated_at?: string }[];
   const statuses = rows.map((r) => normalizeStatus(r.status));
   return summarizeTaste(rows.map((r) => normalizeDesign(r.data)), rows.map((r, i) => tasteWeight(statuses[i], r.updated_at)), statuses.filter((s) => s === "made").length);
+}
+
+export async function loadOwned(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase.from("designs").select("name, data, inventory").eq("owner", userId).eq("status", "made").order("made_at", { ascending: false, nullsFirst: false }).limit(20);
+  if (error || !data) return [];
+  return (data as { name: string; data: unknown; inventory: unknown }[]).map((r) => ({ name: r.name, summary: describeDesign(normalizeDesign(r.data)), notes: normalizeInventory(r.inventory).notes }));
 }
