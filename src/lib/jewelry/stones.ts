@@ -176,8 +176,9 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
   if (c.cut === "briolette") {
     const cap = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.35, W * 0.16), 12, 8), m.metal);
     cap.position.z = L / 2; g.add(cap);
-    const loopR = new THREE.Mesh(new THREE.TorusGeometry(Math.max(0.35, W * 0.14), 0.12, 8, 16), m.metal);
-    loopR.position.z = L / 2 + Math.max(0.5, W * 0.25); loopR.rotation.y = Math.PI / 2; g.add(loopR);
+    const capR = Math.max(0.35, W * 0.16), ringR = Math.max(0.35, W * 0.14);
+    const loopR = new THREE.Mesh(new THREE.TorusGeometry(ringR, 0.12, 8, 16), m.metal);
+    loopR.position.z = L / 2 + capR + ringR * 0.6; loopR.rotation.y = Math.PI / 2; g.add(loopR);
     return g;
   }
   if (s === "bezel") {
@@ -189,7 +190,8 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
     g.add(new THREE.Mesh(geo, m.metal));
     return g;
   }
-  g.add(tube(m, loop(0.92, -Math.min(belly, 2) * 0.35), wire * 0.9, true));
+  const ringY = -Math.min(belly, 2) * 0.35;
+  g.add(tube(m, loop(0.92, ringY), wire * 0.9, true));
   const degs = clawDegrees(c.shape, L, W, s);
   const tipY = isCab ? Math.min(0.5, dome * 0.15) : Math.max(0.2, dome * 0.5);
   const r = s === "double-claw" ? wire * 0.8 : wire;
@@ -197,7 +199,9 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
     const [x, z] = fn(deg / 360);
     const pad = 1 + (r + 0.04) / Math.max(0.5, Math.hypot(x, z));
     const P = (k: number, y: number) => v3(x * k, y, z * k);
-    g.add(tube(m, [P(0.55, -belly * 0.9), P(0.92, -belly * 0.35), P(pad, 0.04), P(pad - 0.02, tipY)], r));
+    // Each claw passes through the gallery ring, then rises outside the stone's edge, so claws and ring are one piece
+    // of metal and the seat cut for the stone never severs a claw.
+    g.add(tube(m, [P(0.55, -belly * 0.9), P(0.92, Math.min(ringY, -belly * 0.35)), P(0.92, ringY), P(pad, ringY * 0.6), P(pad, 0.04), P(pad - 0.02, tipY)], r));
     const tip = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), m.metal);
     tip.scale.set(1, 0.8, 1); tip.position.copy(P(pad - 0.02, tipY)); g.add(tip);
   }

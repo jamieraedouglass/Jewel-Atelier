@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { NO_CHARACTER, type CenterStone, type Design, rightEarDesign, roundDiameter } from "../design";
 import { type Piece, v3 } from "./common";
 import { type Mats } from "./materials";
+import { isMetal } from "../studio/spec";
 import { setStone, setStoneRaw, tube } from "./stones";
 import { ASPECT, type Item, accents, balls, fringe, jumpRing } from "./elements";
 import { type RunOpts, bell, flower, halo, patternAt, patternMaxW, patternRun } from "./patterns";
@@ -182,6 +183,7 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
     const stack = dropStack(d, m);
     one.add(stack.group);
     if (d.drop.top === "hook") one.add(hook(m, stack.top - 0.5));
+    else one.add(earPost(m, stack.group));
     focus = v3(0, 0, stack.bottom * 0.5); focusSize = Math.max(18, stack.bottom * 1.25);
   } else if (st === "jhumka") {
     const r = topStud();
@@ -264,4 +266,45 @@ function earringOne(d: Design, m: Mats, mirrorStud: boolean): { one: THREE.Group
   }
 
   return { one, focus, focusSize };
+}
+
+// A post through the ear behind the top stone: a pad held by a cross of bars from the stone's gallery, the pin, and a
+// butterfly. The pad, bars and pin are real metal and join the CAD solid; the butterfly is a bought finding.
+function earPost(m: Mats, stack: THREE.Object3D) {
+  const one = stack.parent ?? stack;
+  one.updateMatrixWorld(true);
+  let big: THREE.Object3D | null = null, area = 0;
+  const first = stack.children.find((o) => o.userData.dropIndex === 0 || o.children.some((k) => k.userData.dropIndex === 0)) ?? stack;
+  first.traverse((o) => { const st = o.userData.stone as { L: number; W: number } | undefined; if (st && st.L * st.W > area) { area = st.L * st.W; big = o; } });
+  const g = new THREE.Group();
+  g.userData.part = "metal";
+  if (!big) return g;
+  const stone = big as THREE.Object3D, { L, W } = stone.userData.stone as { L: number; W: number };
+  const toOne = one.matrixWorld.clone().invert().multiply(stone.matrixWorld);
+  const box = new THREE.Box3();
+  stone.traverse((o) => { const mesh = o as THREE.Mesh; if (mesh.isMesh && !isMetal(mesh.material)) { mesh.geometry.computeBoundingBox(); box.union(mesh.geometry.boundingBox!.clone().applyMatrix4(new THREE.Matrix4().copy(stone.matrixWorld).invert().multiply(mesh.matrixWorld))); } });
+  const back = (box.isEmpty() ? -W * 0.45 : box.min.y) - 0.5, ringY = -Math.min(W * 0.43, 2) * 0.35;
+  const at = (x: number, y: number, z: number) => v3(x, y, z).applyMatrix4(toOne);
+  const r = Math.max(0.35, Math.min(0.55, W * 0.03));
+  for (const [x, z] of [[W / 2, 0], [-W / 2, 0], [0, L / 2], [0, -L / 2]]) g.add(tube(m, [at(0, back, 0), at(x * 0.55, back, z * 0.55), at(x, ringY, z)], r));
+  const c = at(0, back, 0), len = 10.5;
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.6, 1.2, 28), m.metal);
+  pad.position.copy(c);
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, len, 16), m.metal);
+  pin.position.copy(c).add(v3(0, -len / 2, 0));
+  const notch = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.08, 6, 16), m.metal);
+  notch.rotation.x = Math.PI / 2;
+  notch.position.copy(c).add(v3(0, -len * 0.7, 0));
+  const butterfly = new THREE.Group();
+  for (const sd of [-1, 1]) {
+    const wing = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.45, 10, 24, Math.PI * 1.3), m.metal);
+    wing.rotation.set(Math.PI / 2, 0, sd > 0 ? -Math.PI * 0.15 : Math.PI * 1.15);
+    wing.position.x = sd * 1.5;
+    butterfly.add(wing);
+  }
+  butterfly.add(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.8, 20), m.metal));
+  butterfly.position.copy(c).add(v3(0, -len * 0.62, 0));
+  butterfly.userData.finding = "butterfly back";
+  g.add(pad, pin, notch, butterfly);
+  return g;
 }

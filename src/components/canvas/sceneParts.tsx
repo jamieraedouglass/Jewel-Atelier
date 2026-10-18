@@ -63,14 +63,16 @@ export function CameraRig({ view, piece, frameKey, controls }: { view: View; pie
     if (ctl) { ctl.minDistance = Math.max(4, dist * 0.15); ctl.maxDistance = dist * 3; }
     (camera as THREE.PerspectiveCamera).far = dist * 10;
     camera.updateProjectionMatrix();
+    // Leftover spin momentum would keep turning the camera after it lands, twisting a straight-on view.
+    const settle = () => { if (!ctl) return; const damp = ctl.enableDamping; ctl.enableDamping = false; ctl.update(); ctl.enableDamping = damp; };
+    settle();
     let t = 0, raf = 0;
     const step = () => {
       t = Math.min(1, t + 0.04);
       const e = 1 - Math.pow(1 - t, 3);
       camera.position.lerpVectors(fromP, toP, e);
       ctl?.target.lerpVectors(fromT, toT, e);
-      ctl?.update();
-      if (t < 1) raf = requestAnimationFrame(step);
+      if (t < 1) { ctl?.update(); raf = requestAnimationFrame(step); } else settle();
     };
     step();
     return () => cancelAnimationFrame(raf);

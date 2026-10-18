@@ -8,7 +8,7 @@ type Solid = InstanceType<Wasm["Manifold"]>;
 let loading: Promise<Wasm> | null = null;
 const engine = () => (loading ??= Module().then((w) => { w.setup(); return w; }));
 
-export type SolidReport = { pieces: number; joined: number; rebuilt: number; skipped: string[]; seats: number; watertight: boolean; volumeMm3: number };
+export type SolidReport = { pieces: number; joined: number; rebuilt: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number };
 
 const toMat4 = (m: THREE.Matrix4) => Array.from(m.elements) as unknown as Parameters<Solid["transform"]>[0];
 
@@ -80,9 +80,11 @@ function seatCutter(w: Wasm, geo: THREE.BufferGeometry): Solid | null {
   }
   if (!Number.isFinite(girdle)) girdle = 0;
   const pts: [number, number, number][] = [];
-  const lift = span * 0.06;
+  const lift = Math.min(span * 0.06, 0.4);
+  // About 0.05 mm of clearance all round, whatever the stone's size (a percentage would eat the gallery under a big stone).
+  const k = 1 + 0.1 / span;
   for (let i = 0; i < pos.count; i += 1) {
-    const x = pos.getX(i) * 1.03, y = pos.getY(i), z = pos.getZ(i) * 1.03;
+    const x = pos.getX(i) * k, y = pos.getY(i), z = pos.getZ(i) * k;
     if (y <= girdle + 1e-6) {
       pts.push([x, y - span * 0.01, z]);
       if (y >= girdle - span * 0.04) pts.push([x, girdle + lift, z]);
@@ -98,13 +100,15 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
   const toRoot = root.matrixWorld.clone().invert();
   const metal: Solid[] = [], cutters: Solid[] = [];
   const cache = new Map<string, Solid | null>(), seatCache = new Map<string, Solid | null>();
-  const report: SolidReport = { pieces: 0, joined: 0, rebuilt: 0, skipped: [], seats: 0, watertight: false, volumeMm3: 0 };
+  const report: SolidReport = { pieces: 0, joined: 0, rebuilt: 0, skipped: [], seats: 0, specks: 0, watertight: false, volumeMm3: 0 };
   const m = new THREE.Matrix4(), rel = new THREE.Matrix4();
   const seen = new Set<string>();
 
+  const findings = new Set<THREE.Object3D>(), drilled = new Set<THREE.Object3D>();
+  root.traverse((o) => { if (o.userData.finding) o.traverse((k) => findings.add(k)); if (o.userData.strung) o.traverse((k) => drilled.add(k)); });
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible) return;
+    if (!mesh.isMesh || !mesh.visible || findings.has(o)) return;
     const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshPhysicalMaterial;
     if (!mat || (mat.transparent && mat.opacity < 0.5)) return;
     rel.multiplyMatrices(toRoot, mesh.matrixWorld);
@@ -130,7 +134,7 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
         metal.push(base.transform(toMat4(mm)));
         report.joined++;
       });
-    } else if (opts.seats !== false) {
+    } else if (opts.seats !== false && !drilled.has(o)) {
       const key = mesh.geometry.uuid;
       if (!seatCache.has(key)) seatCache.set(key, seatCutter(w, mesh.geometry));
       const base = seatCache.get(key);
@@ -155,6 +159,13 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
     cut.delete(); solid.delete();
     solid = seated;
     report.seats = seen.size;
+    // Seats for tightly packed stones can nick off a speck of a neighbour's claw; a speck on its own can't be cast,
+    // so anything far smaller than the main pieces is dropped and counted.
+    const bits = solid.decompose(), vols = bits.map((b) => b.volume()), top = Math.max(...vols);
+    const keep = bits.filter((_, i) => vols[i] >= top * 0.002);
+    report.specks = bits.length - keep.length;
+    if (report.specks) { const kept = w.Manifold.union(keep); solid.delete(); solid = kept; }
+    bits.forEach((b) => b.delete());
   }
   cache.forEach((s) => s?.delete());
   seatCache.forEach((s) => s?.delete());
