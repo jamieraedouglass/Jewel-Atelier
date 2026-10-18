@@ -199,6 +199,8 @@ export const DesignSchema = z
         decoWrap: z.boolean().default(false),
         decoBend: z.number().min(0).max(1).default(0),
         decoSpread: z.number().min(0).max(1).default(0),
+        decoLengthMm: z.number().min(0).max(60).default(0),
+        decoWidthMm: z.number().min(0).max(60).default(0),
         lighting: z.enum(["studio", "daylight", "warm"]).default("studio"),
         paveCoverage: z.enum(["front", "half", "full"]).default("front"),
         hoopFace: z.enum(["front", "outer", "inner"]).default("front"),
