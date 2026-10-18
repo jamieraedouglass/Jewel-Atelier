@@ -50,6 +50,10 @@ export default function ConstructionSection({ d, onChange, has }: SectionProps &
             fmt={(v) => (v === "finger" ? "At the ends, along the finger" : "At the sides, along the band")} onPick={(flowerPlace) => setOpt({ flowerPlace })} />
         </>
       )}
+      {d.style === "by-the-yard" && (
+        <Chips name="How the stones join the chain" options={["bezel", "drilled"] as const} value={o.stoneLink}
+          fmt={(v) => (v === "bezel" ? "In a thin bezel" : "Drilled, ring through the stone")} onPick={(stoneLink) => setOpt({ stoneLink })} />
+      )}
       {d.style === "deco" && (<>
         <Range id="deco-dome" label="Top" value={o.decoDome} min={0} max={1} step={0.05}
           format={(n) => (n === 0 ? "Flat (Art Deco plaque)" : n < 0.5 ? "Gently domed" : "Domed (bombé cocktail)")} onChange={(decoDome) => setOpt({ decoDome })} />
