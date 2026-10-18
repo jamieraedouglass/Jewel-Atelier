@@ -91,6 +91,8 @@ How to choose:
   for a pearl edge; fit "point" keeps a pointed lozenge); options.layers = rows of motifs.
 - A necklace with a line of stones across the front and drops hanging from it (pear fringes, baguette lines with pears): necklace
   "collar", the line in accents (e.g. shapes [baguette], orientation across), the drop in center, options.count drops.
+- Stones linked along a chain with no rim round them, each joined by a little ring through a hole near its edge (drilled
+  rose cuts, "diamonds by the yard"): necklace "by-the-yard" with options.stoneLink "drilled".
 - Split shanks (the band divides into two arms that open around the head): band.split, the gap in mm at the top (2–5).
   Stones on the gallery under the centre stone: gallery.under "hidden-halo", with gallery.color for coloured stones.
 - Cocktail rings with layers or a mosaic of stones round a centre stone: ring "deco" with frames, inside out.

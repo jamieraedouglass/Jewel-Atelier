@@ -91,6 +91,7 @@ export const designPatchSchema = {
         chain: { type: "string", enum: [...CHAIN_STYLES] }, count: { type: "integer", description: "stones, stations, tiers, strands or bells depending on style" },
         layers: { type: "integer", description: "rows or strands, 1–7" }, bangleSize: { type: "string", enum: [...BANGLE_SIZES] },
         decoWrap: { type: "boolean", description: "deco style: the top's stones carry on over its rounded sides, down towards the band (cushion cocktail rings covered all over)" },
+        stoneLink: { type: "string", enum: ["bezel", "drilled"], description: "diamonds by the yard: bezel = each stone in a thin metal rim with a ring each side; drilled = no rim, a small hole drilled near the stone's edge and the jump ring passes through it (typical for rose cuts)" },
         lighting: { type: "string", enum: ["studio", "daylight", "warm"], description: "how the 3D view is lit: studio = white light box (product shots), daylight = cool window or outdoor light, warm = indoor lamps or candlelight" },
         decoLengthMm: { type: "number", description: "deco rings: the whole top's real length along the finger in mm (0 = as built). Typical cocktail ring 20–30" },
         decoWidthMm: { type: "number", description: "deco rings: the whole top's real width across the finger in mm (0 = as built)" },
