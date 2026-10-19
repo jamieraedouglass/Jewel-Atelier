@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type Design, estimateDims, resolveClasp } from "../design";
+import { type CenterStone, type Design, estimateDims, resolveClasp } from "../design";
 import { claspAt } from "./clasps";
 import { v3 } from "./common";
 import { type Mats } from "./materials";
@@ -17,20 +17,9 @@ export function festoon(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, f
   const g = new THREE.Group(), c = d.center, o = d.options;
   const total = curve.getLength();
 
-  // The line round the neck: the centre stone's gem and size, as a pattern of its own.
-  const top = d.accents.sizeCt;
-  const rounds: Design = { ...d, accents: { ...d.accents, gem: c.gem, color: c.color, cut: c.cut === "rose-cut" || c.cut === "polki" ? c.cut : "faceted", shapes: [c.shape], sizes: [c.widthMm / estimateDims(c.gem, c.cut, c.shape, top).widthMm], turns: [], orientation: "along", layout: "line" } };
-  const kind = resolveClasp("festoon", o.clasp);
-  const line = kind === "hidden"
-    ? patternRun(rounds, m, curve, front, front + 1, { editKey: "festoonTop", gap: 0.18, closed: true })
-    : patternRun(rounds, m, curve, front - 0.485, front + 0.485, { editKey: "festoonTop", gap: 0.18 });
-  g.add(line.group);
-  // A gold rail under the line ties its stones, the clasp and the ornaments into one piece.
-  const railR = Math.max(0.35, line.maxW * 0.05), railY = -railR * 0.6;
-  const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, railR, 8, true), m.metal);
-  rail.position.y = railY;
-  g.add(rail);
-  if (kind !== "hidden" && kind !== "none") g.add(claspAt(kind, d, m, curve, wrap(front + 0.5), line.maxW));
+  // The line round the neck: the centre stone's gem and size.
+  const { group: neck, line, railR, railY } = stoneNeckline(d, m, curve, front, c, "festoonTop", "festoon");
+  g.add(neck);
 
   // The rows: how far one row sits from the next is the stone's reach across the row, plus a little gold between.
   const e = estimateDims(d.accents.gem, d.accents.cut, d.accents.shapes[0] ?? "baguette", d.accents.sizeCt);
@@ -94,4 +83,31 @@ export function festoon(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, f
   for (let i = 1; i < swags; i++) ornament(anchors[i], down, Math.max((rows - 1) * pitch, (reachAt.get(i) ?? 0) + pitch / 2));
   const low = anchors[Math.floor(swags / 2)].clone().addScaledVector(down, depth * 0.5);
   return { group: g, focus: low, focusSize: Math.max(70, span * total * 1.2) };
+}
+
+// A line of stones all the way round the neck (or to a clasp at the back), on a gold rail just under their settings
+// that ties them, the clasp and anything hung from the line into one piece.
+export function stoneNeckline(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, front: number,
+  look: Pick<CenterStone, "gem" | "color" | "cut" | "shape" | "widthMm">, editKey: string, style: string, rows = 1) {
+  const g = new THREE.Group();
+  const top = d.accents.sizeCt;
+  const rounds: Design = { ...d, accents: { ...d.accents, gem: look.gem, color: look.color, cut: look.cut === "rose-cut" || look.cut === "polki" ? look.cut : "faceted", shapes: [look.shape], sizes: [look.widthMm / estimateDims(look.gem, look.cut, look.shape, top).widthMm], turns: [], orientation: "along", layout: "line" } };
+  const kind = resolveClasp(style, d.options.clasp);
+  // Further rows run beside the first, further from the neck, each on its own rail; the clasp spans them all.
+  const pitch = look.widthMm + 0.3;
+  const shifted = (k: number) => k ? new THREE.CatmullRomCurve3(Array.from({ length: 240 }, (_, i) => curve.getPointAt(i / 240).addScaledVector(outwardAt(curve, i / 240), k * pitch)), true) : curve;
+  const run = (k: number) => kind === "hidden"
+    ? patternRun(rounds, m, shifted(k), front, front + 1, { editKey: k ? `${editKey}${k}` : editKey, gap: 0.18, closed: true })
+    : patternRun(rounds, m, shifted(k), front - 0.485, front + 0.485, { editKey: k ? `${editKey}${k}` : editKey, gap: 0.18 });
+  const line = run(0);
+  g.add(line.group);
+  const railR = Math.max(0.35, line.maxW * 0.05), railY = -railR * 0.6;
+  for (let k = 0; k < rows; k++) {
+    if (k) g.add(run(k).group);
+    const rail = new THREE.Mesh(new THREE.TubeGeometry(shifted(k), 400, railR, 8, true), m.metal);
+    rail.position.y = railY;
+    g.add(rail);
+  }
+  if (kind !== "hidden" && kind !== "none") g.add(claspAt(kind, d, m, curve, wrap(front + 0.5), line.maxW));
+  return { group: g, line, railR, railY };
 }

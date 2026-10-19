@@ -24,7 +24,7 @@ export async function createMessage(params: Omit<Anthropic.MessageCreateParamsNo
   }
 }
 
-type ImageBlock = Anthropic.ImageBlockParam;
+export type ImageBlock = Anthropic.ImageBlockParam;
 const MEDIA = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
 export async function storageImages(supabase: SupabaseClient, bucket: string, paths: string[]): Promise<ImageBlock[]> {

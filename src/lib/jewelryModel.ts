@@ -4,6 +4,7 @@ import type { Piece } from "./jewelry/common";
 import { makeMaterials } from "./jewelry/materials";
 import { withLoopFlatten } from "./jewelry/curves";
 import { motifPiece } from "./jewelry/motif";
+import { freeformPiece } from "./freeform/build";
 import { ringPiece } from "./jewelry/ring";
 import { earringPiece } from "./jewelry/earrings";
 import { necklacePiece } from "./jewelry/necklace";
@@ -33,6 +34,7 @@ function withoutAccents(group: THREE.Object3D) {
 
 function buildWhole(d: Design): Piece {
   if (d.style.startsWith("motif")) return motifPiece(d, makeMaterials(d));
+  if (d.style === "freeform") return freeformPiece(d, makeMaterials(d));
   if (d.type === "ring") return ringPiece(d);
   const m = makeMaterials(d);
   switch (d.type) {

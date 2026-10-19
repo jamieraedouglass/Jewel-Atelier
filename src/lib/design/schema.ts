@@ -3,6 +3,7 @@ import { BAND_FINISHES, BANGLE_SIZES, CHAIN_STYLES, CUTS, GEMS, METALS, SETTINGS
 import { TYPES, firstStyle, hasStyle } from "./styles";
 import { DROP_PRESETS, FRAME_PRESETS } from "./presets";
 import { DIAMOND_GRADE_IDS, PHENOMENA } from "./character";
+import { FreeformSchema } from "./freeform";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
@@ -204,6 +205,7 @@ export const DesignSchema = z
     rightEar: z.record(z.unknown()).nullable().default(null),
     mirrorPair: z.boolean().default(true),
     motif: MotifSchema.default({}),
+    freeform: FreeformSchema.default({}),
     options: z
       .object({
         halo: z.boolean().default(false),

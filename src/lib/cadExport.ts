@@ -77,12 +77,22 @@ export type MetalSolid = { geometry: THREE.BufferGeometry; report: SolidReport }
 const at = (s: Spot) => `${s.where}, at about (${s.at.join(", ")}) mm`;
 
 // The checks run on the metal solid, written so a jeweller sees first what to fix before casting.
-export function checkLines(r: SolidReport | null | undefined, build: BuildIssue[] = []): string[] {
+export function checkLines(r: SolidReport | null | undefined, build: BuildIssue[] = [], pieces = 1): string[] {
   const lines: string[] = [];
   const flag = (ok: boolean, text: string, detail: string[] = []) => { lines.push(`${ok ? "OK   " : "CHECK"} ${text}`, ...detail.map((x) => `      ${x}`)); };
   if (!build.length) flag(true, "Stones: none overlap and none are too small to set.");
   for (const issue of build) flag(false, `Stones: ${issue.message}`);
   if (!r) return lines;
+  if (r.bodies?.length) {
+    // Chain links, jump rings and beads are made and assembled separately; a large piece on its own is a mistake.
+    const big = r.bodies[0].mm3 * 0.05;
+    const extra = r.bodies.slice(pieces).filter((b) => b.mm3 >= big), small = r.bodies.length - pieces - extra.length;
+    const smallNote = small > 0 ? ` Plus ${small} small part${small > 1 ? "s" : ""} (chain links, jump rings, beads) made and assembled separately.` : "";
+    flag(!extra.length, extra.length
+      ? `One piece: ${extra.length} sizeable part${extra.length > 1 ? "s are" : " is"} separate from the rest of the metal. Cast ${extra.length > 1 ? "them" : "it"} on ${extra.length > 1 ? "their" : "its"} own if ${extra.length > 1 ? "they hang" : "it hangs"} from a jump ring; otherwise join ${extra.length > 1 ? "them" : "it"} on before casting:`
+      : `${pieces > 1 ? `One piece: each of the ${pieces} is one piece of metal.` : "One piece: all the metal is joined."}${smallNote}`,
+    extra.slice(0, 8).map((s) => `- ${at(s)} (${s.mm3} mm3)`));
+  }
   if (r.stones !== undefined) {
     const unseated = r.unseated ?? [], loose = r.loose ?? [];
     flag(!unseated.length, unseated.length
@@ -131,7 +141,7 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
   const spec = buildSpec(d);
   const density = spec.metal.density;
   const r = solid?.report;
-  const checks = checkLines(r, checkBuild(d, pieceRoot(d)));
+  const checks = checkLines(r, checkBuild(d, pieceRoot(d)), d.type === "earrings" ? 2 : 1);
   const solidLines = r ? [
     r.watertight && !r.skipped.length
       ? `metal.stl is ONE watertight solid: all ${r.joined} metal parts joined, with ${r.seats} stone seats cut (matched to each stone below its girdle, about 0.05 mm clearance).`
@@ -153,7 +163,7 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
     "               Small stones are simple domes of the right size, as placeholders for setting.",
     "",
     ...solidLines,
-    ...(d.type === "earrings" && (d.style === "pendant" || d.style === "chandelier") && d.drop.top === "post"
+    ...(d.type === "earrings" && (((d.style === "pendant" || d.style === "chandelier") && d.drop.top === "post") || (d.style === "freeform" && d.freeform.top === "post"))
       ? ["Each earring has a 0.85 mm post on a pad behind the top stone (part of metal.stl). The butterfly backs are standard", "findings, not modelled for casting: buy them to fit the post."]
       : []),
     "Before casting: check wall and prong thickness for your alloy and casting method, add sprues, and confirm the",

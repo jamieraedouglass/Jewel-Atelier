@@ -12,7 +12,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 
 export type Use =
   | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "halo" | "accentTop" | "pave"
-  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop" | "frames" | "links" | "hang" | "clasp";
+  | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "freeform" | "accentShapes" | "extraStones" | "drop" | "frames" | "links" | "hang" | "clasp";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
 
@@ -33,9 +33,15 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" }, band: { profile: "low" } } },
     "half-flower": { label: "Half-flower", blurb: "Half a flower of pear diamonds round a little round, tucked against one end of the centre stone (or both).", uses: [...CORE, "accents", "count", "halo", "band"], defaults: { sides: { kind: "none" }, options: { count: 5, halo: false }, setting: { style: "four-claw" } } },
     swirl: { label: "Swirl / bypass", blurb: "Pavé ribbons sweeping around the centre stone.", uses: [...CORE, "accents", "count", "band"], defaults: { sides: { kind: "none" }, options: { count: 3 }, accents: { sizeCt: 0.012 } } },
+    freeform: { label: "Unique piece (describe it or from photos)", blurb: "Any design, drawn by the AI from your description or photos as a sketch you can change, then built: stones in rows and pavé, gold wire, plates and single stones, wrapped over the finger.", uses: ["freeform", "band"],
+      defaults: { freeform: { name: "Oval cluster", mirror: false, paths: [{ id: "halo", closed: true, points: [[0, -5.6], [4.6, 0], [0, 5.6], [-4.6, 0]] }], parts: [
+        { kind: "stone", at: [0, 0, 0.6], gem: "diamond", color: "#f4f6fb", cut: "faceted", shape: "oval", lengthMm: 8, widthMm: 6, rotation: 0, setting: "claw" },
+        { kind: "row", path: "halo", from: 0, to: 1, gem: "diamond", color: "#f4f6fb", cut: "faceted", shape: "round", sizeMm: 1.5, set: "along", rows: 1, gapMm: 0.15 },
+      ] } } },
     "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band"] },
   },
   earrings: {
+    freeform: { label: "Unique piece (describe it or from photos)", blurb: "Any design, drawn by the AI from your description or photos as a sketch you can change, then built as a pair: drops, clusters, garlands and fringes of stones, gold wire and plates, on a post or a hook.", uses: ["freeform"] },
     deco: { label: "Art Deco / layered halo stud", blurb: "A centre stone framed by layers of calibré stones, baguettes, pavé and milgrain.", uses: [...CORE, "frames"], defaults: { setting: { style: "bezel" } } },
     flowers: { label: "Gold flower cluster", blurb: "A posy of gold flowers, plain or with a diamond in each centre.", uses: ["accents", "count", "pave"], defaults: { options: { count: 7, pave: false }, metal: "yellow-gold" } },
     stud: { label: "Stud", blurb: "One stone, or several in a row (toi-et-moi, clusters), each in its own shape, gem and angle.", uses: [...CORE, "halo", "accents", "extraStones"] },
@@ -70,6 +76,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     festoon: { label: "Festoon / swag", blurb: "A line of round stones round the neck, with swags of baguette rows draped between jewelled ornaments across the front.", uses: ["center", "accents", "count", "layers", "length", "clasp"], defaults: { options: { lengthIn: 16, count: 2, layers: 3 }, accents: { gem: "diamond", color: "#f4f6fb", cut: "faceted", shapes: ["baguette"], sizes: [], sizeCt: 0.06, orientation: "across", layout: "line" }, center: { gem: "diamond", cut: "faceted", shape: "round", lengthMm: 2.6, widthMm: 2.6, domeMm: 0.6, color: "#f4f6fb", clarity: 0.95, label: "Round brilliant diamonds" } } },
     "briolette-fringe": { label: "Briolette fringe", blurb: "Rows of briolette drops hanging from lines of diamonds, each row a little lower.", uses: ["center", "accents", "layers", "length", "count"], defaults: { options: { lengthIn: 16, layers: 5, count: 25 }, accents: { sizeCt: 0.03 }, center: { gem: "diamond", cut: "briolette", shape: "pear", lengthMm: 6, widthMm: 3.4, domeMm: 1, color: "#f4f6fb", clarity: 0.95, label: "Briolette diamonds", carat: null } } },
     "pearl-strand": { label: "Pearl strand", blurb: "Layered strands of pearls or beads.", uses: ["fringe", "layers", "length", "clasp"], defaults: { options: { layers: 1, lengthIn: 18 }, fringe: { enabled: true, sizeMm: 7 } } },
+    freeform: { label: "Unique piece (describe it or from photos)", blurb: "Any design, drawn by the AI from your description or photos as a sketch you can change, then built: swags, garlands, rows and pavé of stones, gold wire, plates and drops, hung from a chain or a line of stones.", uses: ["freeform", "length", "chain", "clasp"] },
     "motif-pendant": { label: "Custom motif pendant", blurb: "Your own shape as the pendant.", uses: ["motif", "center", "accents", "enamel", "fringe", "length", "chain"] },
     "motif-station": { label: "Custom motif stations", blurb: "Your shape repeated along a chain.", uses: ["motif", "center", "accents", "enamel", "length", "chain", "count"], defaults: { options: { count: 7 } } },
   },
@@ -144,12 +151,12 @@ export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type ===
 
 const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
 export type ClaspChoice = (typeof CLASPS)[number];
-const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded", "festoon"]);
+const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded", "festoon", "freeform"]);
 export const claspChoices = (style: string): readonly ClaspChoice[] =>
   STONE_LINES.has(style) ? CLASPS : (["auto", "lobster", "spring-ring", "toggle", "box"] as const);
 
 export function resolveClasp(style: string, choice: ClaspChoice): Exclude<ClaspChoice, "auto"> | "none" {
   if (!claspChoices(style).includes(choice)) return resolveClasp(style, "auto");
   if (choice !== "auto") return choice;
-  return style === "line" || style === "pearl-strand" || style === "festoon" ? "box" : style === "tennis" ? "hidden" : "none";
+  return style === "line" || style === "pearl-strand" || style === "festoon" || style === "freeform" ? "box" : style === "tennis" ? "hidden" : "none";
 }

@@ -4830,6 +4830,31 @@ exports[`geometry snapshots > style earrings/flowers 1`] = `
 }
 `;
 
+exports[`geometry snapshots > style earrings/freeform 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      -5.02,
+      7.97,
+    ],
+    "focusSize": 109.86,
+    "hash": "dc99eaa8",
+    "instances": 274,
+    "meshes": 44,
+    "nonFinite": 0,
+    "size": [
+      72.5,
+      11.96,
+      16.54,
+    ],
+    "upright": false,
+    "vertices": 82684,
+  },
+  "worn": null,
+}
+`;
+
 exports[`geometry snapshots > style earrings/hoop 1`] = `
 {
   "fp": {
@@ -5452,6 +5477,49 @@ exports[`geometry snapshots > style necklace/festoon 1`] = `
     ],
     "upright": false,
     "vertices": 1281549,
+  },
+}
+`;
+
+exports[`geometry snapshots > style necklace/freeform 1`] = `
+{
+  "fp": {
+    "focus": [
+      -0.2,
+      -0.81,
+      93.38,
+    ],
+    "focusSize": 49.51,
+    "hash": "89063862",
+    "instances": 380,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      132.69,
+      3.54,
+      180.49,
+    ],
+    "upright": false,
+    "vertices": 78526,
+  },
+  "worn": {
+    "focus": [
+      -0.34,
+      -0.81,
+      72.1,
+    ],
+    "focusSize": 49.01,
+    "hash": "6f24b393",
+    "instances": 380,
+    "meshes": 22,
+    "nonFinite": 0,
+    "size": [
+      178.76,
+      3.54,
+      133.73,
+    ],
+    "upright": false,
+    "vertices": 78526,
   },
 }
 `;
@@ -6178,6 +6246,31 @@ exports[`geometry snapshots > style ring/eternity 1`] = `
     ],
     "upright": true,
     "vertices": 56401,
+  },
+  "worn": null,
+}
+`;
+
+exports[`geometry snapshots > style ring/freeform 1`] = `
+{
+  "fp": {
+    "focus": [
+      0,
+      1.03,
+      0.08,
+    ],
+    "focusSize": 33.71,
+    "hash": "277af7f1",
+    "instances": 139,
+    "meshes": 17,
+    "nonFinite": 0,
+    "size": [
+      20.41,
+      22.47,
+      12.4,
+    ],
+    "upright": true,
+    "vertices": 48421,
   },
   "worn": null,
 }

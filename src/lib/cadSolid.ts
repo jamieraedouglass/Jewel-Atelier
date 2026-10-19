@@ -17,6 +17,8 @@ export type SolidReport = {
   pieces: number; joined: number; rebuilt: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number;
   // Checks before casting: every stone that needs a seat has one and touches the metal, and no metal is too thin to cast.
   stones?: number; strung?: number; unseated?: Spot[]; loose?: Spot[]; thin?: ThinCheck;
+  // Each separate piece of metal, largest first (a pair of earrings is two).
+  bodies?: (Spot & { mm3: number })[];
 };
 
 // Metal thinner than this is at risk of not filling in casting, or of bending or breaking in wear.
@@ -128,7 +130,24 @@ function tubeSolid(w: Wasm, geo: THREE.TubeGeometry): Solid | null {
   return out;
 }
 
+// A mesh that already shares its corners (one built to be a closed solid) is taken as it is; welding close corners
+// first could pinch a finely divided surface into knots.
+function asIs(w: Wasm, geo: THREE.BufferGeometry): Solid | null {
+  if (!geo.index) return null;
+  try {
+    const mesh = new w.Mesh({ numProp: 3, vertProperties: Float32Array.from(geo.getAttribute("position").array as ArrayLike<number>), triVerts: Uint32Array.from(geo.index.array as ArrayLike<number>) });
+    const s = new w.Manifold(mesh);
+    if (s.status() === "NoError" && !s.isEmpty() && s.volume() > 0) return s;
+    s.delete();
+  } catch { /* not closed as it is: weld it below */ }
+  return null;
+}
+
 function solidFor(w: Wasm, geo: THREE.BufferGeometry): { solid: Solid | null; rebuilt: boolean } {
+  if (geo.userData.closed) {
+    const s = asIs(w, geo);
+    if (s) return { solid: s, rebuilt: false };
+  }
   if (geo.type === "TubeGeometry") {
     const direct = fromGeometry(w, geo, 1e-4);
     if (direct) return { solid: direct, rebuilt: false };
@@ -224,7 +243,13 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
       const deeper = new THREE.Matrix4().makeScale(1.45, 1.45, 1.45);
       each((mm) => {
         report.pieces++;
-        if (!base) { report.skipped.push(mesh.geometry.type); return; }
+        if (!base) {
+          const at = new THREE.Vector3().setFromMatrixPosition(mm);
+          mesh.geometry.computeBoundingBox();
+          const c = mesh.geometry.boundingBox!.getCenter(new THREE.Vector3()).applyMatrix4(mm);
+          report.skipped.push(`${mesh.geometry.type} (${nameOf(partOf(o))}) at about (${mm1(c.lengthSq() ? c : at).join(", ")}) mm`);
+          return;
+        }
         const placed = base.transform(toMat4(grain ? mm.clone().multiply(deeper) : mm));
         metal.push(placed);
         metalBoxes.push({ box: boxOf(placed), part: partOf(o) });
@@ -283,6 +308,9 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
     const bits = solid.decompose(), vols = bits.map((b) => b.volume()), top = Math.max(...vols, 0);
     const keep = bits.filter((_, i) => vols[i] >= Math.max(top * 0.002, 0.05));
     if (keep.length < bits.length) { report.specks = (report.specks ?? 0) + bits.length - keep.length; const kept = w.Manifold.union(keep); solid.delete(); solid = kept; }
+    // How many separate pieces of metal there are, and where the smaller ones are.
+    report.bodies = keep.map((b) => { const bb = b.boundingBox(); return { where: "", at: mm1(new THREE.Vector3(...bb.min).add(new THREE.Vector3(...bb.max)).multiplyScalar(0.5)), mm3: Math.round(b.volume() * 10) / 10 }; })
+      .sort((a, b) => b.mm3 - a.mm3);
     bits.forEach((b) => b.delete());
   }
   report.watertight = solid.status() === "NoError" && !solid.isEmpty();
@@ -302,5 +330,6 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
     return best;
   };
   report.thin = thinSpots(geo, THIN_MM, partAt);
+  report.bodies = report.bodies?.map((b) => ({ ...b, where: nameOf(partAt(new THREE.Vector3(...b.at))) }));
   return { geometry: geo, report };
 }

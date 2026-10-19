@@ -6,6 +6,7 @@ import {
 import { sizeText } from "./links";
 import { buildPiece } from "../jewelryModel";
 import { disposeGroup } from "../ringModel";
+import { type LaidStone, layoutFreeform } from "../freeform/layout";
 
 export function metalDensity(d: Pick<Design, "metal" | "purity">) {
   if (d.metal === "platinum") return 21.4;
@@ -106,7 +107,23 @@ export function buildSpec(d: Design): Spec {
   const piece = buildPiece(d);
   const density = metalDensity(d);
   const weightG = metalWeight(piece.group, density);
-  for (const { count, diaMm } of smallStones(piece.group)) {
+  if (d.style === "freeform") {
+    // A unique piece lists its stones from its own layout: each gem, cut, shape and size, counted exactly.
+    const tally = new Map<string, { s: LaidStone; count: number }>();
+    for (const s of layoutFreeform(d.freeform).stones) {
+      const L = Math.round(s.L * 10) / 10, W = Math.round(s.W * 10) / 10, key = `${s.gem}|${s.cut}|${s.shape}|${L}|${W}|${s.big}`;
+      const t = tally.get(key) ?? tally.set(key, { s: { ...s, L, W }, count: 0 }).get(key)!;
+      t.count++;
+    }
+    for (const { s, count } of [...tally.values()].sort((a, b) => b.s.L * b.s.W - a.s.L * a.s.W)) {
+      line(s.big ? "Stone" : "Set stones", count * pair, { gem: s.gem, cut: s.cut, shape: s.shape, lengthMm: s.L, widthMm: s.W, carat: null });
+    }
+    const n = d.freeform.neckline;
+    if (d.type === "necklace" && n.kind === "stones") {
+      const count = Math.round((d.options.lengthIn * 25.4 * 0.97) / (n.sizeMm + 0.18)) * n.rows;
+      line("Neckline stones (≈ count)", count, { gem: n.gem, cut: n.cut, shape: n.shape, lengthMm: n.sizeMm, widthMm: n.sizeMm, carat: null });
+    }
+  } else for (const { count, diaMm } of smallStones(piece.group)) {
     const each = caratFromDims(d.accents.gem, "faceted", "round", diaMm, diaMm);
     stones.push({ what: `Accent stones: ${gemLabel(d.accents.gem)}`, count, size: `≈ ${diaMm} mm`, eachCt: each, totalCt: r2(each * count) });
   }
@@ -123,6 +140,7 @@ export function buildSpec(d: Design): Spec {
   if (d.type === "earrings") facts.push(["Pair", d.rightEar ? "Left and right differ" : d.mirrorPair ? "Matching, mirrored" : "Matching"]);
 
   const notes: string[] = [];
+  if (d.style === "freeform" && d.freeform.notes) notes.push(`${d.freeform.name}: ${d.freeform.notes}`);
   if (d.mood) notes.push(`The feel the client wants: ${d.mood}.`);
   if (d.enamel.enabled && uses(d, "enamel")) notes.push(`Meenakari enamel, colour ${d.enamel.color}.`);
   if (d.fringe.enabled && uses(d, "fringe")) notes.push(`${gemLabel(d.fringe.gem)} fringe beads, ${d.fringe.sizeMm} mm.`);

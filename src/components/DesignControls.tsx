@@ -1,6 +1,7 @@
 "use client";
 
 import MotifPanel from "./MotifPanel";
+import FreeformPanel from "./FreeformPanel";
 import DropComposer from "./DropComposer";
 import FramesEditor from "./FramesEditor";
 import { useState } from "react";
@@ -58,6 +59,7 @@ export default function DesignControls({ design: d, userId, onChange, onReplace,
       </section>
 
       {has("motif") && <MotifPanel design={d} userId={userId} onChange={onChange} />}
+      {has("freeform") && <FreeformPanel design={d} userId={userId} onChange={onChange} />}
       {has("frames") && <FramesEditor design={d} onChange={onChange} />}
       {has("drop") && <DropComposer design={d} onChange={onChange} focusIndex={dropFocus} />}
       {has("center") && <CenterStoneSection {...section} />}

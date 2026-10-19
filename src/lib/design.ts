@@ -11,3 +11,4 @@ export * from "./design/character";
 export * from "./design/buildRules";
 export * from "./design/forAi";
 export * from "./design/showcase";
+export * from "./design/freeform";
