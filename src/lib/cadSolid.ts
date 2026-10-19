@@ -160,8 +160,9 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
       if (!base) return;
       const frac = openBack.get(o);
       each((mm) => {
-        const p = new THREE.Vector3().setFromMatrixPosition(mm);
-        const id = `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`;
+        // A stone drawn twice (its sparkle and its body) is seated once; matched on its whole placement, not just its
+        // position, since stones bent along the band are all placed at the ring's centre and turned to their side.
+        const id = `${mesh.geometry.uuid}:${mm.elements.map((v) => v.toFixed(2)).join(",")}`;
         if (seen.has(id)) return;
         seen.add(id);
         cutters.push(base.transform(toMat4(mm)));

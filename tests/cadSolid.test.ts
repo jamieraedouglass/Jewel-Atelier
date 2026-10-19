@@ -14,4 +14,12 @@ describe("CAD metal solid", () => {
       expect(r!.report.seats).toBeGreaterThan(0);
     }, 120000);
   }
+
+  it("cuts a seat for both side stones when they follow the band", async () => {
+    const base = showcaseDesign(SHOWCASE.find((x) => x.name === "Burmese sapphire, half-moons")!);
+    const d = { ...base, sides: { ...base.sides, kind: "trapezoid" as const, hug: false, follow: "band" as const }, setting: { ...base.setting, style: "double-claw" as const } };
+    const r = await solidMetal(pieceRoot(d));
+    // Centre, both side stones and the two small stones under the head.
+    expect(r!.report.seats).toBe(5);
+  }, 120000);
 });
