@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import BrandMark from "@/components/BrandMark";
 import HeaderNav from "@/components/HeaderNav";
 import "@fontsource/bodoni-moda/400.css";
@@ -23,6 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <HeaderNav userName={user ? ((user.user_metadata?.display_name as string) || "Signed in") : null} isAdmin={isStudioAdmin(user)} />
         </header>
         {children}
+        <Analytics />
       </body>
     </html>
   );

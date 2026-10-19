@@ -33,6 +33,7 @@
     "@react-three/postprocessing": "^2.16.3",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
+    "@vercel/analytics": "^2.0.1",
     "manifold-3d": "^3.2.1",
     "next": "^14.2.35",
     "react": "^18.3.1",
