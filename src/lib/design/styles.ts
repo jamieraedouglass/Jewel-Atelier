@@ -67,6 +67,7 @@ export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
     mangalsutra: { label: "Mangalsutra", blurb: "Black bead strands with gold beads and a pendant.", uses: [...CORE, "length", "layers"], defaults: { options: { lengthIn: 20, layers: 2 } } },
     "by-the-yard": { label: "Diamonds by the yard", blurb: "Bezel-set stones (rose-cut by default) linked by little gold rings, alternating sizes; wrap it once or twice.", uses: [...CORE, "length", "layers"], defaults: { options: { lengthIn: 32, layers: 2 }, center: { gem: "diamond", cut: "rose-cut", shape: "round", lengthMm: 5, widthMm: 5, domeMm: 1.2, color: "#f4f6fb", clarity: 0.95, label: "Rose-cut diamond" }, setting: { style: "bezel" } } },
     "gold-collar": { label: "Gold link collar", blurb: "Rigid gold collar of X-links with pavé, or chevrons with rows of stones.", uses: ["accents", "length", "links"], defaults: { options: { lengthIn: 15, linkStyle: "x" }, metal: "yellow-gold", accents: { sizeCt: 0.02 } } },
+    festoon: { label: "Festoon / swag", blurb: "A line of round stones round the neck, with swags of baguette rows draped between jewelled ornaments across the front.", uses: ["center", "accents", "count", "layers", "length", "clasp"], defaults: { options: { lengthIn: 16, count: 2, layers: 3 }, accents: { gem: "diamond", color: "#f4f6fb", cut: "faceted", shapes: ["baguette"], sizes: [], sizeCt: 0.06, orientation: "across", layout: "line" }, center: { gem: "diamond", cut: "faceted", shape: "round", lengthMm: 2.6, widthMm: 2.6, domeMm: 0.6, color: "#f4f6fb", clarity: 0.95, label: "Round brilliant diamonds" } } },
     "briolette-fringe": { label: "Briolette fringe", blurb: "Rows of briolette drops hanging from lines of diamonds, each row a little lower.", uses: ["center", "accents", "layers", "length", "count"], defaults: { options: { lengthIn: 16, layers: 5, count: 25 }, accents: { sizeCt: 0.03 }, center: { gem: "diamond", cut: "briolette", shape: "pear", lengthMm: 6, widthMm: 3.4, domeMm: 1, color: "#f4f6fb", clarity: 0.95, label: "Briolette diamonds", carat: null } } },
     "pearl-strand": { label: "Pearl strand", blurb: "Layered strands of pearls or beads.", uses: ["fringe", "layers", "length", "clasp"], defaults: { options: { layers: 1, lengthIn: 18 }, fringe: { enabled: true, sizeMm: 7 } } },
     "motif-pendant": { label: "Custom motif pendant", blurb: "Your own shape as the pendant.", uses: ["motif", "center", "accents", "enamel", "fringe", "length", "chain"] },
@@ -143,12 +144,12 @@ export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type ===
 
 const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
 export type ClaspChoice = (typeof CLASPS)[number];
-const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded"]);
+const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded", "festoon"]);
 export const claspChoices = (style: string): readonly ClaspChoice[] =>
   STONE_LINES.has(style) ? CLASPS : (["auto", "lobster", "spring-ring", "toggle", "box"] as const);
 
 export function resolveClasp(style: string, choice: ClaspChoice): Exclude<ClaspChoice, "auto"> | "none" {
   if (!claspChoices(style).includes(choice)) return resolveClasp(style, "auto");
   if (choice !== "auto") return choice;
-  return style === "line" || style === "pearl-strand" ? "box" : style === "tennis" ? "hidden" : "none";
+  return style === "line" || style === "pearl-strand" || style === "festoon" ? "box" : style === "tennis" ? "hidden" : "none";
 }

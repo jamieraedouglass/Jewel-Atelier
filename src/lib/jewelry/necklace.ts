@@ -9,6 +9,7 @@ import { coin, flower, halo, patternRun } from "./patterns";
 import { beadStrand, layeredLoop, loopCurve, outwardAt, place, spreadParams, wrap, yawAt } from "./curves";
 import { dropStack } from "./drops";
 import { graduatedBar } from "./bar";
+import { festoon } from "./festoon";
 
 export function necklacePiece(d: Design, m: Mats): Piece {
   const c = d.center, o = d.options, st = d.style;
@@ -125,8 +126,10 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       const kind = resolveClasp(st, o.clasp);
       const run = kind === "hidden" ? patternRun(d, m, curve, front, front + 1, { editKey: "line", gap: 0.18, closed: true }) : patternRun(d, m, curve, front - 0.485, front + 0.485, { editKey: "line", gap: 0.18 });
       group.add(run.group);
-      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, Math.max(0.35, run.maxW * 0.05), 8, true), m.metal);
-      rail.position.y = -run.maxW * 0.42;
+      // The rail runs just under the settings' rims, touching them, so the line casts as one piece.
+      const railR = Math.max(0.35, run.maxW * 0.05);
+      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, railR, 8, true), m.metal);
+      rail.position.y = -railR * 0.6;
       group.add(rail);
       if (kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), run.maxW));
       focusSize = 60;
@@ -315,6 +318,12 @@ export function necklacePiece(d: Design, m: Mats): Piece {
         }
       });
       focusSize = 70;
+      break;
+    }
+    case "festoon": {
+      const f = festoon(d, m, curve, front);
+      group.add(f.group);
+      focus = f.focus; focusSize = f.focusSize;
       break;
     }
     case "briolette-fringe": {

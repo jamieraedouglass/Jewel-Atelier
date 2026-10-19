@@ -33,6 +33,7 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Kundan choker", type: "necklace", style: "kundan-choker", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: diamond("cushion", 1.5, "Polki diamond", "polki"), enamel: { enabled: true, color: "#9b1630" } } },
   { name: "Rani haar with emerald", type: "necklace", style: "rani-haar", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: gem("emerald", "cabochon", "oval", 20, "Carved-look emerald"), fringe: { enabled: true, gem: "pearl", color: GEM_LOOK.pearl.color, sizeMm: 5 } } },
   { name: "Temple coin necklace", type: "necklace", style: "temple", patch: { metal: "yellow-gold", purity: { karat: 22 }, center: gem("ruby", "cabochon", "oval", 3, "Ruby cabochon") } },
+  { name: "Baguette festoon necklace", type: "necklace", style: "festoon", patch: { metal: "platinum" } },
   { name: "Diamond riviera", type: "necklace", style: "riviera", patch: { metal: "white-gold", center: diamond("round", 0.5, "Round brilliant diamond") } },
   { name: "Polki kada", type: "bracelet", style: "kada", patch: { metal: "yellow-gold", purity: { karat: 22 }, accents: { gem: "diamond", cut: "polki", color: "#f4f6fb", sizeCt: 0.15 }, enamel: { enabled: true, color: "#1b3f8f" } } },
   { name: "Diamond tennis bracelet", type: "bracelet", style: "tennis", patch: { metal: "white-gold", accents: { gem: "diamond", cut: "faceted", color: "#f4f6fb", sizeCt: 0.1 } } },

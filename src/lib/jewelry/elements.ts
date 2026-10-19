@@ -79,7 +79,7 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
     return tagKeys(g, items);
   }
   const asp = ASPECT[shape];
-  const single = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.3 : 0.08);
+  const single = cutGeometry(cut, shape, asp, 1, cut === "faceted" ? 0.16 : cut === "rose-cut" ? 0.5 : 0.08);
   const geo = !rim && cut === "rose-cut" ? doubled(single) : single;
   const colorless = isColorless(gem, color);
   const tint = cut === "polki" ? 0xfff0c8 : colorless ? 0xf2f5ff : new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.1);

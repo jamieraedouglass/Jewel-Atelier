@@ -38,3 +38,11 @@ describe("baguette side stones hugging the centre", () => {
     expect(top!.topW).toBeLessThan(along + 0.5);
   });
 });
+
+describe("festoon necklace", () => {
+  it("hangs its swags with no stones overlapping or too small to set", async () => {
+    const { checkBuild } = await import("@/lib/buildCheck");
+    const d = named("Baguette festoon necklace");
+    expect(checkBuild(d, pieceRoot(d))).toEqual([]);
+  });
+});
