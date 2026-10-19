@@ -222,7 +222,9 @@ export function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn
   return facetedGeo(ring, new THREE.Vector3(), tiers, crown, -pav);
 }
 
-function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] {
+// `standing`: a baguette set lengthways along the centre stone's side (hugging it) rather than pointing out along the band.
+function sideOutline(kind: Design["sides"]["kind"], L: number, W: number, standing = false): Pt[] {
+  if (kind === "baguette" && standing) return [[0, L / 2], [W, L / 2], [W, -L / 2], [0, -L / 2]];
   if (kind === "half-moon") {
     const pts: Pt[] = [];
     for (let i = 0; i <= 14; i++) { const a = Math.PI / 2 - (i * Math.PI) / 14; pts.push([W * Math.cos(a), (L / 2) * Math.sin(a)]); }
@@ -245,9 +247,9 @@ function sideOutline(kind: Design["sides"]["kind"], L: number, W: number): Pt[] 
   return pts;
 }
 
-export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number) {
-  const ol = sideOutline(kind, L, W);
-  const span = kind === "baguette" || kind === "pear" ? L : W;
+export function sideStoneGeo(kind: Design["sides"]["kind"], L: number, W: number, standing = false) {
+  const ol = sideOutline(kind, L, W, standing);
+  const span = (kind === "baguette" && !standing) || kind === "pear" ? L : W;
   const cx = kind === "round" || kind === "oval" ? W / 2 : kind === "pear" ? L * 0.55 : span * 0.42;
   const brilliant = kind === "round" || kind === "oval" || kind === "pear";
   const crown = Math.min(L, W) * (brilliant ? 0.16 : 0.3), pav = Math.min(L, W) * (brilliant ? 0.43 : 0.75);

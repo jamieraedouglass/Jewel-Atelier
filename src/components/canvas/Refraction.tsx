@@ -79,8 +79,9 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       mat.envMap = studioCube;
       mat.bvh = bvh;
       mat.color = tint;
-      mat.bounces = inst ? 2 : colorless ? 3 : 2;
-      mat.ior = colorless ? 2.42 : 1.72;
+      const shallow = !!mesh.userData.shallow;
+      mat.bounces = shallow ? 1 : inst ? 2 : colorless ? 3 : 2;
+      mat.ior = shallow ? 1.9 : colorless ? 2.42 : 1.72;
       mat.aberrationStrength = colorless ? 0.022 : 0.006;
       mat.fresnel = 1;
       mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());

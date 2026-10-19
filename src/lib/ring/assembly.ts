@@ -173,9 +173,11 @@ export function buildRing(d: Design): THREE.Group {
     const hugL = L * d.sides.hugFrac;
     const fitted = d.sides.hug && canHug(d.sides.kind);
     const { L: sl, W: sw } = fitted
-      ? d.sides.kind === "baguette" ? { L: W * 0.75, W: W * 0.3 } : d.sides.kind === "round" ? { L: hugL * 0.8, W: hugL * 0.8 } : d.sides.kind === "pear" ? { L: hugL * 0.9, W: hugL * 0.6 } : { L: hugL, W: hugL * asp }
+      ? d.sides.kind === "baguette" ? { L: hugL * 0.9, W: Math.max(2, hugL * 0.34) } : d.sides.kind === "round" ? { L: hugL * 0.8, W: hugL * 0.8 } : d.sides.kind === "pear" ? { L: hugL * 0.9, W: hugL * 0.6 } : { L: hugL, W: hugL * asp }
       : sideStoneDims(d.sides.kind, d.sides.sizeCt);
-    const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw);
+    const { g, ol, cx, pav } = sideStoneGeo(d.sides.kind, sl, sw, fitted);
+    // How far the stone reaches across the band (along the finger), which the metal under it is sized to.
+    const acrossBand = 2 * Math.max(...ol.map(([, z]) => Math.abs(z)));
     const sc = (s: number) => ol.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * s, z * s));
     const hug = fitted;
     const shape = new THREE.Shape(sc(1.035));
@@ -210,7 +212,7 @@ export function buildRing(d: Design): THREE.Group {
       const bellyC = isCabC ? Math.min(W * 0.14, 2) : W * 0.43;
       const setIn = d.band.profile === "set-in" ? Math.max(2.9, bellyC * 0.75 + 0.6) - 0.3 : d.band.profile === "flush" ? Math.min(7, Math.max(2.6, bellyC + 0.7)) : 0;
       const pavF = 0.85, pavD = pav * pavF;
-      const top = { topW: Math.max(d.band.widthMm + 0.8, sl * 0.88), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
+      const top = { topW: Math.max(d.band.widthMm + 0.8, acrossBand * 0.88), topT: Math.max(2.4, pavD + 1.0, setIn), spread: gap + spanX * 1.05 };
       shankMesh.geometry.dispose();
       shankMesh.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
       shankMesh.userData.top = top;

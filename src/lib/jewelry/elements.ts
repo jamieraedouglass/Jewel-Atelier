@@ -99,6 +99,8 @@ export function accents(m: Mats, gem: Gem, color: string, cutIn: CenterStone["cu
       prongs.setMatrixAt(i * 4 + k, o.matrix.clone().multiply(M));
     }
   });
+  // A rose cut is shallow: light mostly passes straight through it, so the refraction view gives it fewer bounces.
+  if (cut === "rose-cut") meshes[0].userData.shallow = true;
   meshes.forEach((x) => g.add(x));
   if (prongs) g.add(prongs);
   return tagKeys(g, items);

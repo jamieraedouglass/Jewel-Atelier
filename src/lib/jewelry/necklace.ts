@@ -142,29 +142,39 @@ export function necklacePiece(d: Design, m: Mats): Piece {
       for (let l = 0; l < loops; l++) {
         const { curve: cv } = loopCurve(L / loops + l * 60, 0.85, 0.12 + l * 0.04);
         const total = cv.getLength();
-        let at = 0, k = 0, prevHole: THREE.Vector3 | null = null;
-        while (at < total - big) {
+        // Fit as many stones as the loop holds, then share the space left over between every link so the loop closes
+        // evenly all the way round, with no gap where it started.
+        const diaAt = (k: number) => (k % 2 ? small : big) * (editOf.get(`yard${l}-${k}`)?.scale ?? 1);
+        const pitch = (dia: number) => dia + (drilled ? wire * 2 + 0.3 : 0.2 + ringR * 2 + 0.2);
+        let count = 0, used = 0;
+        while (used + pitch(diaAt(count)) <= total) used += pitch(diaAt(count++));
+        if (count % 2) used -= pitch(diaAt(--count));
+        const extra = count ? (total - used) / count : 0;
+        let at = 0, prevHole: THREE.Vector3 | null = null, firstHole: THREE.Vector3 | null = null;
+        for (let k = 0; k < count; k++) {
           const key = `yard${l}-${k}`, ed = editOf.get(key);
-          const dia = (k % 2 ? small : big) * (ed?.scale ?? 1);
+          const dia = diaAt(k);
           const u = (at + dia / 2) / total, p = cv.getPointAt(u), t = cv.getTangentAt(u);
           const look = `${ed?.gem ?? c.gem}|${ed?.color ?? (ed?.gem ? GEM_LOOK[ed.gem].color : c.color)}|${ed?.cut ?? (c.cut === "cabochon" ? "cabochon" : c.cut)}|${ed?.shape ?? "round"}`;
           (looks.get(look) ?? looks.set(look, []).get(look)!).push({ pos: p, dia, yaw: yawAt(cv, u), key });
           if (drilled) {
             const near = p.clone().addScaledVector(t, -(dia / 2 - inset)), far = p.clone().addScaledVector(t, dia / 2 - inset);
             holes.push({ pos: near, dia: wire * 1.5 }, { pos: far, dia: wire * 1.5 });
-            if (prevHole) {
-              const mid = prevHole.clone().add(near).multiplyScalar(0.5), span = prevHole.distanceTo(near);
-              rings.push({ pos: mid.add(v3(0, big * 0.02, 0)), dia: span + wire * 2, axis: new THREE.Vector3().crossVectors(Y, t).normalize() });
-            }
+            const link = (a: THREE.Vector3, b: THREE.Vector3) => {
+              const mid = a.clone().add(b).multiplyScalar(0.5), span = a.distanceTo(b), dir = b.clone().sub(a).normalize();
+              rings.push({ pos: mid.add(v3(0, big * 0.02, 0)), dia: span + wire * 2, axis: new THREE.Vector3().crossVectors(Y, dir).normalize() });
+            };
+            if (prevHole) link(prevHole, near);
+            else firstHole = near;
             prevHole = far;
-            at += dia + wire * 2 + 0.3;
+            if (k === count - 1 && firstHole && count > 1) link(far, firstHole);
+            at += pitch(dia) + extra;
           } else {
-            at += dia + 0.2;
-            const ru = Math.min(0.999, (at + ringR) / total);
+            at += dia + 0.2 + extra / 2;
+            const ru = wrap((at + ringR) / total);
             rings.push({ pos: cv.getPointAt(ru), dia: ringR * 2, axis: cv.getTangentAt(ru) });
-            at += ringR * 2 + 0.2;
+            at += ringR * 2 + 0.2 + extra / 2;
           }
-          k++;
         }
       }
       looks.forEach((items, look) => {
