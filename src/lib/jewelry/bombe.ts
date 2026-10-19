@@ -163,27 +163,29 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [], leafBeads: Item[] = [], leaves: THREE.Vector3[] = [];
   const stems = 8;
   for (let jn = 0; jn < stems; jn++) {
-    const u0 = ((jn + 0.5) / stems) * NT, drift = (jn % 2 ? 1 : -1) * NT * 0.05;
-    const path = Array.from({ length: 160 }, (_, q) => { const s = (q / 159) * (NK - 1.6); return at(u0 + drift * (s / (NK - 1)), s); });
+    // Each branch is a vine: it sweeps round as it runs out and curls further as it goes down the side.
+    const u0 = ((jn + 0.5) / stems) * NT, way = jn % 2 ? 1 : -1;
+    const path = Array.from({ length: 160 }, (_, q) => { const s = (q / 159) * (NK - 1.6), t = s / (NK - 1); return at(u0 + way * NT * (0.07 * t + 0.035 * Math.sin(Math.PI * t * 1.4)), s); });
     let run = 0, nextBead = 0, nextLeaf = leafL * 0.45, leafCount = jn;
     const total = path.reduce((a, pp, q) => (q ? a + pp.p.distanceTo(path[q - 1].p) : 0), 0);
     for (let q = 1; q < path.length; q++) {
       run += path[q].p.distanceTo(path[q - 1].p);
       const { p: pt, n } = path[q], tan = pt.clone().sub(path[q - 1].p).normalize();
-      // The branch is only the path the leaves follow; on the piece there is no beaded line along it.
-      if (run >= nextBead) nextBead += 0.33;
+      // The vine itself: a fine beaded stem curving down the dome, which the leaves grow from.
+      if (run >= nextBead) { leafBeads.push({ pos: pt.clone().addScaledVector(n, 0.04), dia: 0.3 }); blocks.push({ p: pt, r: 0.15 }); nextBead += 0.3; }
       // Leaves stop a leaf's length short of where the branch runs off the foot of the dome.
       if (run >= nextLeaf && total - run > leafL * 0.75 + 0.4) {
         // Leaves alternate from one side of the branch to the other, as on the piece.
-        nextLeaf += leafL * 0.72;
+        nextLeaf += leafL * 0.6;
         const side = new THREE.Vector3().crossVectors(n, tan).normalize();
         const pair: THREE.Vector3[] = [];
         for (const sgn of [(leafCount++ % 2) * 2 - 1]) {
-          const facing = tan.clone().applyAxisAngle(n, sgn * 0.62);
+          // A leaf springs from the vine at its base and points out about 45° towards the tip of the branch.
+          const facing = tan.clone().applyAxisAngle(n, sgn * 0.8);
           // Where the dome curves hard (near its rim) a full-size leaf may not sit flat, so it is tried smaller first.
           let L = 0, W = 0, c0 = pt;
           for (const k of [1, 0.85, 0.72]) {
-            const cc = pt.clone().addScaledVector(side, sgn * (leafW * k * 0.8 + 0.3)).addScaledVector(tan, leafL * k * 0.12);
+            const cc = pt.clone().addScaledVector(facing, (leafL * k) / 2 + 0.25);
             // Where a branch turns steeply down the side, leaves can bunch up; one that would touch another is left out.
             if (leaves.some((q) => q.distanceTo(cc) < (leafL * k) * 0.98 + 0.4)) continue;
             if (!seated(cc, n, facing, (leafL * k) / 2 + 0.3, (leafW * k) / 2 + 0.3)) continue;
