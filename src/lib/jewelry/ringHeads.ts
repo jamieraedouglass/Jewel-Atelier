@@ -8,6 +8,12 @@ import { patternMaxW, patternRun } from "./patterns";
 import { tube } from "./stones";
 import { handPolished } from "../polish";
 
+// A Deco top domed and wrapped over its edges with a sprays mosaic fill. On a ring with leaves (the fill's alt stone)
+// it's built as one shell by bombeHead (isBombe); otherwise decoFrames builds it as a steep dome. Either way the ring's
+// shoulders flare up to meet it (applyProfile).
+export const sprayDome = (d: Design) =>
+  d.options.decoDome > 0 && d.options.decoWrap && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays");
+
 export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass = 0, finger?: { r: number; gy: number }): { group: THREE.Group; extent: number } {
   const g = new THREE.Group();
   g.userData.part = "accents";
@@ -17,6 +23,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const prev = new Float32Array(N);
   const turn = THREE.MathUtils.degToRad(c.rotation ?? 0), ct = Math.cos(turn), st0 = Math.sin(turn);
   const turned = ([x, z]: [number, number]): [number, number] => (turn ? [x * ct + z * st0, -x * st0 + z * ct] : [x, z]);
+  // Not edgeRadius: this is a working table each frame grows outward from in turn (see prev[b] below), binned as the
+  // frames have always been built; reading it off edgeRadius instead moves the Deco and petal designs slightly.
   { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = turned(fn(k / 720)); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
   for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
   const bin = (a: number) => Math.floor((a / (Math.PI * 2)) * N) % N;
@@ -33,7 +41,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const dome = d.options.decoDome;
   // A dome covered in a sprays mosaic is a true bombé: steeper, rolling over at its edges into walls that drop straight
   // down to the shoulders, rather than a flat cap that tucks in underneath.
-  const bombe = dome > 0 && d.options.decoWrap && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays");
+  const bombe = sprayDome(d);
   const Rd = dome > 0 ? (bombe ? Math.min(70 - 54 * dome, 13) : 70 - 54 * dome) : 0;
   rounding = bombe ? 0.05 : ROUNDING;
   const r0 = centreHalf - 0.5;

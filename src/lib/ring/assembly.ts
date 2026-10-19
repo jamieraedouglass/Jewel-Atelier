@@ -1,4 +1,4 @@
-import { applyGlow, cabochonBody } from "../glow";
+import { RING_CENTRE_TUNING, gemMaterial } from "../gemMaterial";
 import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
@@ -45,19 +45,7 @@ export function buildRing(d: Design): THREE.Group {
   const GY = SHANK_TOP + (isCab ? belly * 0.56 : belly * 0.45) + d.setting.height * 4;
   const color = new THREE.Color(c.color);
   const colorless = c.gem === "diamond" || c.gem === "aquamarine";
-  const stoneMat = applyGlow(new THREE.MeshPhysicalMaterial({
-    color, metalness: 0,
-    roughness: isCab ? 0.22 : 0.01,
-    transmission: isCab ? c.clarity * 0.45 : 0.2 + c.clarity * 0.75,
-    thickness: W * 0.8,
-    ior: c.gem === "diamond" ? 2.42 : c.gem === "emerald" || c.gem === "aquamarine" ? 1.58 : 1.77,
-    attenuationColor: color, attenuationDistance: 2 + c.clarity * 8,
-    emissive: color, emissiveIntensity: isCab ? 0.22 : 0.08,
-    clearcoat: isCab ? 0.8 : 0, clearcoatRoughness: 0.04,
-    sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
-    envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
-  }), c.glow, isCab);
-  if (isCab && c.cut !== "bead") cabochonBody(stoneMat);
+  const stoneMat = gemMaterial(c, W, c.glow, RING_CENTRE_TUNING);
   const stone = new THREE.Group();
   stone.userData.part = "center";
   if (isCab) stone.add(new THREE.Mesh(c.cut === "carved"

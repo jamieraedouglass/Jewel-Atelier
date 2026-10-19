@@ -87,6 +87,19 @@ export function outlineFn(shape: Design["center"]["shape"], L: number, W: number
   }
 }
 
+// Distance from a stone's centre to its edge in any direction (radians round the top, the stone turned by rotationDeg),
+// read off its outline into a table of 360 directions.
+export function edgeRadius(shape: Design["center"]["shape"], L: number, W: number, rotationDeg = 0): (a: number) => number {
+  const fn = outlineFn(shape, L, W), t = (rotationDeg * Math.PI) / 180, bins = 360, r = new Float32Array(bins);
+  for (let i = 0; i < 1440; i++) {
+    const [x0, z0] = fn(i / 1440), x = x0 * Math.cos(t) + z0 * Math.sin(t), z = -x0 * Math.sin(t) + z0 * Math.cos(t);
+    const b = Math.round(((Math.atan2(z, x) / (2 * Math.PI)) * bins + bins) % bins) % bins;
+    r[b] = Math.max(r[b], Math.hypot(x, z));
+  }
+  for (let p = 0; p < 4; p++) for (let b = 0; b < bins; b++) if (!r[b]) r[b] = Math.max(r[(b + 1) % bins], r[(b + bins - 1) % bins]);
+  return (a: number) => r[Math.round(((a / (2 * Math.PI)) * bins + bins * 2) % bins) % bins];
+}
+
 export function clawDegrees(shape: Design["center"]["shape"], L: number, W: number, style: Design["setting"]["style"]): number[] {
   const a = W / 2, b = L / 2;
   const anchors: Pt[] | null = (() => {

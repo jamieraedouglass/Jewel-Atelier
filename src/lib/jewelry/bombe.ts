@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { type CenterStone, type Design, type Frame } from "../design";
-import { outlineFn } from "../ringModel";
+import { edgeRadius, outlineFn } from "../ringModel";
 import { v3 } from "./common";
 import { type Mats } from "./materials";
 import { ASPECT, type Item, accents, balls } from "./elements";
-import { plateMetal } from "./ringHeads";
+import { plateMetal, sprayDome } from "./ringHeads";
 
 // A bombé mosaic head built as one shape, faceted like the piece: a top face round the stone, then side faces that slope
 // out and down like a steep pyramid, tapering into the band, with raised beaded ridges where the faces meet. It is a
@@ -12,20 +12,9 @@ import { plateMetal } from "./ringHeads";
 // are packed over the rest in passes from large to small.
 
 export const isBombe = (d: Design) =>
-  d.type === "ring" && d.style === "deco" && d.options.decoWrap && d.options.decoDome > 0 && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays" && !!f.alt);
+  d.type === "ring" && d.style === "deco" && sprayDome(d) && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays" && !!f.alt);
 
 const NT = 192, NK = 30, SHELL = 0.5;
-
-function stoneEdge(c: CenterStone) {
-  const fn = outlineFn(c.shape, c.lengthMm, c.widthMm), t = THREE.MathUtils.degToRad(c.rotation ?? 0), bins = 360, r = new Float32Array(bins);
-  for (let i = 0; i < 1440; i++) {
-    const [x0, z0] = fn(i / 1440), x = x0 * Math.cos(t) + z0 * Math.sin(t), z = -x0 * Math.sin(t) + z0 * Math.cos(t);
-    const b = Math.round(((Math.atan2(z, x) / (2 * Math.PI)) * bins + bins) % bins) % bins;
-    r[b] = Math.max(r[b], Math.hypot(x, z));
-  }
-  for (let p = 0; p < 4; p++) for (let b = 0; b < bins; b++) if (!r[b]) r[b] = Math.max(r[(b + 1) % bins], r[(b + bins - 1) % bins]);
-  return (a: number) => r[Math.round(((a / (2 * Math.PI)) * bins + bins * 2) % bins) % bins];
-}
 
 // Points every 0.33 mm round a leaf (marquise) outline of the given length and width, centred on the leaf.
 function leafOutline(L: number, W: number) {
@@ -50,7 +39,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const halfL = (o.decoLengthMm > 0 ? o.decoLengthMm : c.lengthMm * 1.8) / 2, halfW = (o.decoWidthMm > 0 ? o.decoWidthMm : c.widthMm * 2.6) / 2 - 0.9;
   const turn = THREE.MathUtils.degToRad(f.turn ?? 0), rot = THREE.MathUtils.degToRad(c.rotation ?? 0);
   const along = v3(Math.sin(rot), 0, Math.cos(rot)), across = v3(Math.cos(rot), 0, -Math.sin(rot));
-  const edge = stoneEdge(c);
+  const edge = edgeRadius(c.shape, c.lengthMm, c.widthMm, c.rotation ?? 0);
 
   // The top's outline: a rounded square (turned to a lozenge by the frame's turn), stretched to the measured size.
   const p = 2.7, raw = Array.from({ length: NT }, (_, i) => {

@@ -6,7 +6,7 @@ import { type Mats, makeMaterials } from "./materials";
 import { setStoneRaw, tube } from "./stones";
 import { ASPECT, accents, aroundOutline, backingPlate, balls } from "./elements";
 import { halo, outlineCurve, patternMaxW, patternRun } from "./patterns";
-import { decoFrames, flowerCluster, halfFlower, swirlArms } from "./ringHeads";
+import { decoFrames, flowerCluster, halfFlower, sprayDome, swirlArms } from "./ringHeads";
 import { bombeHead, isBombe } from "./bombe";
 import { handPolished } from "../polish";
 
@@ -281,7 +281,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   const shank = group.children.find((o) => o.userData.shank) as THREE.Mesh | undefined;
   // A mosaic dome carried on down the shoulders: the shoulders flare up to meet the dome, widest where they join it,
   // and narrow to the band, so the mosaic has a sweep of shoulder to run down rather than a thin wire under a cap.
-  const bombe = d.style === "deco" && d.options.decoWrap && d.options.decoDome > 0 && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays");
+  const bombe = d.style === "deco" && sprayDome(d);
   if (bombe && shank && !shank.userData.top) {
     const RIN = ringInnerDiameter(d.ringSize) / 2;
     const box = new THREE.Box3();
@@ -367,23 +367,34 @@ function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: numb
     if (over && r < floor) { q.x *= floor / r; q.y *= floor / r; }
     return { a, p: q };
   };
-  const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), rz = new THREE.Matrix4();
-  const pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  const rz = new THREE.Matrix4(), pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  reshape(part, toRoot, (mi) => {
+    mi.decompose(pos, q, sc);
+    const { a, p } = place(pos);
+    rz.makeRotationZ(-a);
+    q.premultiply(new THREE.Quaternion().setFromRotationMatrix(rz));
+    mi.compose(p, q, sc);
+  }, (v) => { const { a, p } = place(v); return { p, turn: -a }; }, "turn");
+}
+
+// Reshape every mesh in `part`, working in the frame `toFrame` maps into: each instance (a stone, a bead) is moved whole
+// by `instance`, and every vertex of the other meshes by `vertex`. Normals either turn about the finger's axis by the
+// angle `vertex` gives, or are worked out afresh. Geometry is cloned, as other parts may share it.
+function reshape(part: THREE.Object3D, toFrame: THREE.Matrix4, instance: (m: THREE.Matrix4) => void,
+  vertex: (v: THREE.Vector3) => { p: THREE.Vector3; turn?: number }, normals: "turn" | "recompute") {
+  const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4();
   part.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    rel.multiplyMatrices(toRoot, mesh.matrixWorld);
+    rel.multiplyMatrices(toFrame, mesh.matrixWorld);
     inv.copy(rel).invert();
     const inst = o as THREE.InstancedMesh;
     if (inst.isInstancedMesh) {
       for (let i = 0; i < inst.count; i++) {
         inst.getMatrixAt(i, mi);
         mi.premultiply(rel);
-        mi.decompose(pos, q, sc);
-        const { a, p } = place(pos);
-        rz.makeRotationZ(-a);
-        q.premultiply(new THREE.Quaternion().setFromRotationMatrix(rz));
-        mi.compose(p, q, sc).premultiply(inv);
+        instance(mi);
+        mi.premultiply(inv);
         inst.setMatrixAt(i, mi);
       }
       inst.instanceMatrix.needsUpdate = true;
@@ -397,12 +408,13 @@ function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: numb
     const v = new THREE.Vector3(), n = new THREE.Vector3();
     for (let i = 0; i < ps.count; i++) {
       v.fromBufferAttribute(ps, i).applyMatrix4(rel);
-      const { a, p } = place(v);
+      const { p, turn = 0 } = vertex(v);
       ps.setXYZ(i, ...p.applyMatrix4(inv).toArray());
-      if (ns) { n.fromBufferAttribute(ns, i).applyMatrix3(nm).applyAxisAngle(new THREE.Vector3(0, 0, 1), -a).applyMatrix3(nmInv).normalize(); ns.setXYZ(i, n.x, n.y, n.z); }
+      if (normals === "turn" && ns) { n.fromBufferAttribute(ns, i).applyMatrix3(nm).applyAxisAngle(new THREE.Vector3(0, 0, 1), turn).applyMatrix3(nmInv).normalize(); ns.setXYZ(i, n.x, n.y, n.z); }
     }
     ps.needsUpdate = true;
-    if (ns) ns.needsUpdate = true;
+    if (normals === "turn") { if (ns) ns.needsUpdate = true; }
+    else geo.computeVertexNormals();
     geo.computeBoundingBox(); geo.computeBoundingSphere();
     mesh.geometry = geo;
   });
@@ -439,34 +451,12 @@ function stretchAxis(part: THREE.Object3D, axis: THREE.Vector3, k: number, from:
   const B = new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0)));
   const J = B.clone().multiply(new THREE.Matrix4().makeScale(k, 1, 1)).multiply(B.clone().transpose());
   const move = (p: THREE.Vector3) => { const u = p.dot(axis), extra = (k - 1) * Math.max(0, Math.abs(u) - from) * Math.sign(u); return { p: p.clone().addScaledVector(axis, extra), far: Math.abs(u) > from }; };
-  const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), t = new THREE.Vector3(), lin = new THREE.Matrix4();
-  part.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    rel.multiplyMatrices(toPart, mesh.matrixWorld);
-    inv.copy(rel).invert();
-    const inst = o as THREE.InstancedMesh;
-    if (inst.isInstancedMesh) {
-      for (let i = 0; i < inst.count; i++) {
-        inst.getMatrixAt(i, mi);
-        mi.premultiply(rel);
-        t.setFromMatrixPosition(mi);
-        const { p, far } = move(t);
-        lin.copy(mi).setPosition(0, 0, 0);
-        if (far) lin.premultiply(J);
-        mi.copy(lin).setPosition(p).premultiply(inv);
-        inst.setMatrixAt(i, mi);
-      }
-      inst.instanceMatrix.needsUpdate = true;
-      inst.computeBoundingSphere(); inst.computeBoundingBox();
-      return;
-    }
-    const geo = mesh.geometry.clone();
-    const ps = geo.getAttribute("position") as THREE.BufferAttribute;
-    const v = new THREE.Vector3();
-    for (let i = 0; i < ps.count; i++) { v.fromBufferAttribute(ps, i).applyMatrix4(rel); ps.setXYZ(i, ...move(v).p.applyMatrix4(inv).toArray()); }
-    ps.needsUpdate = true;
-    geo.computeVertexNormals(); geo.computeBoundingBox(); geo.computeBoundingSphere();
-    mesh.geometry = geo;
-  });
+  const t = new THREE.Vector3(), lin = new THREE.Matrix4();
+  reshape(part, toPart, (mi) => {
+    t.setFromMatrixPosition(mi);
+    const { p, far } = move(t);
+    lin.copy(mi).setPosition(0, 0, 0);
+    if (far) lin.premultiply(J);
+    mi.copy(lin).setPosition(p);
+  }, (v) => ({ p: move(v).p }), "recompute");
 }

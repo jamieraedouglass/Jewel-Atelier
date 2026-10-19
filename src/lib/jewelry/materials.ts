@@ -1,4 +1,4 @@
-import { applyGlow, cabochonBody } from "../glow";
+import { gemMaterial } from "../gemMaterial";
 import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type CenterStone, type Design, type Gem } from "../design";
@@ -26,21 +26,7 @@ export function makeMaterials(d: Design) {
           : new THREE.MeshPhysicalMaterial({ color, roughness: 0.25, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.08, envMapIntensity: 1.1 })),
     stone: (c: Pick<CenterStone, "gem" | "cut" | "color" | "clarity"> & { glow?: number }, W: number) => {
       const glow = c.glow ?? (c.gem === d.accents.gem ? d.accents.glow : 0);
-      return memo(`stone${c.gem}${c.cut}${c.color}${c.clarity}${glow}${Math.round(W)}`, () => {
-        const color = new THREE.Color(c.color);
-        const isCab = c.cut === "cabochon" || c.cut === "bead" || c.cut === "carved";
-        const mat = applyGlow(new THREE.MeshPhysicalMaterial({
-          color, metalness: 0, roughness: isCab ? 0.1 : 0.01,
-          transmission: isCab ? c.clarity * 0.62 : 0.2 + c.clarity * 0.75, thickness: W * 0.8,
-          ior: c.gem === "diamond" ? 2.42 : ["emerald", "aquamarine", "morganite"].includes(c.gem) ? 1.58 : 1.7,
-          attenuationColor: color, attenuationDistance: 2 + c.clarity * 8,
-          emissive: color, emissiveIntensity: isCab ? 0.17 : 0.08,
-          clearcoat: isCab ? 0.8 : 0, clearcoatRoughness: 0.04,
-          sheen: isCab ? 0.4 : 0, sheenColor: color.clone().lerp(new THREE.Color(0xffffff), 0.35), sheenRoughness: 0.5,
-          envMapIntensity: isCab ? 1.1 : 2.4, flatShading: !isCab, transparent: !isCab,
-        }), glow, isCab);
-        return isCab && c.cut !== "bead" ? cabochonBody(mat) : mat;
-      });
+      return memo(`stone${c.gem}${c.cut}${c.color}${c.clarity}${glow}${Math.round(W)}`, () => gemMaterial(c, W, glow));
     },
   };
 }

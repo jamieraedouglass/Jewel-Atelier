@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { NO_CHARACTER, type CenterStone, type Design, type DropPart } from "../design";
-import { outlineFn } from "../ringModel";
+import { edgeRadius, outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
 import { setStoneRaw, tube } from "./stones";
@@ -25,16 +25,6 @@ function smallStone(d: Design, p: DropPart, shape: CenterStone["shape"]): Center
     ...d.center, ...NO_CHARACTER, gem: p.small.gem, cut, shape, widthMm: W, lengthMm: W * briolRatio(shape, cut), domeMm: cut === "cabochon" ? W * 0.4 : W * 0.16,
     color: p.small.color, clarity: COLORLESS.has(p.small.gem) ? 0.95 : 0.6, carat: null, label: "", photoPath: null, none: false, rotation: 0,
   };
-}
-// Distance from the stone's centre to its edge in each direction (radians in the stone's own frame), from its outline.
-function outlineRadius(c: CenterStone, extra: number) {
-  const fn = outlineFn(c.shape, c.lengthMm, c.widthMm), bins = 360, r = new Float32Array(bins);
-  for (let i = 0; i < 1440; i++) {
-    const [x, z] = fn(i / 1440), b = Math.round(((Math.atan2(z, x) / (2 * Math.PI)) * bins + bins) % bins) % bins;
-    r[b] = Math.max(r[b], Math.hypot(x, z));
-  }
-  for (let pass = 0; pass < 3; pass++) for (let b = 0; b < bins; b++) if (!r[b]) r[b] = Math.max(r[(b + 1) % bins], r[(b + bins - 1) % bins]);
-  return (a: number) => r[Math.round(((a / (2 * Math.PI)) * bins + bins * 2) % bins) % bins] + extra;
 }
 
 // sizes run with the shapes (one per shape in the repeat); a longer list gives each stone its own size, spread over the count.
@@ -82,7 +72,8 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
   const bigSet = setFor(d, cs, p), belly = cs.cut === "faceted" ? cs.widthMm * 0.43 : Math.max(0.3, cs.domeMm);
   const gallery = p.halo ? { r: 0.9, y: -0.5 } : bigSet === "bezel" || cs.cut === "rose-cut" || cs.cut === "polki" ? { r: 1.0, y: -0.3 } : { r: 0.92, y: -Math.min(belly, 2) * 0.35 };
   // The stone's true outline (a pear is not an oval), so small stones sit on its edge and wires meet its gallery.
-  const edge = cs.shape === "round" ? null : outlineRadius(cs, p.halo ? p.haloMm + 0.45 : 0);
+  const rim = cs.shape === "round" ? null : edgeRadius(cs.shape, cs.lengthMm, cs.widthMm), extra = p.halo ? p.haloMm + 0.45 : 0;
+  const edge = rim && ((a: number) => rim(a) + extra);
   const spots = p.small.spots;
   if (spots.length) tracedStones(d, m, p, g, spots, theta, edge, Wh, Lh, gallery);
   const n = spots.length ? 0 : p.count;
