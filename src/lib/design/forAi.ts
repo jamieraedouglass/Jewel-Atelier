@@ -24,6 +24,7 @@ export function designForAi(d: Design) {
   if (has("extraStones")) out.extraStones = d.extraStones;
   if (has("drop")) out.drop = d.drop;
   if (has("frames")) out.frames = d.frames;
+  if (has("freeform")) out.freeform = d.freeform;
   if (has("motif")) out.motif = { ...d.motif, path: `[${d.motif.path.length} characters of SVG path]` };
   if (d.type === "earrings") { out.rightEar = d.rightEar; out.mirrorPair = d.mirrorPair; }
   return out;

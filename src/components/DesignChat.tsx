@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { loadChat, noteAppliedSuggestion, noteDismissedSuggestion, saveChat } from "@/app/actions";
-import { TYPE_LABEL, type Design, type DesignPatch } from "@/lib/design";
+import { FreeformSchema, TYPE_LABEL, type Design, type DesignPatch } from "@/lib/design";
+import FreeformSketch from "./FreeformSketch";
 import { KEEP_MESSAGES, chatForApi, describePatch, type ChatMessage, type ChatProposal, plainReply } from "@/lib/chat";
 
 type Props = { userId: string | null; designId: string | null; design: Design; onApply: (patch: DesignPatch) => void };
@@ -13,7 +14,15 @@ const STARTERS = [
   "What accents suit this main stone?",
   "Turn this into a bridal piece",
   "What should I tell the karigar about construction and weight?",
+  "Design me a one-of-a-kind piece",
 ];
+
+// A suggested unique piece, shown as its sketch.
+function sketchOf(patch: Record<string, unknown>, fallbackType: string) {
+  if (patch.style !== "freeform" || !patch.freeform) return null;
+  const f = FreeformSchema.safeParse(patch.freeform);
+  return f.success ? { freeform: f.data, type: typeof patch.type === "string" ? patch.type : fallbackType } : null;
+}
 
 const MOODS = ["Whimsical", "Heirloom", "Romantic", "Serious", "Bold", "Quiet", "Regal", "Playful", "Modern", "Boho"];
 
@@ -23,6 +32,9 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useStyle, setUseStyle] = useState(true);
+  // Replies that draw a unique piece take a minute or two; say so once it's clearly not a quick answer.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { if (!busy) { setSlow(false); return; } const t = setTimeout(() => setSlow(true), 12000); return () => clearTimeout(t); }, [busy]);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, busy]);
 
@@ -104,7 +116,10 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
             <div key={`${i}-${j}`} className="proposal" style={p.state === "dismissed" ? { opacity: 0.55 } : undefined}>
               <h4>{p.title}</h4>
               <p className="small" style={{ margin: 0 }}>{p.why}</p>
-              <p className="small muted" style={{ margin: 0 }}>{describePatch(p.patch)}</p>
+              {(() => {
+                const sk = sketchOf(p.patch, design.type);
+                return sk ? <FreeformSketch freeform={sk.freeform} type={sk.type} bandMm={design.band.widthMm} /> : <p className="small muted" style={{ margin: 0 }}>{describePatch(p.patch)}</p>;
+              })()}
               {p.note && <p className="small" style={{ margin: 0, color: "var(--accent, #c9a96e)" }}>{p.note}</p>}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button className="btn primary" type="button" disabled={!!p.state}
@@ -121,7 +136,7 @@ export default function DesignChat({ userId, designId, design, onApply }: Props)
           ))}
         </div>
       ))}
-      {busy && <div className="msg assistant muted">Thinking…</div>}
+      {busy && <div className="msg assistant muted">{slow ? "Still working: drawing a unique piece takes a minute or two…" : "Thinking…"}</div>}
       {error && <p className="error">{error}</p>}
       <div ref={end} />
 

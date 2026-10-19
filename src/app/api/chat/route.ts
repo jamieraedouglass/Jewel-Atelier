@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import { CHAT_SYSTEM, createMessage, createMotifTool, proposeDesignTool, storageImages, toMotif } from "@/lib/ai";
+import { CHAT_SYSTEM, createMessage, createMotifTool, drawFreeform, proposeDesignTool, storageImages, toMotif, uniquePieceTool } from "@/lib/ai";
 import { MOTIF_STYLE, designForAi, normalizeDesign } from "@/lib/design";
 import { plainReply } from "@/lib/chat";
 import { requireUser } from "@/lib/supabase/server";
@@ -14,7 +14,8 @@ import { droppedNote, screenProposals } from "@/lib/style/guard";
 import type { StylePrefs } from "@/lib/style/profile";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// A unique piece is drawn inside the reply, which can take a couple of minutes.
+export const maxDuration = 300;
 
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(4000) })).min(1).max(40),
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     const msg = await createMessage({
       system: CHAT_SYSTEM,
       max_tokens: 4000,
-      tools: [proposeDesignTool, createMotifTool],
+      tools: [proposeDesignTool, createMotifTool, uniquePieceTool],
       messages: apiMessages,
     });
     const reply = plainReply(msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n"));
@@ -81,9 +82,28 @@ export async function POST(req: Request) {
         patch: { ...(style ? { style } : { type: "necklace", style: "motif-pendant" }), motif: r.motif, ...(r.enamel ? { enamel: { enabled: true } } : {}) },
       });
     }
+    // Unique pieces: drawn, checked and fixed now, and offered as a sketch to apply.
+    const asks = msg.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === uniquePieceTool.name).slice(0, 1);
+    for (const b of asks) {
+      const input = b.input as { type?: string; brief?: string; change_current?: boolean };
+      const type = input.type === "earrings" || input.type === "ring" ? input.type : "necklace";
+      const changing = !!input.change_current && design.style === "freeform" && design.type === type;
+      const drawn = await drawFreeform({
+        type, images: [], bandMm: design.band.widthMm, timeLeftMs: 100_000,
+        ...(changing ? { current: design.freeform, change: String(input.brief ?? "") } : { prompt: String(input.brief ?? "") }),
+      });
+      if (!drawn) continue;
+      const left = drawn.issues.length ? ` Still to sort out: ${drawn.issues.join(" ")}` : "";
+      proposals.push({
+        title: `${changing ? "Changed" : "Unique piece"}: ${drawn.freeform.name}`,
+        why: `${drawn.freeform.notes}${left}`.trim().slice(0, 1900),
+        patch: { type, style: "freeform", freeform: drawn.freeform, ...(changing ? {} : { name: drawn.freeform.name }) },
+      });
+    }
     const { kept, dropped } = prefs ? screenProposals(proposals, prefs) : { kept: proposals, dropped: [] };
     const note = droppedNote(dropped);
-    const text = [reply || (kept.length ? "Here's what I'd try:" : ""), note].filter(Boolean).join("\n\n");
+    const sketched = kept.some((p) => p.patch.style === "freeform");
+    const text = [reply || (sketched ? "Here's a sketch of it. Apply it to build it in 3D, or tell me what to change." : kept.length ? "Here's what I'd try:" : ""), note].filter(Boolean).join("\n\n");
     return NextResponse.json({ reply: text, proposals: kept });
   } catch (e) {
     await charge.refund();

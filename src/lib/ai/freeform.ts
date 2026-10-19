@@ -182,3 +182,19 @@ export async function drawFreeform(opts: { type: string; images: ImageBlock[]; p
   }
   return { freeform: design, issues };
 }
+
+// For the designer chat: asks for a unique piece to be drawn (or the current one changed). The chat writes the brief;
+// drawFreeform does the drawing, checking and fixing.
+export const uniquePieceTool: Anthropic.Tool = {
+  name: "design_unique_piece",
+  description: "Have a unique piece drawn when the person wants a shape or construction the app's styles don't cover (a festoon, a garland, a spray of leaves, a particular antique or a piece they describe). It is drawn from jeweller's building blocks (rows of stones along lines, gold wire, plates with pavé or openwork, single stones, drops), checked, and offered to them as a sketch they can apply. Also use it to change the current piece when it is already a unique piece (style freeform).",
+  input_schema: {
+    type: "object",
+    properties: {
+      type: { type: "string", enum: ["necklace", "earrings", "ring"] },
+      brief: { type: "string", description: "A full description for the draughtsman: the overall shape and size in mm, which stones go where (gem, cut, shape, sizes, how many rows), the gold work, how it hangs or sits, and the person's taste. When changing the current piece, say exactly what to change." },
+      change_current: { type: "boolean", description: "true to change the current unique piece rather than draw a new one" },
+    },
+    required: ["type", "brief"],
+  },
+};
