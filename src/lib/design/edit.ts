@@ -48,7 +48,7 @@ function setAt(o: unknown, path: Path, value: unknown, remove = false) {
   return true;
 }
 
-export function parseRepaired(input: unknown): { data: Design | null; fixes: string[] } {
+function parseRepaired(input: unknown): { data: Design | null; fixes: string[] } {
   const cur: unknown = input && typeof input === "object" ? structuredClone(input) : input;
   const fixes: string[] = [];
   for (let attempt = 0; attempt < 30; attempt++) {

@@ -154,6 +154,7 @@ export function resolveOverlaps(root: THREE.Object3D, keep: Set<string> = new Se
   return shrunk.size;
 }
 
+// Problems with the stones themselves, for the checks in the CAD download's README.
 export function checkBuild(d: Design, root: THREE.Object3D): BuildIssue[] {
   const stones = stonesIn(root);
   const issues: BuildIssue[] = [];

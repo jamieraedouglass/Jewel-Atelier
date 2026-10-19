@@ -129,7 +129,7 @@ function doubled(g: THREE.BufferGeometry) {
   return d;
 }
 
-export function tagKeys(g: THREE.Object3D, items: Item[]) {
+function tagKeys(g: THREE.Object3D, items: Item[]) {
   if (!items.some((it) => it.key)) return g;
   const keys = items.map((it) => it.key ?? "");
   g.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).count === items.length) o.userData.keys = keys; });

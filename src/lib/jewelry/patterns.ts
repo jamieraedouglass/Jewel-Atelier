@@ -31,7 +31,7 @@ export type RunOpts = {
   editKey?: string;
 };
 
-export function ombreAt(stops: string[], t: number) {
+function ombreAt(stops: string[], t: number) {
   if (stops.length < 2) return stops[0] ?? "#ffffff";
   const x = Math.min(1, Math.max(0, t)) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(x));
   const c = new THREE.Color(stops[i]).lerp(new THREE.Color(stops[i + 1]), Math.round((x - i) * 6) / 6);
@@ -111,7 +111,6 @@ export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>
     let yaw = turnOf(i);
     if (layout !== "line") {
       const side = new THREE.Vector3().crossVectors(up, tp).normalize();
-      const s0 = at + f / 2;
       if (!onSpine(s)) {
         const sign = (leaf++ % 2 ? -1 : 1);
         pos.addScaledVector(side, sign * (s.W * 0.42 + spineW * 0.3));

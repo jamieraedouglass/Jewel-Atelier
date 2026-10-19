@@ -4,13 +4,13 @@ import type { ChatMessage } from "@/lib/chat";
 import { plainReply } from "@/lib/chat";
 import { formatMoney, versionName, type PriceVersion } from "@/lib/studio/pricing";
 import { eventText, type DashEvent } from "@/lib/studio/dashboard";
+import { when } from "@/lib/format";
 
-export type LinkPieceView = {
+type LinkPieceView = {
   designId: string; name: string; base: Design; version: Design; changes: string[]; chat: ChatMessage[];
   priced?: PriceVersion | null; hasPrices?: boolean;
 };
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "never");
 
 export default function LinkDetailView({ clientName, status, allowed, backHref, controls, pricing, pieces, events, specHref }: {
   clientName: string; status: string; allowed: string; backHref: string; controls?: React.ReactNode; pricing?: React.ReactNode;

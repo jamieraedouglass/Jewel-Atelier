@@ -1,7 +1,7 @@
-import { emailForName } from "../names";
+import { emailSet } from "../names";
 
-export function studioAdminEmails(raw = process.env.STUDIO_ADMINS ?? ""): Set<string> {
-  return new Set(raw.split(",").map((x) => x.trim()).filter(Boolean).map((x) => (x.includes("@") ? x.toLowerCase() : emailForName(x))));
+function studioAdminEmails(raw = process.env.STUDIO_ADMINS ?? ""): Set<string> {
+  return emailSet(raw);
 }
 
 export function isStudioAdmin(user: { email?: string | null } | null | undefined, raw?: string): boolean {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { applyPatchLenient, chooseStyle, freshDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
-import { compressImage, uid } from "@/lib/media";
+import { compressImage, dataUrl, uid, wait } from "@/lib/media";
 import { photoPixels, withMarkedColours, withPhotoColours, type Sample } from "@/lib/colourSample";
 import { createClient } from "@/lib/supabase/client";
 import PhotoReading, { type Reading } from "./PhotoReading";
@@ -15,8 +15,6 @@ type Props = {
   capture?: () => Promise<Blob | null>;
 };
 const CHECKS = 3;
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const dataUrl = (b: Blob) => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); });
 
 export default function PhotoToDesign({ userId, design, onReplace, capture }: Props) {
   const input = useRef<HTMLInputElement>(null);

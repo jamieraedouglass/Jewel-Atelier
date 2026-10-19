@@ -6,6 +6,7 @@ import { describeDesign, type Design } from "@/lib/design";
 import { describeChanges, type Allow } from "@/lib/studio/links";
 import type { Pricing } from "@/lib/studio/pricing";
 import type { ChatMessage } from "@/lib/chat";
+import { wait } from "@/lib/media";
 import { VIEW_LABEL, type Cutout, type RingCanvasHandle, type View } from "../canvas/types";
 import TryOn, { type TryOnExtra } from "../TryOn";
 import AdjustPanel from "./AdjustPanel";
@@ -26,7 +27,6 @@ type Props = {
 };
 type Panel = "adjust" | "chat" | "jeweller";
 const LOOPS = new Set(["necklace", "bracelet", "anklet"]);
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function ClientStudio({ studioName, clientName, note, allow, pieces, pricing, rate = null, mode, onDemoEvent, onDemoSave, onDemoChange }: Props) {
   const backend = useMemo(() => (mode.kind === "link" ? linkBackend(mode.token) : demoBackend(pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave)), [mode, pieces, allow, studioName, onDemoEvent, pricing, rate, onDemoSave]);

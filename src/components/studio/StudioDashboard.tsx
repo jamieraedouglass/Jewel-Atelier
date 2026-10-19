@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { StudioSummary } from "@/lib/studio/dashboard";
+import { when as whenOr } from "@/lib/format";
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "not yet");
+const when = (iso: string | null) => whenOr(iso, "not yet");
+
 const STATE_LABEL = { active: "Active", expired: "Expired", revoked: "Turned off" } as const;
 
-export type AccountRow = { id: string; name: string; designs: number; lastSignIn: string | null };
+type AccountRow = { id: string; name: string; designs: number; lastSignIn: string | null };
 
 export default function StudioDashboard({ summary: s, accounts, linkHref, accountHref, newLinkHref }: {
   summary: StudioSummary; accounts: AccountRow[]; linkHref: (id: string) => string; accountHref?: (id: string) => string; newLinkHref?: string;

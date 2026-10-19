@@ -1,4 +1,4 @@
-import { emailForName } from "./names";
+import { emailSet } from "./names";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export function dailyLimit(raw = process.env.AI_DAILY_LIMIT): number {
@@ -7,8 +7,8 @@ export function dailyLimit(raw = process.env.AI_DAILY_LIMIT): number {
 }
 export const DAILY_LIMIT = dailyLimit();
 
-export function powerUserEmails(raw = process.env.AI_POWER_USERS || "Jamie"): Set<string> {
-  return new Set(raw.split(",").map((x) => x.trim()).filter(Boolean).map((x) => (x.includes("@") ? x.toLowerCase() : emailForName(x))));
+function powerUserEmails(raw = process.env.AI_POWER_USERS || "Jamie"): Set<string> {
+  return emailSet(raw);
 }
 
 export function limitFor(email: string | null | undefined, rawUsers?: string, rawLimit = process.env.AI_POWER_LIMIT): number {
@@ -36,7 +36,7 @@ export async function chargeAiCall(supabase: SupabaseClient, userId: string): Pr
   };
 }
 
-export async function spendAiCall(supabase: SupabaseClient): Promise<string | null> {
+async function spendAiCall(supabase: SupabaseClient): Promise<string | null> {
   const who = supabase.auth?.getUser ? await supabase.auth.getUser().catch(() => null) : null;
   const limit = limitFor(who?.data.user?.email);
   const { data, error } = await supabase.rpc("use_ai_call", { daily_limit: limit });

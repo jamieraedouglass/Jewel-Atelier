@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { Motif } from "./design";
 
-export type MotifShapes = { shapes: THREE.Shape[]; scale: number; toLocal: (x: number, y: number) => THREE.Vector3; size: { w: number; h: number } };
+type MotifShapes = { shapes: THREE.Shape[]; scale: number; toLocal: (x: number, y: number) => THREE.Vector3; size: { w: number; h: number } };
 
 const shapeCache = new LRU<string, MotifShapes | null>(50);
 

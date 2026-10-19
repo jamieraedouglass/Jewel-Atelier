@@ -18,7 +18,7 @@ export function bandSection(width: number, th: number, top?: { topW: number; top
   return { t, w, flat: top ? tp * (top.round ? 0.35 : 1) : 0 };
 }
 
-export const splitAt = (th: number, split: number) => {
+const splitAt = (th: number, split: number) => {
   if (!split) return 0;
   const a = Math.abs(Math.atan2(Math.sin(th), Math.cos(th)));
   const x = Math.min(1, Math.max(0, (a - 0.35) / 1.5));

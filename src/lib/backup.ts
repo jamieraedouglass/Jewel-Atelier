@@ -1,7 +1,7 @@
 import { DesignSchema, type Design } from "./design";
 import { normalizeInventory, normalizeStatus, type Inventory, type Status } from "./inventory";
 
-export type BackupRow = { data: Design; name: string; status?: Status; made_at?: string | null; inventory?: Inventory };
+type BackupRow = { data: Design; name: string; status?: Status; made_at?: string | null; inventory?: Inventory };
 
 export function backupRows(json: string): { rows: BackupRow[]; skipped: number } | { error: string } {
   let parsed: unknown;

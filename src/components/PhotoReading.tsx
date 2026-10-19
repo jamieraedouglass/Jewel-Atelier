@@ -13,7 +13,7 @@ export type Reading = {
   questions?: { question?: string; options?: string[] }[];
 };
 
-export type Structure = {
+type Structure = {
   top_outline?: string; top_length_mm?: number; top_width_mm?: number; top_height_mm?: number; profile?: string;
   stones_down_sides?: boolean; shoulders?: string; band_width_back_mm?: number; band_width_shoulder_mm?: number; gallery?: string; notes?: string;
 };
@@ -22,7 +22,7 @@ const STRUCT_NUMS: [keyof Structure, string][] = [["top_length_mm", "Top along t
 const COLORS = ["#e8b4d8", "#7fd6a4", "#8ec5ff", "#ffd27a", "#ff9e9e", "#c6a8ff", "#9ee6e6", "#f2f2f2"];
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
-export function readingSummary(r: Reading, counts: Record<number, number>, removed: Set<number>, answers: Record<number, string>) {
+function readingSummary(r: Reading, counts: Record<number, number>, removed: Set<number>, answers: Record<number, string>) {
   const lines: string[] = ["Confirmed reading of the piece (from the person; use these as facts):"];
   if (r.piece?.kind) lines.push(`- Piece: ${r.piece.kind}${r.piece.pair ? " (a pair; build one, mirrored)" : ""}.`);
   if (r.main?.what) lines.push(`- Main stone (it must be in the design as the centre stone): ${r.main.what}${r.main.shape ? `, ${r.main.shape}` : ""}${r.main.cut ? `, ${r.main.cut}` : ""}${r.main.color ? `, ${r.main.color}` : ""}${r.main.size_mm ? `, about ${r.main.size_mm}` : ""}.`);

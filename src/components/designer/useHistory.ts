@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Design } from "@/lib/design";
 
 const TYPED_INPUTS = new Set(["text", "number", "search", "email", "url", "tel", "password"]);
-export const ownsUndo = (t: EventTarget | null) => {
+const ownsUndo = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
   if (!el) return false;
   if (el.tagName === "TEXTAREA" || el.isContentEditable) return true;

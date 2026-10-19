@@ -7,10 +7,10 @@ export function anthropic() {
   return (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
 }
 export const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
-const FALLBACK = "claude-sonnet-5-5";
+export const FALLBACK = "claude-sonnet-5-5";
 let modelInUse = MODEL;
 
-const modelRefused = (e: unknown) =>
+export const modelRefused = (e: unknown) =>
   e instanceof Anthropic.APIError && (e.status === 404 || e.status === 403 || (e.status === 400 && /model/i.test(e.message)));
 
 export async function createMessage(params: Omit<Anthropic.MessageCreateParamsNonStreaming, "model">): Promise<Anthropic.Message> {

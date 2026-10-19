@@ -141,7 +141,7 @@ const list = (xs: readonly string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join
 const metalWords = (m: (typeof METALS)[number]) => label(m).toLowerCase();
 const counted = (pairs: [string, number][]) => list(pairs.map(([k, n]) => `${k} (${n})`));
 
-export type ProfileInput = {
+type ProfileInput = {
   prefs: StylePrefs; icons: string[]; notes: string; taste?: Taste | null; applied?: string[]; dismissed?: string[];
   photos?: number;
   photoRead?: string;

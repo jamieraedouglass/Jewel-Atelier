@@ -2,7 +2,7 @@ import { type Design, type DropPart, DropPartSchema } from "./design";
 
 type Mark = { photo?: number; x?: number; y?: number; r?: number };
 type Group = { what?: string; shape?: string; cut?: string; marks?: Mark[] };
-export type TraceReading = { main?: { photo?: number; x?: number; y?: number; w?: number; h?: number }; groups?: Group[] };
+type TraceReading = { main?: { photo?: number; x?: number; y?: number; w?: number; h?: number }; groups?: Group[] };
 export type PhotoSize = { w: number; h: number };
 
 const DROP_STYLES = new Set(["earrings:pendant", "earrings:chandelier", "necklace:drop-pendant"]);

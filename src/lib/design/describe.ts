@@ -6,7 +6,7 @@ import { phenomenonText } from "./character";
 
 const gemName = (g: Gem) => (g === "cats-eye" ? "cat's eye" : label(g).toLowerCase());
 
-export function stoneText(c: CenterStone) {
+function stoneText(c: CenterStone) {
   if (c.none) return "no main stone";
   const cut = c.cut === "faceted" ? `${c.shape}-cut` : c.cut;
   const effect = phenomenonText(c);

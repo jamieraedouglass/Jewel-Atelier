@@ -1,6 +1,6 @@
-export type BrandId = "atelier" | "kothari";
+type BrandId = "atelier" | "kothari";
 
-export type Brand = {
+type Brand = {
   id: BrandId;
   name: string;
   wordmark: { main: string; sub?: string; accent?: string };
@@ -13,7 +13,7 @@ export type Brand = {
   stockSheet: boolean;
 };
 
-export const BRANDS: Record<BrandId, Brand> = {
+const BRANDS: Record<BrandId, Brand> = {
   atelier: {
     id: "atelier",
     name: "Jewel Atelier",
@@ -46,5 +46,5 @@ export const BRANDS: Record<BrandId, Brand> = {
   },
 };
 
-export const brandFor = (id: string | undefined): Brand => (id && id in BRANDS ? BRANDS[id as BrandId] : BRANDS.atelier);
+const brandFor = (id: string | undefined): Brand => (id && id in BRANDS ? BRANDS[id as BrandId] : BRANDS.atelier);
 export const BRAND = brandFor(process.env.NEXT_PUBLIC_BRAND);

@@ -5,12 +5,12 @@ export const DIAMOND_GRADES = [
   { id: "N-R", name: "N–R very light yellow", color: "#f8e8bc" },
   { id: "S-Z", name: "S–Z light yellow", color: "#f3dc9c" },
 ] as const;
-export type DiamondGrade = (typeof DIAMOND_GRADES)[number]["id"];
+type DiamondGrade = (typeof DIAMOND_GRADES)[number]["id"];
 export const DIAMOND_GRADE_IDS = DIAMOND_GRADES.map((g) => g.id) as unknown as readonly [DiamondGrade, ...DiamondGrade[]];
 export const diamondGrade = (id: string | null | undefined) => DIAMOND_GRADES.find((g) => g.id === id) ?? null;
 
 export const PHENOMENA = ["none", "star", "cats-eye"] as const;
-export type Phenomenon = (typeof PHENOMENA)[number];
+type Phenomenon = (typeof PHENOMENA)[number];
 export const STAR_RAYS = [4, 6, 12] as const;
 
 export const NO_CHARACTER = { colorGrade: null, inclusions: 0, phenomenon: "none" } as const;

@@ -73,7 +73,7 @@ export function buildRing(d: Design): THREE.Group {
     if (star) stone.add(star);
   }
   if (c.cut !== "bead") {
-    const specks = inclusionSpecks(c, fn, L, W, Math.max(0.25, c.domeMm));
+    const specks = inclusionSpecks(c, fn, W, Math.max(0.25, c.domeMm));
     if (specks) { seeThrough(stone); stone.add(specks); }
   }
   stone.position.y = GY;

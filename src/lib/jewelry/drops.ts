@@ -84,7 +84,7 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
   // The stone's true outline (a pear is not an oval), so small stones sit on its edge and wires meet its gallery.
   const edge = cs.shape === "round" ? null : outlineRadius(cs, p.halo ? p.haloMm + 0.45 : 0);
   const spots = p.small.spots;
-  if (spots.length) tracedStones(d, m, p, g, spots, cs, theta, edge, Wh, Lh, gallery);
+  if (spots.length) tracedStones(d, m, p, g, spots, theta, edge, Wh, Lh, gallery);
   const n = spots.length ? 0 : p.count;
   if (n > 0) {
     const angles: number[] = [];
@@ -138,7 +138,7 @@ function dropStonePart(d: Design, m: Mats, p: DropPart, skirt: Skirt = []): Buil
 
 // Stones placed where they were traced on the photo. Briolettes hang from their cap; where one overlaps a stone already
 // placed it sits behind it (the back tier). Every stone is wired to the big stone's gallery like the arc layout.
-function tracedStones(d: Design, m: Mats, p: DropPart, g: THREE.Group, spots: DropPart["small"]["spots"], cs: CenterStone, theta: number,
+function tracedStones(d: Design, m: Mats, p: DropPart, g: THREE.Group, spots: DropPart["small"]["spots"], theta: number,
   edge: ((a: number) => number) | null, Wh: number, Lh: number, gallery: { r: number; y: number }) {
   const placed: { x: number; z: number; r: number; back: number }[] = [];
   const order = spots.map((sp, i) => ({ sp, i })).sort((a, b) => b.sp.s - a.sp.s);

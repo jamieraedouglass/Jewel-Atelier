@@ -4,7 +4,7 @@
 type Mark = { photo?: number; x?: number; y?: number; r?: number };
 type Group = { what?: string; marks?: Mark[] };
 type Box = { photo?: number; x?: number; y?: number; w?: number; h?: number };
-export type CorrectionGroup = { what: string; found: number; added: number; removed: number; where: string[] };
+type CorrectionGroup = { what: string; found: number; added: number; removed: number; where: string[] };
 
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const same = (a: Mark, b: Mark) => (a.photo ?? 0) === (b.photo ?? 0) && a.x === b.x && a.y === b.y;

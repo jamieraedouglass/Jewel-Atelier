@@ -1,6 +1,6 @@
 import type { Design } from "@/lib/design";
 
-export type ThumbJob = { id: string; design: Design; resolve: (b: Blob | null) => void };
+type ThumbJob = { id: string; design: Design; resolve: (b: Blob | null) => void };
 
 let queue: ThumbJob[] = [];
 const listeners = new Set<() => void>();

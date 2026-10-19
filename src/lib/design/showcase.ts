@@ -110,7 +110,7 @@ export const SHOWCASE: { name: string; type: PieceType; style: string; patch: De
   { name: "Candy button ring", type: "ring", style: "solitaire", patch: { metal: "yellow-gold", center: { ...gem("aquamarine", "faceted", "cushion", 2.5, "Blue topaz"), color: "#4fa3d1", clarity: 0.85 }, setting: { style: "bezel" }, band: { widthMm: 3.2 } } as DesignPatch },
 ];
 
-export type ShowcasePiece = (typeof SHOWCASE)[number];
+type ShowcasePiece = (typeof SHOWCASE)[number];
 
 export const freshDesign = (current?: Design): Design => current
   ? applyPatch(defaultDesign(), { ringSize: current.ringSize, options: { wristCm: current.options.wristCm, bangleSize: current.options.bangleSize } })

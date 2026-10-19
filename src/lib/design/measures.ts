@@ -1,7 +1,7 @@
 import { BANGLE_SIZES, type Gem, METALS, SHAPES, SHAPE_FILL, SHAPE_RATIO } from "./vocab";
 import { type CenterStone, type Design } from "./schema";
 
-export const DENSITY: Record<Gem, number> = {
+const DENSITY: Record<Gem, number> = {
   diamond: 3.52, sapphire: 4.0, "yellow-sapphire": 4.0, ruby: 4.0, emerald: 2.72, spinel: 3.6, pearl: 2.7, coral: 2.65, hessonite: 3.65,
   "cats-eye": 3.72, tourmaline: 3.06, aquamarine: 2.7, tanzanite: 3.35, amethyst: 2.65, citrine: 2.65, garnet: 3.9, morganite: 2.8,
   peridot: 3.34, opal: 2.1, turquoise: 2.7, onyx: 2.65, jade: 3.3, other: 3.5,

@@ -9,7 +9,7 @@ export const normalizeStatus = (s: unknown): Status => ((STATUSES as readonly un
 export const AVAILABILITY = ["in-stock", "reserved", "with-client", "sold"] as const;
 export const AVAILABILITY_LABEL: Record<(typeof AVAILABILITY)[number], string> = { "in-stock": "In stock", reserved: "Reserved", "with-client": "With a client", sold: "Sold" };
 
-export const InventorySchema = z.object({
+const InventorySchema = z.object({
   ref: z.string().max(40).default(""),
   weightG: z.number().positive().max(10000).nullable().default(null),
   stonesCt: z.number().positive().max(10000).nullable().default(null),

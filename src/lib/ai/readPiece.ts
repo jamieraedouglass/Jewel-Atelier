@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TYPES } from "../design";
-import { MODEL, anthropic } from "./client";
+import { FALLBACK, MODEL, anthropic, modelRefused } from "./client";
 
-export const readPieceTool: Anthropic.Tool = {
+const readPieceTool: Anthropic.Tool = {
   name: "read_piece",
   description: "Record a careful visual map of the jewellery in the photos: what kind of piece it is, the main stone, every group of stones with each stone marked where it is, and any questions that must be answered before it can be built accurately.",
   input_schema: {
@@ -84,7 +84,7 @@ export const readPieceTool: Anthropic.Tool = {
   },
 };
 
-export const READ_SYSTEM = `You are a master jeweller and gem setter mapping a piece of jewellery from photos before it is rebuilt in 3D.
+const READ_SYSTEM = `You are a master jeweller and gem setter mapping a piece of jewellery from photos before it is rebuilt in 3D.
 Work like a bench jeweller counting stones under a loupe: look, mark each stone where it is, then count from your marks.
 - First say what kind of piece it is. If the photo shows a pair, map ONE piece.
 - Each photo's size in pixels is given just before it. Give every position in pixels of that photo, measured from its
@@ -106,8 +106,6 @@ Work like a bench jeweller counting stones under a loupe: look, mark each stone 
 - Ask a question only when the answer would change the build and the photos can't settle it. Never ask what the photo shows.
 The person's notes are facts; use them. Call read_piece once.`;
 
-const FALLBACK = "claude-sonnet-5-5";
-
 export async function streamReading(content: Anthropic.MessageParam["content"], onSnapshot: (s: unknown) => void): Promise<unknown | null> {
   const run = async (model: string) => {
     const stream = anthropic().messages.stream({
@@ -127,8 +125,7 @@ export async function streamReading(content: Anthropic.MessageParam["content"], 
   try {
     return await run(MODEL);
   } catch (e) {
-    const refused = e instanceof Anthropic.APIError && (e.status === 404 || e.status === 403 || (e.status === 400 && /model/i.test(e.message)));
-    if (!refused || MODEL === FALLBACK) throw e;
+    if (!modelRefused(e) || MODEL === FALLBACK) throw e;
     return run(FALLBACK);
   }
 }

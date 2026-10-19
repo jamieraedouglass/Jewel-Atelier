@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RingCanvasHandle } from "../canvas/types";
 import { thumbPath } from "@/lib/thumbs";
 
-export const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}.png`;
+const fileName = (d: Design) => `${d.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "design"}.png`;
 
 type Opts = {
   initialId: string | null; initialPublic: boolean; userId: string | null;

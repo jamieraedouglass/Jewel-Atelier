@@ -11,7 +11,7 @@ export const TYPE_LABEL: Record<PieceType, string> = {
 };
 
 export type Use =
-  | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "ringSize" | "halo" | "accentTop" | "pave"
+  | "center" | "accents" | "fringe" | "enamel" | "setting" | "sides" | "band" | "halo" | "accentTop" | "pave"
   | "hoop" | "length" | "wrist" | "chain" | "count" | "layers" | "motif" | "accentShapes" | "extraStones" | "drop" | "frames" | "links" | "hang" | "clasp";
 
 type StyleMeta = { label: string; blurb: string; uses: Use[]; defaults?: DesignPatch };
@@ -20,20 +20,20 @@ const CORE: Use[] = ["center", "setting"];
 
 export const STYLES: Record<PieceType, Record<string, StyleMeta>> = {
   ring: {
-    "three-stone": { label: "Three-stone", blurb: "Centre stone with a matched pair of side stones.", uses: [...CORE, "sides", "band", "ringSize"] },
-    "two-stone": { label: "Two-stone (toi-et-moi)", blurb: "Two stones side by side, each its own gem, shape, size and angle, with an optional surround of baguettes or pavé.", uses: [...CORE, "extraStones", "halo", "accents", "band", "ringSize"] },
-    posy: { label: "Flower posy", blurb: "A cluster of little flowers round the centre, gold or set with diamonds.", uses: [...CORE, "accents", "count", "pave", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 9, pave: true }, accents: { sizeCt: 0.03 } } },
-    solitaire: { label: "Solitaire", blurb: "One stone, nothing competing.", uses: [...CORE, "band", "ringSize"] },
-    halo: { label: "Halo", blurb: "A ring of small stones framing the centre.", uses: [...CORE, "accents", "sides", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.04 } } },
-    cluster: { label: "Cluster", blurb: "Petal stones around the centre, like a flower.", uses: [...CORE, "accents", "band", "ringSize"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.4 } } },
-    navratna: { label: "Navratna", blurb: "Ruby centre ringed by the eight other planetary gems.", uses: [...CORE, "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "ruby", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#b3062a", clarity: 0.45, label: "Ruby" } } },
-    "polki-cocktail": { label: "Polki cocktail", blurb: "Big polki centre, double halo with a pearl fringe.", uses: [...CORE, "accents", "fringe", "band", "ringSize"], defaults: { sides: { kind: "none" }, center: { gem: "diamond", cut: "polki", shape: "cushion", lengthMm: 14, widthMm: 12, domeMm: 0.8, color: "#f4f6fb", clarity: 0.9, label: "Polki diamond" }, fringe: { enabled: true } } },
-    eternity: { label: "Eternity band", blurb: "Stones all the way round.", uses: ["accents", "band", "ringSize"], defaults: { accents: { sizeCt: 0.1 } } },
-    "wide-band": { label: "Wide band with diamond rows", blurb: "A broad band with rows of stones all the way round: on the edges with gold between, or across the whole band.", uses: ["accents", "band", "ringSize", "layers", "halo"], defaults: { band: { widthMm: 7 }, options: { layers: 2, halo: true }, accents: { sizeCt: 0.06 } } },
-    deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band", "ringSize"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" }, band: { profile: "low" } } },
-    "half-flower": { label: "Half-flower", blurb: "Half a flower of pear diamonds round a little round, tucked against one end of the centre stone (or both).", uses: [...CORE, "accents", "count", "halo", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 5, halo: false }, setting: { style: "four-claw" } } },
-    swirl: { label: "Swirl / bypass", blurb: "Pavé ribbons sweeping around the centre stone.", uses: [...CORE, "accents", "count", "band", "ringSize"], defaults: { sides: { kind: "none" }, options: { count: 3 }, accents: { sizeCt: 0.012 } } },
-    "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band", "ringSize"] },
+    "three-stone": { label: "Three-stone", blurb: "Centre stone with a matched pair of side stones.", uses: [...CORE, "sides", "band"] },
+    "two-stone": { label: "Two-stone (toi-et-moi)", blurb: "Two stones side by side, each its own gem, shape, size and angle, with an optional surround of baguettes or pavé.", uses: [...CORE, "extraStones", "halo", "accents", "band"] },
+    posy: { label: "Flower posy", blurb: "A cluster of little flowers round the centre, gold or set with diamonds.", uses: [...CORE, "accents", "count", "pave", "band"], defaults: { sides: { kind: "none" }, options: { count: 9, pave: true }, accents: { sizeCt: 0.03 } } },
+    solitaire: { label: "Solitaire", blurb: "One stone, nothing competing.", uses: [...CORE, "band"] },
+    halo: { label: "Halo", blurb: "A ring of small stones framing the centre.", uses: [...CORE, "accents", "sides", "band"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.04 } } },
+    cluster: { label: "Cluster", blurb: "Petal stones around the centre, like a flower.", uses: [...CORE, "accents", "band"], defaults: { sides: { kind: "none" }, accents: { sizeCt: 0.4 } } },
+    navratna: { label: "Navratna", blurb: "Ruby centre ringed by the eight other planetary gems.", uses: [...CORE, "band"], defaults: { sides: { kind: "none" }, center: { gem: "ruby", cut: "faceted", shape: "round", lengthMm: 7, widthMm: 7, domeMm: 1.2, color: "#b3062a", clarity: 0.45, label: "Ruby" } } },
+    "polki-cocktail": { label: "Polki cocktail", blurb: "Big polki centre, double halo with a pearl fringe.", uses: [...CORE, "accents", "fringe", "band"], defaults: { sides: { kind: "none" }, center: { gem: "diamond", cut: "polki", shape: "cushion", lengthMm: 14, widthMm: 12, domeMm: 0.8, color: "#f4f6fb", clarity: 0.9, label: "Polki diamond" }, fringe: { enabled: true } } },
+    eternity: { label: "Eternity band", blurb: "Stones all the way round.", uses: ["accents", "band"], defaults: { accents: { sizeCt: 0.1 } } },
+    "wide-band": { label: "Wide band with diamond rows", blurb: "A broad band with rows of stones all the way round: on the edges with gold between, or across the whole band.", uses: ["accents", "band", "layers", "halo"], defaults: { band: { widthMm: 7 }, options: { layers: 2, halo: true }, accents: { sizeCt: 0.06 } } },
+    deco: { label: "Art Deco / layered halo", blurb: "Centre stone framed by layers: calibré rubies, emeralds or sapphires, baguettes, pavé and milgrain, in round, octagon, hexagon or cushion shapes.", uses: [...CORE, "frames", "band"], defaults: { sides: { kind: "none" }, setting: { style: "bezel" }, band: { profile: "low" } } },
+    "half-flower": { label: "Half-flower", blurb: "Half a flower of pear diamonds round a little round, tucked against one end of the centre stone (or both).", uses: [...CORE, "accents", "count", "halo", "band"], defaults: { sides: { kind: "none" }, options: { count: 5, halo: false }, setting: { style: "four-claw" } } },
+    swirl: { label: "Swirl / bypass", blurb: "Pavé ribbons sweeping around the centre stone.", uses: [...CORE, "accents", "count", "band"], defaults: { sides: { kind: "none" }, options: { count: 3 }, accents: { sizeCt: 0.012 } } },
+    "motif-ring": { label: "Custom motif", blurb: "Your own shape — described, sketched or from an SVG — as the ring top.", uses: ["motif", "center", "accents", "enamel", "band"] },
   },
   earrings: {
     deco: { label: "Art Deco / layered halo stud", blurb: "A centre stone framed by layers of calibré stones, baguettes, pavé and milgrain.", uses: [...CORE, "frames"], defaults: { setting: { style: "bezel" } } },
@@ -141,7 +141,7 @@ export const accentsOff = (d: Design) => !d.accents.enabled && accentsOptional(d
 export const SOLID_BRACELETS = new Set(["bangle", "kada", "cuff", "open-bangle"]);
 export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type === "bracelet" && SOLID_BRACELETS.has(d.style);
 
-export const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
+const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
 export type ClaspChoice = (typeof CLASPS)[number];
 const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded"]);
 export const claspChoices = (style: string): readonly ClaspChoice[] =>

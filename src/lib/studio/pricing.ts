@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { KARATS, METALS, SHAPES, isGold, label, lengthForShape, metalName, normalizeDesign, type Design } from "../design";
+import { KARATS, METALS, SHAPES, isGold, label, lengthForShape, metalName, normalizeDesign, round1, type Design } from "../design";
 import { FRESH_STONE, StoneOptionSchema, clampToAllowed, optionLook, optionName, type Allow } from "./links";
 
 export const CURRENCIES = ["INR", "USD", "GBP", "EUR", "AED", "SGD", "CAD", "AUD"] as const;
@@ -9,7 +9,7 @@ export const CURRENCY_NAMES: Record<Currency, string> = {
   SGD: "Singapore dollars (S$)", CAD: "Canadian dollars (C$)", AUD: "Australian dollars (A$)",
 };
 
-export const PriceVersionSchema = z.object({
+const PriceVersionSchema = z.object({
   inr: z.number().int().positive().max(10_000_000_000),
   stone: StoneOptionSchema.optional(),
   shape: z.enum(SHAPES).optional(),
@@ -26,9 +26,8 @@ export type Pricing = z.output<typeof PricingSchema>;
 
 export const normalizePricing = (x: unknown): Pricing => { const r = PricingSchema.safeParse(x ?? {}); return r.success ? r.data : PricingSchema.parse({}); };
 
-const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export function versionDesign(base: Design, v: Omit<PriceVersion, "inr">): Design {
+function versionDesign(base: Design, v: Omit<PriceVersion, "inr">): Design {
   const d: Design = JSON.parse(JSON.stringify(base));
   if (!base.center.none) {
     if (v.stone) {

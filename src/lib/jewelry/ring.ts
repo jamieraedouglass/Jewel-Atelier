@@ -17,7 +17,7 @@ function edgeX(shape: CenterStone["shape"], L: number, W: number, deg: number, s
   return most;
 }
 
-export function mosaicFrame(d: Design) {
+function mosaicFrame(d: Design) {
   if (d.type !== "ring" || d.style !== "deco" || !d.options.decoWrap) return null;
   const stoneLayers = d.frames.filter((f) => f.kind === "fill" || f.kind === "stones");
   return stoneLayers[stoneLayers.length - 1] ?? null;
@@ -310,9 +310,8 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   let drop: number;
   if (prof === "flush") {
     const topT = Math.min(7, Math.max(2.6, belly + 0.7));
-    const c0 = d.center;
     const prevTop = shank.userData.top as { topW: number; topT: number; spread: number } | undefined;
-    const top = { topW: Math.max(d.band.widthMm + 1.4, c0.lengthMm * 0.92, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c0.widthMm / 2 + 0.3, prevTop?.spread ?? 0), round: !prevTop };
+    const top = { topW: Math.max(d.band.widthMm + 1.4, c.lengthMm * 0.92, prevTop?.topW ?? 0), topT: Math.max(topT, prevTop?.topT ?? 0), spread: Math.max(c.widthMm / 2 + 0.3, prevTop?.spread ?? 0), round: !prevTop };
     shank.geometry.dispose();
     shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
     shank.userData.top = top;
@@ -325,8 +324,9 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     const topT = target - 0.3 - RIN;
     if (shank.userData.top) { drop = gy - target; rest.forEach((o) => (o.position.y -= drop)); return; }
     shank.geometry.dispose();
-    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 }, d.band.shape, d.band.split);
-    shank.userData.top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };
+    const top = { topW: Math.max(d.band.widthMm + 1.6, hz * 2 + 0.4), topT, spread: hx * 0.95 };
+    shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
+    shank.userData.top = top;
     drop = gy - target;
   } else {
     drop = Math.max(0, gy - (RIN + 2.3 + belly * 0.25) + Math.min(1.2, d.setting.height * 4));
@@ -334,7 +334,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
   if (drop > 0) rest.forEach((o) => (o.position.y -= drop));
 }
 
-export function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: number, floor: number, bandHalf: number) {
+function bendOverFinger(root: THREE.Object3D, part: THREE.Object3D, amount: number, floor: number, bandHalf: number) {
   root.updateMatrixWorld(true);
   const toRoot = root.matrixWorld.clone().invert();
   const box = new THREE.Box3().setFromObject(part);
@@ -432,11 +432,12 @@ function reach(part: THREE.Object3D, axis: THREE.Vector3) {
   return most;
 }
 
-export function stretchAxis(part: THREE.Object3D, axis: THREE.Vector3, k: number, from: number) {
+function stretchAxis(part: THREE.Object3D, axis: THREE.Vector3, k: number, from: number) {
   part.updateMatrixWorld(true);
   const toPart = part.matrixWorld.clone().invert();
-  const J = new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0)));
-  J.multiply(new THREE.Matrix4().makeScale(k, 1, 1)).multiply(new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0))).transpose());
+  // A stretch by k along `axis`: into the axis's frame, scale, and back out.
+  const B = new THREE.Matrix4().makeBasis(axis, v3(0, 1, 0), v3().crossVectors(axis, v3(0, 1, 0)));
+  const J = B.clone().multiply(new THREE.Matrix4().makeScale(k, 1, 1)).multiply(B.clone().transpose());
   const move = (p: THREE.Vector3) => { const u = p.dot(axis), extra = (k - 1) * Math.max(0, Math.abs(u) - from) * Math.sign(u); return { p: p.clone().addScaledVector(axis, extra), far: Math.abs(u) > from }; };
   const rel = new THREE.Matrix4(), inv = new THREE.Matrix4(), mi = new THREE.Matrix4(), t = new THREE.Vector3(), lin = new THREE.Matrix4();
   part.traverse((o) => {

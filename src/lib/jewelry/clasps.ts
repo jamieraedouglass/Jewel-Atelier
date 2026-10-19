@@ -6,7 +6,7 @@ import { type Mats } from "./materials";
 import { accents, jumpRing } from "./elements";
 import { yawAt } from "./curves";
 
-export type ClaspKind = Exclude<ClaspChoice, "auto" | "hidden">;
+type ClaspKind = Exclude<ClaspChoice, "auto" | "hidden">;
 
 export const claspGap = (curve: THREE.Curve<THREE.Vector3>, size: number) => Math.min(0.06, (size * 2.2) / curve.getLength());
 

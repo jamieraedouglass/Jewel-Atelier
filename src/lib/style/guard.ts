@@ -14,7 +14,7 @@ export function gemsIn(patch: unknown): Gem[] {
   return [...found];
 }
 
-export type Proposal = { title: string; why: string; patch: Record<string, unknown>; note?: string };
+type Proposal = { title: string; why: string; patch: Record<string, unknown>; note?: string };
 
 export function screenProposals(proposals: Proposal[], prefs: StylePrefs) {
   const kept: Proposal[] = [], dropped: { title: string; gems: Gem[] }[] = [];

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { callTool, STONE_SYSTEM, stoneAnalysisTool, storageImages } from "@/lib/ai";
-import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone, diamondGrade } from "@/lib/design";
+import { CUTS, GEMS, SHAPES, estimateDims, type CenterStone, clamp, diamondGrade } from "@/lib/design";
 import { requireUser } from "@/lib/supabase/server";
 import { chargeAiCall } from "@/lib/usage";
 import { aiFailure } from "@/lib/apiError";
@@ -38,7 +38,6 @@ const Analysis = z.object({
   star_rays: z.number().nullish(),
 });
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 export async function POST(req: Request) {
   const { supabase, user } = await requireUser();

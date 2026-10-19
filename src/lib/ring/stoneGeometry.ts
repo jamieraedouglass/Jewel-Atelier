@@ -186,7 +186,7 @@ export function carvedGeo(fn: OutlineFn, dome: number, belly: number, flutes: nu
   return g;
 }
 
-export type Tier = { s: number; y: number; twist?: number };
+type Tier = { s: number; y: number; twist?: number };
 
 export function facetedGeo(ring: (s: number, y: number, twist: number) => THREE.Vector3[], center: THREE.Vector3, tiers: Tier[], tableY: number, culetY: number) {
   const rings = tiers.map((t) => ring(t.s, t.y, t.twist ?? 0));

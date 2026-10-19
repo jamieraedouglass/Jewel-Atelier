@@ -19,10 +19,11 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const turned = ([x, z]: [number, number]): [number, number] => (turn ? [x * ct + z * st0, -x * st0 + z * ct] : [x, z]);
   { const fn = outlineFn(c.shape, c.lengthMm + 0.5, c.widthMm + 0.5); for (let k = 0; k < 720; k++) { const [x, z] = turned(fn(k / 720)); const b = Math.floor((theta(x, z) / (Math.PI * 2)) * N) % N; prev[b] = Math.max(prev[b], Math.hypot(x, z)); } }
   for (let b = 0; b < N; b++) if (!prev[b]) prev[b] = prev[(b + N - 1) % N];
-  const prevAt = (a: number) => prev[Math.floor((a / (Math.PI * 2)) * N) % N];
+  const bin = (a: number) => Math.floor((a / (Math.PI * 2)) * N) % N;
+  const prevAt = (a: number) => prev[bin(a)];
   // The bezel's own edge, before any layers: a sprays mosaic runs right up to it.
   const bezelEdge = Float32Array.from(prev);
-  const bezelAt = (a: number) => bezelEdge[Math.floor((a / (Math.PI * 2)) * N) % N] + 0.45;
+  const bezelAt = (a: number) => bezelEdge[bin(a)] + 0.45;
   const centreHalf = Math.max(c.lengthMm, c.widthMm) / 2 + 0.5;
   const maxHalf = Math.max(centreHalf + 4, d.type === "ring" ? 16 : 12);
   const growth = d.frames.reduce((a, f) => a + f.gapMm + (f.kind === "stones" ? (f.direction === "radial" ? f.widthMm * ASPECT[f.shape] : f.widthMm) : f.kind === "milgrain" ? 0.55 : f.kind === "fill" ? f.widthMm * ASPECT[f.shape] : f.widthMm), 0);
@@ -38,7 +39,6 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
   const r0 = centreHalf - 0.5;
   const domeY = (r: number) => y0 - Math.max(0, r * r - r0 * r0) / (2 * Rd);
   const tilt = (p: THREE.Vector3) => v3(p.x / Rd, 1, p.z / Rd).normalize();
-  const bin = (a: number) => Math.floor((a / (Math.PI * 2)) * N) % N;
   let y = y0, outer: THREE.Vector3[] = [];
   let sideStone: SideStone | null = null;
   frames.forEach((f0, fi) => {
@@ -123,7 +123,6 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
       const blocked = (x: number, z: number, r: number) => blocks.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + r);
       let wallStone: { shape: Frame["shape"]; size: number } | null = null;
       if (sprays) {
-        // Every free spot between the leaves is filled with a tight honeycomb of cabochons, so no gold shows.
         const room = Array.from({ length: 16 }, (_, j) => { const a = (j / 16) * Math.PI * 2; return outerAt(a) - innerAt(a); }).sort((p, q) => p - q)[8];
         const cell = Math.min(sz, Math.max(1.1, Math.min(room / 2.3, 1.55)));
         const reach = Math.max(...Array.from({ length: 64 }, (_, j) => outerAt((j / 64) * Math.PI * 2)));
@@ -132,8 +131,7 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         // The same packed stones carry on down the dome's walls, several rows deep.
         wallStone = { shape: fillShape, size: Math.min(cell * 0.9, 1.35) };
         const key = `${f.gem}|${f.color}|${f.cut}|${fillShape}`;
-        // Stones packed into every free spot (tried in random order on a fine grid), then each grown to fill the
-        // space round it, as a setter cuts sugarloaf stones to the gaps.
+        // Candidate spots on a fine grid, in random order, for the stones that fill the gaps after the honeycomb.
         const step = cell / 4, cands: [number, number][] = [];
         for (let x = -reach; x <= reach; x += step) for (let z = -reach; z <= reach; z += step) cands.push([x, z]);
         for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cands[i], cands[j]] = [cands[j], cands[i]]; }
@@ -146,7 +144,8 @@ export function decoFrames(d: Design, m: Mats, c: CenterStone, y0 = -0.15, pass 
         };
         const inside = (x: number, z: number, m: number) => { const r = Math.hypot(x, z), th = theta(x, z); return r >= innerAt(th) + cell * m && r <= outerAt(th) - cell * (bombe ? 0.02 : 0.28); };
         const take = (x: number, z: number) => { (bucket.get(cellKey(x, z)) ?? bucket.set(cellKey(x, z), []).get(cellKey(x, z))!).push(got.length); got.push({ x, z }); };
-        // A honeycomb for the open field, then smaller stones dropped into what's left round the leaves and edges.
+        // Every free spot between the leaves is filled so no gold shows: a honeycomb of cabochons for the open field,
+        // then smaller stones dropped into what's left round the leaves and edges.
         const rowH = cell * 0.74;
         for (let zi = -Math.ceil(reach / rowH); zi <= Math.ceil(reach / rowH); zi++)
           for (let xi = -Math.ceil(reach / cell) - 1; xi <= Math.ceil(reach / cell) + 1; xi++) {
@@ -456,14 +455,14 @@ function wallMosaic(m: Mats, rim: THREE.Vector2[], topY: (r: number) => number, 
   return g;
 }
 
-export const ROUNDING = 0.32;
+const ROUNDING = 0.32;
 // How far a dome's walls tuck in under it; decoFrames sets it for each top it builds.
 let rounding = ROUNDING;
 
-export type Depth = number | ((p: THREE.Vector2) => number);
+type Depth = number | ((p: THREE.Vector2) => number);
 const depthAt = (depth: Depth, p: THREE.Vector2) => (typeof depth === "number" ? depth : depth(p));
 
-export function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: Depth, phi: number) {
+function wallPoint(p: THREE.Vector2, topY: (r: number) => number, depth: Depth, phi: number) {
   const rr = Math.hypot(p.x, p.y), k = 1 - rounding + rounding * Math.cos(phi);
   return v3(p.x * k, topY(rr) - depthAt(depth, p) * Math.sin(phi), p.y * k);
 }

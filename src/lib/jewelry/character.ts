@@ -69,7 +69,7 @@ function seeded(seed: number) {
   return () => (s = (s * 16807) % 2147483647) / 2147483647;
 }
 
-export function inclusionSpecks(c: Pick<CenterStone, "inclusions" | "cut" | "lengthMm" | "widthMm">, fn: OutlineFn, L: number, W: number, dome: number): THREE.Group | null {
+export function inclusionSpecks(c: Pick<CenterStone, "inclusions" | "cut" | "lengthMm" | "widthMm">, fn: OutlineFn, W: number, dome: number): THREE.Group | null {
   const n = Math.round(c.inclusions * 18);
   if (n < 1) return null;
   const rnd = seeded(c.lengthMm * 31 + c.widthMm * 17 + c.inclusions * 101);

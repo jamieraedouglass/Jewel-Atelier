@@ -6,15 +6,15 @@ import { normalizeChat, type ChatMessage } from "../chat";
 import { clampToAllowed, describeChanges, linkState, normalizeAllow, type Allow } from "./links";
 import { normalizePricing, priceFor, type Pricing } from "./pricing";
 
-export const newToken = () => randomBytes(32).toString("base64url");
-export const isToken = (t: string) => /^[A-Za-z0-9_-]{43}$/.test(t);
+const newToken = () => randomBytes(32).toString("base64url");
+const isToken = (t: string) => /^[A-Za-z0-9_-]{43}$/.test(t);
 
-export type LinkRow = {
+type LinkRow = {
   id: string; token: string; owner: string; client_name: string; note: string; design_ids: string[]; allow: unknown; pricing?: unknown;
   ai_daily_limit: number; expires_at: string | null; revoked: boolean; created_at: string; last_opened_at: string | null;
 };
-export type ClientPiece = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
-export type ClientBundle = { link: LinkRow; allow: Allow; pricing: Pricing; state: ReturnType<typeof linkState>; pieces: ClientPiece[] };
+type ClientPiece = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
+type ClientBundle = { link: LinkRow; allow: Allow; pricing: Pricing; state: ReturnType<typeof linkState>; pieces: ClientPiece[] };
 
 const db = () => createAdminClient();
 

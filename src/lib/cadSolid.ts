@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import Module from "manifold-3d";
+import { MeshBVH } from "three-mesh-bvh";
 import { isMetal } from "./studio/spec";
 
 type Wasm = Awaited<ReturnType<typeof Module>>;
@@ -8,7 +9,77 @@ type Solid = InstanceType<Wasm["Manifold"]>;
 let loading: Promise<Wasm> | null = null;
 const engine = () => (loading ??= Module().then((w) => { w.setup(); return w; }));
 
-export type SolidReport = { pieces: number; joined: number; rebuilt: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number };
+// A spot on the piece, named by the part it's on and placed in millimetres, so a CAD jeweller can find it.
+export type Spot = { where: string; at: [number, number, number] };
+export type ThinSpot = Spot & { typicalMm: number; areaMm2: number };
+export type ThinCheck = { minMm: number; spots: ThinSpot[]; thinMm2: number; surfaceMm2: number };
+export type SolidReport = {
+  pieces: number; joined: number; rebuilt: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number;
+  // Checks before casting: every stone that needs a seat has one and touches the metal, and no metal is too thin to cast.
+  stones?: number; strung?: number; unseated?: Spot[]; loose?: Spot[]; thin?: ThinCheck;
+};
+
+// Metal thinner than this is at risk of not filling in casting, or of bending or breaking in wear.
+export const THIN_MM = 0.6;
+
+const PART_NAMES: Record<string, string> = {
+  center: "the centre stone's setting", sides: "the side stones' settings", extra: "the second stone's setting", accents: "the small stones' settings",
+  motif: "the motif", band: "the band", head: "the centre stone's head and gallery", fringe: "the fringe",
+};
+const partOf = (o: THREE.Object3D) => {
+  for (let p: THREE.Object3D | null = o; p; p = p.parent) {
+    if (p.userData.shank) return "band";
+    if (typeof p.userData.part === "string" && p.userData.part) return p.userData.part as string;
+    // A ring's own root (it knows its girdle height): metal right under it, outside any named part, is the head.
+    if (typeof p.userData.girdleY === "number") return "head";
+  }
+  return "";
+};
+const nameOf = (part: string) => PART_NAMES[part] ?? (part ? `the ${part}` : "the frame and links");
+const mm1 = (v: THREE.Vector3): [number, number, number] => [Math.round(v.x * 10) / 10, Math.round(v.y * 10) / 10, Math.round(v.z * 10) / 10];
+
+// Wall thickness the way CAD checks measure it: from points spread over the surface, straight in along the inward
+// normal to where the ray leaves the metal again. Thin points close together are gathered into one spot, which reports
+// its typical (median) thickness: single readings right beside a sharp edge or a claw tip run near zero and mean little.
+export function thinSpots(geo: THREE.BufferGeometry, minMm: number, partAt: (p: THREE.Vector3) => string, samples = 40000): ThinCheck {
+  const pos = geo.getAttribute("position"), index = geo.index;
+  const tris = index ? index.count / 3 : pos.count / 3;
+  const out: ThinCheck = { minMm, spots: [], thinMm2: 0, surfaceMm2: 0 };
+  if (!tris) return out;
+  // The BVH reorders the triangles of the geometry it's built on, so it gets its own copy.
+  const bvh = new MeshBVH(geo.clone());
+  const step = Math.max(1, Math.floor(tris / samples));
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), mid = new THREE.Vector3();
+  const ray = new THREE.Ray();
+  const cells = new Map<string, { sum: THREE.Vector3; ts: number[]; area: number }>();
+  const vi = (t: number, k: number) => (index ? index.getX(t * 3 + k) : t * 3 + k);
+  for (let t = 0; t < tris; t += step) {
+    a.fromBufferAttribute(pos, vi(t, 0)); b.fromBufferAttribute(pos, vi(t, 1)); c.fromBufferAttribute(pos, vi(t, 2));
+    n.subVectors(b, a).cross(c.clone().sub(a));
+    const area = n.length() / 2;
+    if (area < 1e-6) continue;
+    out.surfaceMm2 += area * step;
+    n.normalize();
+    mid.copy(a).add(b).add(c).divideScalar(3);
+    ray.origin.copy(mid).addScaledVector(n, -1e-3);
+    ray.direction.copy(n).negate();
+    // Hits right at the start are the neighbouring face at a sharp edge, not the far wall.
+    const hit = bvh.raycastFirst(ray, THREE.DoubleSide, 0.02, minMm);
+    if (!hit || hit.distance >= minMm) continue;
+    const key = `${Math.round(mid.x / 1.5)},${Math.round(mid.y / 1.5)},${Math.round(mid.z / 1.5)}`;
+    const cell = cells.get(key) ?? cells.set(key, { sum: new THREE.Vector3(), ts: [], area: 0 }).get(key)!;
+    cell.sum.add(mid); cell.ts.push(hit.distance); cell.area += area * step;
+    out.thinMm2 += area * step;
+  }
+  // A few stray hits (along a crease, say) aren't a thin area: keep spots with some surface to them.
+  out.spots = [...cells.values()].filter((x) => x.area >= 0.25).map((x) => {
+    const at = x.sum.divideScalar(x.ts.length), ts = x.ts.sort((p, q) => p - q);
+    return { where: nameOf(partAt(at)), at: mm1(at), typicalMm: Math.round(ts[ts.length >> 1] * 100) / 100, areaMm2: Math.round(x.area * 10) / 10 };
+  }).sort((p, q) => p.typicalMm - q.typicalMm || q.areaMm2 - p.areaMm2);
+  out.thinMm2 = Math.round(out.thinMm2);
+  out.surfaceMm2 = Math.round(out.surfaceMm2);
+  return out;
+}
 
 const toMat4 = (m: THREE.Matrix4) => Array.from(m.elements) as unknown as Parameters<Solid["transform"]>[0];
 
@@ -100,9 +171,13 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
   const toRoot = root.matrixWorld.clone().invert();
   const metal: Solid[] = [], cutters: Solid[] = [];
   const cache = new Map<string, Solid | null>(), seatCache = new Map<string, Solid | null>();
-  const report: SolidReport = { pieces: 0, joined: 0, rebuilt: 0, skipped: [], seats: 0, specks: 0, watertight: false, volumeMm3: 0 };
+  const report: SolidReport = { pieces: 0, joined: 0, rebuilt: 0, skipped: [], seats: 0, specks: 0, watertight: false, volumeMm3: 0, stones: 0, strung: 0, unseated: [], loose: [] };
+  // Where each metal part sits, to check every stone touches some metal and to name the part a thin spot is on.
+  const metalBoxes: { box: THREE.Box3; part: string }[] = [];
+  const boxOf = (s: Solid) => { const bb = s.boundingBox(); return new THREE.Box3(new THREE.Vector3(...bb.min), new THREE.Vector3(...bb.max)); };
   const m = new THREE.Matrix4(), rel = new THREE.Matrix4();
   const seen = new Set<string>();
+  const stoneBoxes: { box: THREE.Box3; spot: Spot }[] = [];
 
   const findings = new Set<THREE.Object3D>(), drilled = new Set<THREE.Object3D>(), openBack = new Map<THREE.Object3D, number>();
   root.traverse((o) => {
@@ -150,14 +225,17 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
       each((mm) => {
         report.pieces++;
         if (!base) { report.skipped.push(mesh.geometry.type); return; }
-        metal.push(base.transform(toMat4(grain ? mm.clone().multiply(deeper) : mm)));
+        const placed = base.transform(toMat4(grain ? mm.clone().multiply(deeper) : mm));
+        metal.push(placed);
+        metalBoxes.push({ box: boxOf(placed), part: partOf(o) });
         report.joined++;
       });
-    } else if (opts.seats !== false && !drilled.has(o)) {
+    } else if (opts.seats !== false && drilled.has(o)) {
+      each(() => { report.strung!++; });
+    } else if (opts.seats !== false) {
       const key = mesh.geometry.uuid;
       if (!seatCache.has(key)) seatCache.set(key, seatCutter(w, mesh.geometry));
       const base = seatCache.get(key);
-      if (!base) return;
       const frac = openBack.get(o);
       each((mm) => {
         // A stone drawn twice (its sparkle and its body) is seated once; matched on its whole placement, not just its
@@ -165,13 +243,20 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
         const id = `${mesh.geometry.uuid}:${mm.elements.map((v) => v.toFixed(2)).join(",")}`;
         if (seen.has(id)) return;
         seen.add(id);
-        cutters.push(base.transform(toMat4(mm)));
+        report.stones!++;
+        const at = mm1(new THREE.Vector3().setFromMatrixPosition(mm)), where = nameOf(partOf(o));
+        if (!base) { report.unseated!.push({ where, at }); return; }
+        const cutter = base.transform(toMat4(mm));
+        cutters.push(cutter);
+        stoneBoxes.push({ box: boxOf(cutter), spot: { where, at } });
         if (frac) cutters.push(holeFor(mm, mesh.geometry, frac));
       });
     }
   });
 
   if (!metal.length) return null;
+  // A stone whose seat reaches no metal at all would fall out: nothing holds it.
+  for (const s of stoneBoxes) if (!metalBoxes.some((m) => m.box.intersectsBox(s.box))) report.loose!.push(s.spot);
   let solid = w.Manifold.union(metal);
   metal.forEach((s) => s.delete());
   if (cutters.length) {
@@ -211,5 +296,11 @@ export async function solidMetal(root: THREE.Object3D, opts: { seats?: boolean }
   geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geo.setIndex(new THREE.BufferAttribute(Uint32Array.from(mesh.triVerts), 1));
   geo.computeVertexNormals();
+  const partAt = (p: THREE.Vector3) => {
+    let best = "", size = Infinity;
+    for (const m of metalBoxes) if (m.box.containsPoint(p)) { const v = m.box.getSize(new THREE.Vector3()); const vol = v.x * v.y * v.z; if (vol < size) { size = vol; best = m.part; } }
+    return best;
+  };
+  report.thin = thinSpots(geo, THIN_MM, partAt);
   return { geometry: geo, report };
 }

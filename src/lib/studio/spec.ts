@@ -39,7 +39,7 @@ export const isMetal = (m: THREE.Material | THREE.Material[]) => {
   return !!mat && mat.metalness >= 0.9 && !mat.flatShading;
 };
 
-export function metalWeight(group: THREE.Object3D, density: number) {
+function metalWeight(group: THREE.Object3D, density: number) {
   group.updateMatrixWorld(true);
   const m = new THREE.Matrix4();
   let mm3 = 0;
@@ -55,9 +55,9 @@ export function metalWeight(group: THREE.Object3D, density: number) {
   return Math.round(((mm3 / 1000) * density) * 10) / 10;
 }
 
-export type StoneLine = { what: string; count: number; size: string; eachCt: number | null; totalCt: number | null };
+type StoneLine = { what: string; count: number; size: string; eachCt: number | null; totalCt: number | null };
 
-export function smallStones(group: THREE.Object3D): { count: number; diaMm: number }[] {
+function smallStones(group: THREE.Object3D): { count: number; diaMm: number }[] {
   const bySize = new Map<number, number>();
   const s = new THREE.Vector3(), q = new THREE.Quaternion(), p = new THREE.Vector3(), m = new THREE.Matrix4();
   group.updateMatrixWorld(true);

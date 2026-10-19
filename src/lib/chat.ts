@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-export const ProposalSchema = z.object({
+const ProposalSchema = z.object({
   title: z.string().max(200),
   why: z.string().max(2000).default(""),
   patch: z.record(z.unknown()),
   note: z.string().max(300).optional(),
   state: z.enum(["applied", "dismissed"]).optional(),
 });
-export const ChatMessageSchema = z.object({
+const ChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().max(8000),
   proposals: z.array(ProposalSchema).max(8).optional(),

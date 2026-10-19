@@ -5,7 +5,7 @@ import { type Mats } from "./materials";
 import { setStone } from "./stones";
 import { wrap, yawAt } from "./curves";
 
-export const barSide = (count: number) => Math.max(1, Math.min(20, Math.round(count / 2)));
+const barSide = (count: number) => Math.max(1, Math.min(20, Math.round(count / 2)));
 
 function edited(c: CenterStone, d: Design, key: string): { stone: CenterStone; scale: number } {
   const ed = d.stoneEdits.find((e) => e.key === key);

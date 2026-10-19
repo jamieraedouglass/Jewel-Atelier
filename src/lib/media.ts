@@ -42,4 +42,7 @@ export async function videoFrames(file: File, count = 4, maxSide = 1400): Promis
   }
 }
 
+export const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const dataUrl = (b: Blob) => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); });
+
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));

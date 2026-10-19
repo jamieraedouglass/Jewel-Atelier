@@ -1,4 +1,4 @@
-export const RENDER_VERSION = 5;
+const RENDER_VERSION = 5;
 
 export const thumbPath = (userId: string, designId: string) => `${userId}/${designId}-r${RENDER_VERSION}.jpg`;
 

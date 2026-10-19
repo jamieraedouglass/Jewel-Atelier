@@ -26,8 +26,5 @@ export function designForAi(d: Design) {
   if (has("frames")) out.frames = d.frames;
   if (has("motif")) out.motif = { ...d.motif, path: `[${d.motif.path.length} characters of SVG path]` };
   if (d.type === "earrings") { out.rightEar = d.rightEar; out.mirrorPair = d.mirrorPair; }
-  for (const k of ["length", "wrist", "chain", "count", "layers", "hoop", "links", "hang"] as const) {
-    if (k in d && has(k)) out[k] = (d as unknown as Record<string, unknown>)[k];
-  }
   return out;
 }

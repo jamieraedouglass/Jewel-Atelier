@@ -5,7 +5,7 @@ import { knownPriceReply, priceFor, priceText, type Pricing } from "@/lib/studio
 import { clampToAllowed, describeChanges, optionLook, optionName, type Allow } from "@/lib/studio/links";
 
 export type ClientPieceData = { designId: string; name: string; base: Design; version: Design; chat: ChatMessage[] };
-export type EventKind = "tried-on" | "compared" | "asked-jeweller";
+type EventKind = "tried-on" | "compared" | "asked-jeweller";
 
 export interface ClientBackend {
   save(designId: string, design: Design): Promise<Design | null>;

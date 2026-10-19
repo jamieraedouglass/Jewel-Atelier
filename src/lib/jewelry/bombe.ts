@@ -6,10 +6,10 @@ import { type Mats } from "./materials";
 import { ASPECT, type Item, accents, balls } from "./elements";
 import { plateMetal } from "./ringHeads";
 
-// A bombé mosaic head built as one shape: for every direction round the top, one smooth profile runs from the bezel
-// over the dome, rolls over the rim and sweeps down to the finger and the shoulders. It is a single closed shell of
-// metal, and the stones are laid over the whole of it in one pass (packed in random order, then grown into the gaps)
-// with leaf branches that run unbroken from the bezel down the sides.
+// A bombé mosaic head built as one shape, faceted like the piece: a top face round the stone, then side faces that slope
+// out and down like a steep pyramid, tapering into the band, with raised beaded ridges where the faces meet. It is a
+// single closed shell of metal; leaf vines run round the stone and down the middle of each side face, and the stones
+// are packed over the rest in passes from large to small.
 
 export const isBombe = (d: Design) =>
   d.type === "ring" && d.style === "deco" && d.options.decoWrap && d.options.decoDome > 0 && d.frames.some((f) => f.kind === "fill" && f.pattern === "sprays" && !!f.alt);
@@ -69,7 +69,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const yTop = 0, drop = 1.4 + 2.4 * Math.min(1, o.decoDome);
   const grid: THREE.Vector3[][] = outline.map((O) => {
     // The shell starts against the bezel wall, so the setting and the dome are one piece of metal.
-    const dir = v3(O.x, 0, O.z).normalize(), a = Math.atan2(O.z, O.x), rb = edge(a) + 0.3, ro = Math.hypot(O.x, O.z);
+    const dir = v3(O.x, 0, O.z).normalize(), a = Math.atan2(O.z, O.x), rb = edge(a) + 0.3;
     // The top face round the stone is the smaller part; the side faces slope outward and down from its edge like a
     // steep pyramid, reaching the full width of the head low down where they meet the band.
     const bandOut = finger.r + 1.3, oa = O.dot(across), ol = O.dot(along);
@@ -92,7 +92,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
     return [...top, ...Array.from({ length: n }, (_, k) => side.getPoint((k + 1) / n))];
   });
 
-  // The shell: outer surface, an inner surface 1 mm in, closed at the bezel and at the foot.
+  // The shell: outer surface, an inner surface SHELL mm in, closed at the bezel and at the foot.
   const normal = (i: number, k: number) => {
     const a = grid[(i + 1) % NT][k].clone().sub(grid[(i + NT - 1) % NT][k]);
     const b = grid[i][Math.min(NK - 1, k + 1)].clone().sub(grid[i][Math.max(0, k - 1)]);

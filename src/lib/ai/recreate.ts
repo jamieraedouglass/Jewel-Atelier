@@ -5,7 +5,7 @@ import { callTool } from "./client";
 import { ALL_STYLES, FRAME_PRESETS, SHOWCASE, TYPES } from "../design";
 import { STYLE_GUIDE, designPatchSchema } from "./chat";
 
-export const recreateDesignTool: Anthropic.Tool = {
+const recreateDesignTool: Anthropic.Tool = {
   name: "recreate_design",
   description: "Record the closest editable version of the photographed piece that this app can build.",
   input_schema: {
@@ -44,7 +44,7 @@ export const recreateDesignTool: Anthropic.Tool = {
   },
 };
 
-export const refineDesignTool: Anthropic.Tool = {
+const refineDesignTool: Anthropic.Tool = {
   name: "check_and_correct",
   description: "Score how closely the 3D build matches the photo, list what differs, and record the corrected design.",
   input_schema: {
@@ -62,7 +62,7 @@ const FRAME_TEMPLATES = FRAME_PRESETS.map((p) => `    - ${p.name}: ${p.blurb} fr
 const mosaic = SHOWCASE.find((x) => x.name === "Marquise mosaic cocktail ring");
 const MOSAIC_EXAMPLE = mosaic ? JSON.stringify({ type: mosaic.type, style: mosaic.style, patch: mosaic.patch }) : "";
 
-export const RECREATE_SYSTEM = `You are a master jeweller looking at a photo of a finished piece of jewellery (or a sketch, or a reference picture).
+const RECREATE_SYSTEM = `You are a master jeweller looking at a photo of a finished piece of jewellery (or a sketch, or a reference picture).
 Rebuild it as faithfully as you can in a 3D design app, using only the fields of recreate_design, so the person can then customise it.
 Styles available, by type:
 ${STYLE_GUIDE}
@@ -189,7 +189,7 @@ Estimate sizes in millimetres from typical proportions (an earring is usually 15
 If the stones in a line change colour (rainbow, ombré, alternating gems), list them in accents.colors in order, one hex per stone, repeating; don't flatten them to one colour.
 The person's notes override what you think you see: if the notes give a size, direction, shape or stone, use it. Set metal from the colour of the gold. Never state a stone's origin or treatment. Always call recreate_design exactly once.`;
 
-export const REFINE_SYSTEM = () => `${RECREATE_SYSTEM}
+const REFINE_SYSTEM = () => `${RECREATE_SYSTEM}
 
 YOU ARE NOW CHECKING YOUR OWN WORK. The first images are the real piece; the last image is the 3D build made from your
 previous answer (its design is given below). Compare them closely and correct the build so it looks as much like the

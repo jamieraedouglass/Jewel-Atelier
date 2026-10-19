@@ -1,14 +1,12 @@
 import type { Design } from "./schema";
 
-export const SIDES_THAT_HUG = new Set(["half-moon", "trapezoid", "baguette"]);
+const SIDES_THAT_HUG = new Set(["half-moon", "trapezoid", "baguette"]);
 export const canHug = (kind: Design["sides"]["kind"]) => SIDES_THAT_HUG.has(kind);
 export const HUG_REASON = "Only stones with a straight edge (half-moons, trapezoids, baguettes) can be fitted tight against the centre stone.";
 
-export const HUGGIE_INSIDE_REASON = "A huggie sits against the earlobe, so stones on the inside would press into it.";
+const HUGGIE_INSIDE_REASON = "A huggie sits against the earlobe, so stones on the inside would press into it.";
 
-export const TOUCHING_SURROUND_REASON = "Touching stones can't each have their own surround: the surrounds would run into each other.";
-
-export type Blocked = { reason: string };
+const TOUCHING_SURROUND_REASON = "Touching stones can't each have their own surround: the surrounds would run into each other.";
 
 export function blockedOptions(d: Design) {
   return {

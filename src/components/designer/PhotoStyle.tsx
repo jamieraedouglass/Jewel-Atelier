@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import type { Design } from "@/lib/design";
-import { compressImage } from "@/lib/media";
+import { compressImage, dataUrl } from "@/lib/media";
 
 type Setting = "dark" | "light" | "hand";
 const SETTING_LABEL: Record<Setting, string> = { dark: "Dark velvet", light: "Ivory", hand: "On a hand" };
-const dataUrl = (b: Blob) => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); });
 
 export default function PhotoStyle({ design, capture, onClose }: { design: Design; capture: () => Promise<Blob | null>; onClose: () => void }) {
   const [setting, setSetting] = useState<Setting>("dark");

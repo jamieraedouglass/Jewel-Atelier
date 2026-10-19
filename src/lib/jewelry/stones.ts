@@ -89,7 +89,7 @@ function lowCutGeo(fn: OutlineFn, cut: "rose-cut" | "polki", dome: number) {
   const tiers = cut === "rose-cut"
     ? [{ s: 0.48, y: h * 0.78, twist: 0.5 }, { s: 0.82, y: h * 0.42 }, { s: 1, y: 0 }, { s: 1, y: -0.05 }]
     : [{ s: 0.8, y: h }, { s: 0.94, y: h * 0.55, twist: 0.5 }, { s: 1, y: 0 }, { s: 0.93, y: -h * 0.9 }];
-  return facetedGeo(ring, v3(), tiers, cut === "rose-cut" ? h : h, cut === "rose-cut" ? -0.05 : -h * 1.1);
+  return facetedGeo(ring, v3(), tiers, h, cut === "rose-cut" ? -0.05 : -h * 1.1);
 }
 
 function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
@@ -101,7 +101,7 @@ function stoneMesh(c: CenterStone, m: Mats, scale = 1): THREE.Group {
     if (star) g.add(star);
   }
   if (c.cut !== "bead" && !BEAD_GEMS.has(c.gem)) {
-    const specks = inclusionSpecks(c, outlineFn(c.shape, L, W), L, W, dome);
+    const specks = inclusionSpecks(c, outlineFn(c.shape, L, W), W, dome);
     if (specks) { seeThrough(g); g.add(specks); }
   }
   g.userData.stone = { L, W };

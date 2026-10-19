@@ -6,12 +6,12 @@ import { DIAMOND_GRADE_IDS, PHENOMENA } from "./character";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
-export const SAMPLE_MOTIF_PATH =
+const SAMPLE_MOTIF_PATH =
   "M45 95 C18 92 8 65 18 45 C28 25 50 22 60 12 C66 6 70 2 76 4 C83 7 83 15 77 19 C72 22 67 18 70 14 C65 27 81 41 83 59 C86 81 68 97 45 95 Z";
 
 const svgPath = z.string().max(60000).regex(/^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]*$/, "Only SVG path commands are allowed");
 
-export const MotifStoneSchema = z.object({
+const MotifStoneSchema = z.object({
   x: z.number(), y: z.number(), r: z.number().positive(),
   kind: z.enum(["center", "accent"]).default("accent"),
 });
@@ -51,7 +51,7 @@ export const CenterStoneSchema = z.object({
   colorGrade: z.enum(DIAMOND_GRADE_IDS).nullable().default(null),
 });
 
-export const ExtraStoneSchema = z.object({
+const ExtraStoneSchema = z.object({
   gem: z.enum(GEMS).default("diamond"),
   cut: z.enum(CUTS).default("faceted"),
   shape: z.enum(SHAPES).default("pear"),

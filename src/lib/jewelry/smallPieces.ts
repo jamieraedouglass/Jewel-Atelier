@@ -130,7 +130,7 @@ export function handPiece(d: Design, m: Mats): Piece {
   return { group, focus: v3(), focusSize: f.radius * 6, upright: false };
 }
 
-export function tiaraPiece(d: Design, m: Mats): Piece {
+function tiaraPiece(d: Design, m: Mats): Piece {
   const group = new THREE.Group();
   const c = d.center;
   const n = Math.max(3, Math.min(13, d.options.count | 1));

@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { strToU8, zipSync } from "three/examples/jsm/libs/fflate.module.js";
+import { checkBuild, type BuildIssue } from "./buildCheck";
+import type { SolidReport, Spot } from "./cadSolid";
 import { type Design } from "./design";
 import { buildPiece } from "./jewelryModel";
 import { buildSpec, isMetal } from "./studio/spec";
@@ -70,7 +72,46 @@ export function modelParts(d: Design, given?: THREE.Object3D): Part[] {
 
 const mergedMesh = (p: Part) => new THREE.Mesh(mergeGeometries(p.geos, false) ?? new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
 
-export type MetalSolid = { geometry: THREE.BufferGeometry; report: { pieces: number; joined: number; skipped: string[]; seats: number; specks?: number; watertight: boolean; volumeMm3: number } };
+export type MetalSolid = { geometry: THREE.BufferGeometry; report: SolidReport };
+
+const at = (s: Spot) => `${s.where}, at about (${s.at.join(", ")}) mm`;
+
+// The checks run on the metal solid, written so a jeweller sees first what to fix before casting.
+export function checkLines(r: SolidReport | null | undefined, build: BuildIssue[] = []): string[] {
+  const lines: string[] = [];
+  const flag = (ok: boolean, text: string, detail: string[] = []) => { lines.push(`${ok ? "OK   " : "CHECK"} ${text}`, ...detail.map((x) => `      ${x}`)); };
+  if (!build.length) flag(true, "Stones: none overlap and none are too small to set.");
+  for (const issue of build) flag(false, `Stones: ${issue.message}`);
+  if (!r) return lines;
+  if (r.stones !== undefined) {
+    const unseated = r.unseated ?? [], loose = r.loose ?? [];
+    flag(!unseated.length, unseated.length
+      ? `Seats: ${unseated.length} of ${r.stones} stones have no seat cut; cut these by hand:`
+      : `Seats: all ${r.stones} set stones have a seat cut${r.strung ? ` (${r.strung} drilled stones are strung on wire and need none)` : ""}.`,
+    unseated.slice(0, 12).map((s) => `- ${at(s)}`));
+    flag(!loose.length, loose.length ? `Holding: ${loose.length} stone(s) don't touch any metal, so nothing holds them:` : "Holding: every stone sits against metal.", loose.slice(0, 12).map((s) => `- ${at(s)}`));
+  }
+  const t = r.thin;
+  if (t) {
+    if (!t.spots.length) flag(true, `Thickness: no metal thinner than ${t.minMm} mm found.`);
+    else {
+      const parts = new Map<string, { area: number; typ: number[] }>();
+      for (const sp of t.spots) { const p = parts.get(sp.where) ?? parts.set(sp.where, { area: 0, typ: [] }).get(sp.where)!; p.area += sp.areaMm2; p.typ.push(sp.typicalMm); }
+      const share = t.surfaceMm2 ? Math.round((t.thinMm2 / t.surfaceMm2) * 100) : 0;
+      flag(false, `Thickness: about ${share}% of the metal surface is thinner than ${t.minMm} mm, which may not fill in casting or may bend in wear.`, [
+        ...[...parts.entries()].sort((a, b) => b[1].area - a[1].area).map(([where, p]) => {
+          const typ = p.typ.sort((a, b) => a - b)[p.typ.length >> 1];
+          return `- ${where}: ${Math.round(p.area)} mm2, typically ${typ} mm thick`;
+        }),
+        "Thinnest spots:",
+        ...t.spots.slice(0, 8).map((sp) => `- ${at(sp)}: about ${sp.typicalMm} mm`),
+        "Thicken these (prongs and claws to about 0.8 mm, walls to at least 0.6 mm) or confirm they suit your casting.",
+        "Fine milgrain and beading is often added by hand after casting instead.",
+      ]);
+    }
+  }
+  return lines;
+}
 
 export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?: Part[], solid?: MetalSolid | null): Uint8Array {
   const parts = given ?? modelParts(d);
@@ -90,9 +131,10 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
   const spec = buildSpec(d);
   const density = spec.metal.density;
   const r = solid?.report;
+  const checks = checkLines(r, checkBuild(d, pieceRoot(d)));
   const solidLines = r ? [
     r.watertight && !r.skipped.length
-      ? `metal.stl is ONE watertight solid: all ${r.joined} metal parts joined, with a seat cut for each of the ${r.seats} stones (matched to each stone below its girdle, about 0.05 mm clearance).`
+      ? `metal.stl is ONE watertight solid: all ${r.joined} metal parts joined, with ${r.seats} stone seats cut (matched to each stone below its girdle, about 0.05 mm clearance).`
       : `metal.stl is a solid made from ${r.joined} of ${r.pieces} metal parts${r.skipped.length ? `; ${r.skipped.length} part(s) couldn't be joined and are in metal-unjoined-parts.stl` : ""}. Check it before casting.`,
     ...(r.specks ? [`${r.specks} tiny fragment(s) of claw tips between tightly packed stones were left over after cutting seats and removed; set those stones on shared prongs.`] : []),
     `Metal volume ${r.volumeMm3} mm3, so the metal weighs about ${Math.round((r.volumeMm3 / 1000) * density * 100) / 100} g in ${spec.metal.name} (density ${density} g/cm3).`,
@@ -101,6 +143,7 @@ export function cadZip(d: Design, extra: Record<string, Uint8Array> = {}, given?
     `${spec.title}`,
     spec.summary,
     "",
+    ...(checks.length ? ["CHECKS BEFORE CASTING (automatic; a CAD jeweller should still review the model)", ...checks, ""] : []),
     "Units: millimetres. The model is at real size.",
     "model.3dm      Rhino file (opens in Rhino and MatrixGold): the metal on its own layer, every stone a separate",
     "               named object on a layer per stone type, units millimetres",

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   GEMS, GEM_LOOK, KARATS, METALS, SHAPES, gemLabel, indianRingSize, label, lengthForShape, metalName, normalizeDesign,
-  NO_CHARACTER, varietiesOf, varietyLook, type Design, type Gem,
+  NO_CHARACTER, clamp, round1, varietiesOf, varietyLook, type Design,
 } from "../design";
 
 export const StoneOptionSchema = z.object({ gem: z.enum(GEMS), grade: z.string().max(30).optional() });
@@ -28,8 +28,6 @@ export const optionName = (o: StoneOption) => optionLook(o).label;
 
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
 export const FRESH_STONE = NO_CHARACTER;
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-const round1 = (n: number) => Math.round(n * 10) / 10;
 export const sizeText = (s: { lengthMm: number; widthMm: number }) => `${round1(s.lengthMm)} × ${round1(s.widthMm)}`;
 
 export function clampToAllowed(base: Design, proposed: Design, allow: Allow): Design {
@@ -113,8 +111,6 @@ export const CreateLinkSchema = z.object({
   aiDailyLimit: z.number().int().min(0).max(200).default(20),
 });
 export type CreateLink = z.input<typeof CreateLinkSchema>;
-
-export const isGem = (g: string): g is Gem => (GEMS as readonly string[]).includes(g);
 
 export const allowedText = (allow: Allow, aiDailyLimit: number) => [
   allow.sizes && "sizes", allow.stones.length && `stones: ${allow.stones.map(optionName).join(", ")}`, allow.shapes.length && `shapes: ${allow.shapes.join(", ")}`,
