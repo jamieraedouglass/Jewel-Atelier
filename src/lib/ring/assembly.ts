@@ -1,4 +1,4 @@
-import { RING_CENTRE_TUNING, gemMaterial } from "../gemMaterial";
+import { gemMaterial } from "../gemMaterial";
 import { handPolished } from "../polish";
 import * as THREE from "three";
 import { type Design, ringInnerDiameter, sideStoneDims } from "../design";
@@ -45,7 +45,7 @@ export function buildRing(d: Design): THREE.Group {
   const GY = SHANK_TOP + (isCab ? belly * 0.56 : belly * 0.45) + d.setting.height * 4;
   const color = new THREE.Color(c.color);
   const colorless = c.gem === "diamond" || c.gem === "aquamarine";
-  const stoneMat = gemMaterial(c, W, c.glow, RING_CENTRE_TUNING);
+  const stoneMat = gemMaterial(c, W, c.glow);
   const stone = new THREE.Group();
   stone.userData.part = "center";
   if (isCab) stone.add(new THREE.Mesh(c.cut === "carved"
