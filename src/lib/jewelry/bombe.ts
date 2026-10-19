@@ -47,7 +47,7 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const f = [...d.frames].reverse().find((x) => x.kind === "fill" && x.pattern === "sprays")! as Frame & { alt: NonNullable<Frame["alt"]> };
   const o = d.options;
   // The measured size is over the stones, which stand about 0.9 mm proud of the metal at the edge.
-  const halfL = (o.decoLengthMm > 0 ? o.decoLengthMm : c.lengthMm * 1.8) / 2 - 0.9, halfW = (o.decoWidthMm > 0 ? o.decoWidthMm : c.widthMm * 2.6) / 2 - 0.9;
+  const halfL = (o.decoLengthMm > 0 ? o.decoLengthMm : c.lengthMm * 1.8) / 2, halfW = (o.decoWidthMm > 0 ? o.decoWidthMm : c.widthMm * 2.6) / 2 - 0.9;
   const turn = THREE.MathUtils.degToRad(f.turn ?? 0), rot = THREE.MathUtils.degToRad(c.rotation ?? 0);
   const along = v3(Math.sin(rot), 0, Math.cos(rot)), across = v3(Math.cos(rot), 0, -Math.sin(rot));
   const edge = stoneEdge(c);
@@ -70,20 +70,23 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const grid: THREE.Vector3[][] = outline.map((O) => {
     // The shell starts against the bezel wall, so the setting and the dome are one piece of metal.
     const dir = v3(O.x, 0, O.z).normalize(), a = Math.atan2(O.z, O.x), rb = edge(a) + 0.3, ro = Math.hypot(O.x, O.z);
+    // The top face round the stone is the smaller part; the side faces slope outward and down from its edge like a
+    // steep pyramid, reaching the full width of the head low down where they meet the band.
+    const bandOut = finger.r + 1.3, oa = O.dot(across), ol = O.dot(along);
+    const ea = Math.sign(oa) * Math.min(Math.abs(oa), bandOut * 0.97), el = ol * (1 - 0.35 * Math.min(1, Math.abs(oa) / halfW));
+    const footXZ = across.clone().multiplyScalar(ea).addScaledVector(along, el);
+    const E = v3(footXZ.x, -finger.gy + Math.sqrt(Math.max(0, bandOut * bandOut - footXZ.x * footXZ.x)) + 0.2, footXZ.z);
+    const re = Math.hypot(E.x, E.z), rr = rb + (re - rb) * 0.42;
     const top = Array.from({ length: 12 }, (_, k) => {
-      const t = k / 11, r = rb + (ro - rb) * t;
-      return dir.clone().multiplyScalar(r).setY(yTop - drop * t ** 1.7);
+      const t = k / 11, r = rb + (rr - rb) * t;
+      return dir.clone().multiplyScalar(r).setY(yTop - drop * 0.35 * t ** 1.4);
     });
     const R = top[top.length - 1];
-    // The foot of the side lands on the outside of the band (on top of it at the front and back, on the shoulders at
-    // the sides), so the head flows into the shoulders instead of pinching in under itself.
-    const bandOut = finger.r + 1.3;
-    const ex = Math.sign(O.x) * Math.min(Math.abs(O.x) * 0.92, bandOut * 0.95), ez = O.z * 0.9;
-    const E = v3(ex, -finger.gy + Math.sqrt(bandOut * bandOut - ex * ex), ez);
-    const span = Math.max(1, R.y - E.y), outward = dir.clone();
-    // The rim rolls over, then the side tucks in a little as it runs down to the finger.
-    const P1 = R.clone().addScaledVector(outward, span * 0.14).add(v3(0, -span * 0.32, 0));
-    const P2 = E.clone().add(v3(0, span * 0.42, 0));
+    const span = Math.max(1, R.y - E.y), toFootDir = E.clone().sub(R);
+    // The edge between the top and a side face is softly rounded; the face then runs straight-ish to the foot,
+    // curving out a little where it meets the band.
+    const P1 = R.clone().addScaledVector(dir, (re - rr) * 0.35).add(v3(0, -span * 0.12, 0));
+    const P2 = R.clone().addScaledVector(toFootDir, 0.72).addScaledVector(dir, -0.4);
     const side = new THREE.CubicBezierCurve3(R, P1, P2, E);
     const n = NK - top.length;
     return [...top, ...Array.from({ length: n }, (_, k) => side.getPoint((k + 1) / n))];
@@ -156,57 +159,70 @@ export function bombeHead(d: Design, m: Mats, c: CenterStone, finger: { r: numbe
   const groups = new Map<string, Item[]>();
   const put = (key: string, it: Item) => (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
 
-  // Leaf branches: stems from the bezel out over the dome and down the side, drifting round as they go, with leaves
-  // in pairs along them.
+  // The head is faceted: a top face round the stone and four side faces running down to the band, divided by raised
+  // gold ridges at the corners. Find the corners (the outline's points along and across the finger) and the middle of
+  // each face between them.
   const leafShape = f.alt.shape, leafL = Math.min(3.4, Math.max(2.2, (f.widthMm || 2.5) * 1.1)), leafW = leafL / ASPECT[leafShape];
   const leafKey = `${f.alt.gem}|${f.alt.color}|${f.alt.cut}|${leafShape}`;
   const blocks: { p: THREE.Vector3; r: number }[] = [], beads: Item[] = [], leafBeads: Item[] = [], leaves: THREE.Vector3[] = [];
-  const stems = 8;
-  for (let jn = 0; jn < stems; jn++) {
-    // Each branch is a vine: it sweeps round as it runs out and curls further as it goes down the side.
-    const u0 = ((jn + 0.5) / stems) * NT, way = jn % 2 ? 1 : -1;
-    const path = Array.from({ length: 160 }, (_, q) => { const s = (q / 159) * (NK - 1.6), t = s / (NK - 1); return at(u0 + way * NT * (0.07 * t + 0.035 * Math.sin(Math.PI * t * 1.4)), s); });
-    let run = 0, nextBead = 0, nextLeaf = leafL * 0.45, leafCount = jn;
+  const projA = outline.map((O) => O.dot(along)), projC = outline.map((O) => O.dot(across));
+  const argmax = (xs: number[], sgn: number) => xs.reduce((b, x, i) => (sgn * x > sgn * xs[b] ? i : b), 0);
+  const corners = [argmax(projA, 1), argmax(projC, 1), argmax(projA, -1), argmax(projC, -1)].sort((a, b) => a - b);
+  const faces = corners.map((c, i) => { const nx = corners[(i + 1) % 4] + (i === 3 ? NT : 0); return ((c + nx) / 2) % NT; });
+  const RIM = 11;
+
+  // Grows a vine along a path over the surface: a fine beaded stem with leaves springing from it in turn, each in its
+  // own beaded cell, and every leaf checked to sit wholly on the metal.
+  const growVine = (path: { p: THREE.Vector3; n: THREE.Vector3 }[], first: number, stemBeads: boolean, gap: number) => {
+    let run = 0, nextBead = 0, nextLeaf = leafL * 0.35, leafCount = first;
     const total = path.reduce((a, pp, q) => (q ? a + pp.p.distanceTo(path[q - 1].p) : 0), 0);
     for (let q = 1; q < path.length; q++) {
       run += path[q].p.distanceTo(path[q - 1].p);
       const { p: pt, n } = path[q], tan = pt.clone().sub(path[q - 1].p).normalize();
-      // The vine itself: a fine beaded stem curving down the dome, which the leaves grow from.
-      if (run >= nextBead) { leafBeads.push({ pos: pt.clone().addScaledVector(n, 0.04), dia: 0.3 }); blocks.push({ p: pt, r: 0.15 }); nextBead += 0.3; }
-      // Leaves stop a leaf's length short of where the branch runs off the foot of the dome.
-      if (run >= nextLeaf && total - run > leafL * 0.75 + 0.4) {
-        // Leaves alternate from one side of the branch to the other, as on the piece.
-        nextLeaf += leafL * 0.6;
-        const side = new THREE.Vector3().crossVectors(n, tan).normalize();
-        const pair: THREE.Vector3[] = [];
-        for (const sgn of [(leafCount++ % 2) * 2 - 1]) {
-          // A leaf springs from the vine at its base and points out about 45° towards the tip of the branch.
-          const facing = tan.clone().applyAxisAngle(n, sgn * 0.8);
-          // Where the dome curves hard (near its rim) a full-size leaf may not sit flat, so it is tried smaller first.
-          let L = 0, W = 0, c0 = pt;
-          for (const k of [1, 0.85, 0.72]) {
-            const cc = pt.clone().addScaledVector(facing, (leafL * k) / 2 + 0.25);
-            // Where a branch turns steeply down the side, leaves can bunch up; one that would touch another is left out.
-            if (leaves.some((q) => q.distanceTo(cc) < (leafL * k) * 0.98 + 0.4)) continue;
-            if (!seated(cc, n, facing, (leafL * k) / 2 + 0.3, (leafW * k) / 2 + 0.3)) continue;
-            L = leafL * k; W = leafW * k; c0 = cc;
-            break;
-          }
-          if (!L) continue;
-          pair.push(c0);
-          put(leafKey, { pos: c0.clone().addScaledVector(n, 0.04), dia: W, quat: orient(n, facing), up: n });
-          // Each leaf sits in its own cell edged with milgrain that follows the leaf's outline.
-          const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
-          const rim = leafOutline(L + 0.62, W + 0.62);
-          // Dropped by the dome's curvature (about 12 mm radius) so every bead sits on the metal, not above it.
-          for (const [x, z] of rim) leafBeads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.06 - (x * x + z * z) / 20), dia: 0.36 });
-          // The leaf's cell, with its beaded border, keeps the pink stones clear.
-          for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, L * k), r: W * r + 0.24 });
-        }
-        leaves.push(...pair);
+      if (stemBeads && run >= nextBead) { leafBeads.push({ pos: pt.clone().addScaledVector(n, 0.04), dia: 0.3 }); blocks.push({ p: pt, r: 0.15 }); nextBead += 0.3; }
+      if (!(run >= nextLeaf && total - run > leafL * 0.4)) continue;
+      nextLeaf += leafL * gap;
+      const sgn = (leafCount++ % 2) * 2 - 1;
+      // A leaf springs from the vine at its base and points out towards the tip of the branch.
+      const facing = tan.clone().applyAxisAngle(n, sgn * 0.75);
+      let L = 0, W = 0, c0 = pt;
+      for (const k of [1, 0.85, 0.72]) {
+        const cc = pt.clone().addScaledVector(facing, (leafL * k) / 2 + 0.2);
+        if (leaves.some((o2) => o2.distanceTo(cc) < leafL * k * 0.95 + 0.35)) continue;
+        if (!seated(cc, n, facing, (leafL * k) / 2 + 0.3, (leafW * k) / 2 + 0.3)) continue;
+        L = leafL * k; W = leafW * k; c0 = cc;
+        break;
       }
+      if (!L) continue;
+      leaves.push(c0);
+      put(leafKey, { pos: c0.clone().addScaledVector(n, 0.04), dia: W, quat: orient(n, facing), up: n });
+      const ax = facing.clone().addScaledVector(n, -facing.dot(n)).normalize(), sx = new THREE.Vector3().crossVectors(n, ax).normalize();
+      for (const [x, z] of leafOutline(L + 0.62, W + 0.62)) leafBeads.push({ pos: c0.clone().addScaledVector(sx, x).addScaledVector(ax, z).addScaledVector(n, 0.06 - (x * x + z * z) / 20), dia: 0.36 });
+      for (const [k, r] of [[-0.44, 0.2], [-0.3, 0.36], [0, 0.5], [0.3, 0.36], [0.44, 0.2]]) blocks.push({ p: c0.clone().addScaledVector(facing, L * k), r: W * r + 0.24 });
     }
+  };
+
+  // Raised gold ridges down the corners, beaded along their crest, and a beaded edge round the top face.
+  const ridgeMetal: THREE.Mesh[] = [];
+  for (const c of corners) {
+    const pts = Array.from({ length: 40 }, (_, q) => { const { p: pp, n } = at(c, RIM + (q / 39) * (NK - 1.5 - RIM)); return pp.clone().addScaledVector(n, 0.12); });
+    const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.3, 10, false);
+    ridgeMetal.push(new THREE.Mesh(tubeGeo, m.metal));
+    const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength();
+    for (let d0 = 0; d0 <= len; d0 += 0.3) { const pp = curve.getPointAt(Math.min(1, d0 / len)); leafBeads.push({ pos: pp.clone().add(at(c, RIM + (d0 / len) * (NK - 1.5 - RIM)).n.multiplyScalar(0.3)), dia: 0.3 }); blocks.push({ p: pp, r: 0.45 }); }
   }
+  ridgeMetal.forEach((r) => g.add(r));
+  for (let i = 0; i < NT; i++) { const { p: pp, n } = at(i, RIM); beads.push({ pos: pp.clone().addScaledVector(n, 0.1), dia: 0.32 }); blocks.push({ p: pp, r: 0.3 }); }
+
+  // Vines: one down the middle of each side face, from the top's edge to the band, and a garland of leaves close round
+  // the stone on the top face, following the bezel.
+  faces.forEach((uc, j) => {
+    const side = Array.from({ length: 120 }, (_, q) => { const t = q / 119; return at(uc + NT * 0.012 * Math.sin(Math.PI * t * 1.6) * (j % 2 ? 1 : -1), RIM + 0.6 + t * (NK - 2.4 - RIM)); });
+    growVine(side, j, true, 0.55);
+    const span = NT * 0.1;
+    const garland = Array.from({ length: 120 }, (_, q) => { const t = q / 119; return at(uc - span + 2 * span * t, 3.2 + 1.4 * Math.sin(Math.PI * t)); });
+    growVine(garland, j + 1, false, 0.62);
+  });
 
   // The mosaic: candidates over the whole surface in random order, kept where they don't crowd a neighbour, a leaf or
   // a stem, then each grown to fill the room round it.

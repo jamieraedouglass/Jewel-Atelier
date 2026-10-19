@@ -289,7 +289,7 @@ function applyProfile(group: THREE.Group, d: Design, gy: number) {
     group.children.forEach((o) => { if (o !== shank && !o.userData.onBand) box.expandByObject(o); });
     if (!box.isEmpty()) {
       const hx = Math.max(Math.abs(box.min.x), Math.abs(box.max.x)), hz = Math.max(Math.abs(box.min.z), Math.abs(box.max.z));
-      const top = { topW: Math.min(9, Math.max(d.band.widthMm + 2, hz * 0.7)), topT: 1.3, spread: hx * 0.85 };
+      const top = { topW: Math.min(9, Math.max(d.band.widthMm + 2, hz * 0.7)), topT: 1.3, spread: hx * 0.97 };
       shank.geometry.dispose();
       shank.geometry = shankGeo(RIN, d.band.widthMm, d.band.finish, top, d.band.shape, d.band.split);
       shank.userData.top = top;
