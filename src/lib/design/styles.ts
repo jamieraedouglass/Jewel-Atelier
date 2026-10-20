@@ -149,7 +149,8 @@ export const accentsOff = (d: Design) => !d.accents.enabled && accentsOptional(d
 export const SOLID_BRACELETS = new Set(["bangle", "kada", "cuff", "open-bangle"]);
 // How round a loop is drawn for trying on, seen from the front as worn: a choker sits high and almost straight across the
 // throat, flush to it; a longer necklace (and a bracelet) drapes in a curve.
-export const wornCurve = (d: Pick<Design, "type" | "options">) => (d.type === "necklace" && d.options.lengthIn <= 15 ? 0.15 : 0.45);
+export const wrapsNeck = (d: Pick<Design, "type" | "options">) => d.type === "necklace" && d.options.lengthIn <= 15;
+export const wornCurve = (d: Pick<Design, "type" | "options">) => (wrapsNeck(d) ? 0.15 : 0.45);
 
 export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type === "bracelet" && SOLID_BRACELETS.has(d.style);
 

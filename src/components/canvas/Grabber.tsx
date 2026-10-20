@@ -1,4 +1,5 @@
-import type { Design } from "@/lib/design";
+import { type Design, wrapsNeck } from "@/lib/design";
+import { wrapRound } from "@/lib/wrapRound";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -96,10 +97,13 @@ export function Grabber({ piece, design, handle }: { piece: Piece; design: Desig
         px[i + 1] = Math.max(0, Math.min(255, ((l + (g - l) * sat) - 128) * con + 128));
         px[i + 2] = Math.max(0, Math.min(255, ((l + (b - l) * sat) - 128) * con + 128));
       }
-      octx.putImageData(colour, 0, 0);
+      // A choker as worn: wrapped round the neck, so its sides turn away rather than reaching out flat.
+      const wrapped = worn && wrapsNeck(design) ? wrapRound(colour, (0 - (c.x - spanX / 2)) / mmPerPx, mmPerPx, (design.options.lengthIn * 25.4) / (2 * Math.PI)) : null;
+      if (wrapped) { out.width = wrapped.width; octx.putImageData(new ImageData(wrapped.data, wrapped.width, wrapped.height), 0, 0); }
+      else octx.putImageData(colour, 0, 0);
       scene.background = bg; gl.setClearColor(prevColor, clear); gl.autoClear = auto; gl.setRenderTarget(target);
       hidden.forEach((o) => (o.visible = true));
-      return done({ url: out.toDataURL("image/png"), mmPerPx, widthMm: spanX, heightMm: spanY });
+      return done({ url: out.toDataURL("image/png"), mmPerPx, widthMm: wrapped ? wrapped.width * mmPerPx : spanX, heightMm: spanY });
     };
   }, [gl, scene, handle]);
   return null;
