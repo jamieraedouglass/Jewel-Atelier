@@ -138,11 +138,14 @@ export function buildSpec(d: Design): Spec {
       const count = Math.round((d.options.lengthIn * 25.4 * 0.97 - 2 * neckSpan(layoutFreeform(d.freeform))) / (n.sizeMm + 0.18)) * n.rows;
       line("Neckline stones (≈ count)", count, { gem: n.gem, cut: n.cut, shape: n.shape, lengthMm: n.sizeMm, widthMm: n.sizeMm, carat: null });
     }
-    // A slider carries three small stones, and each chain end hanging from it finishes with a stone.
+    // A slider carries three small stones; each chain end hanging from it finishes with a chevron of four small stones
+    // and two rounds.
     if (d.type === "necklace" && n.kind !== "none" && resolveClasp(d.style, d.options.clasp) === "slider") {
       const look = { gem: d.accents.gem, cut: "faceted" as const, shape: "round" as const, carat: null };
       line("Slider stones", 3, { ...look, lengthMm: 1.1, widthMm: 1.1 });
-      line("Chain-end stones", 2, { ...look, lengthMm: 3.2, widthMm: 3.2 });
+      line("Chain-end chevron stones", 8, { ...look, lengthMm: 0.9, widthMm: 0.9 });
+      line("Chain-end stones", 2, { ...look, lengthMm: 2.2, widthMm: 2.2 });
+      line("Chain-end stones", 2, { ...look, lengthMm: 2.6, widthMm: 2.6 });
     }
   } else for (const { count, diaMm } of smallStones(piece.group)) {
     const each = caratFromDims(d.accents.gem, "faceted", "round", diaMm, diaMm);

@@ -6,6 +6,14 @@ import { type Mats } from "./materials";
 import { accents, chainAlong, jumpRing } from "./elements";
 import { outwardAt, wrap, yawAt } from "./curves";
 
+// A short round gold bar from a to b.
+function tubeBetween(m: Mats, a: THREE.Vector3, b: THREE.Vector3, r: number) {
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(r, r, a.distanceTo(b), 10), m.metal);
+  bar.position.copy(a).add(b).multiplyScalar(0.5);
+  bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+  return bar;
+}
+
 type ClaspKind = Exclude<ClaspChoice, "auto" | "hidden">;
 
 export const claspGap = (curve: THREE.Curve<THREE.Vector3>, size: number) => Math.min(0.06, (size * 2.2) / curve.getLength());
@@ -21,7 +29,8 @@ export function claspAt(kind: ClaspKind, d: Design, m: Mats, curve: THREE.Curve<
 
   if (kind === "slider") {
     // A slider: a jewelled bead the chain runs through, pushed up to tighten the piece against the throat. Both ends
-    // of the chain come out of it and hang down the back, each finished with a stone in a claw cup.
+    // of the chain come out of it and hang down the back, each finished with a small diamond-set chevron and then two
+    // round diamonds, one below the other.
     const bead = new THREE.Mesh(new RoundedBoxGeometry(s * 1.1, s * 0.75, s * 1.6, 3, s * 0.25), m.satin);
     g.add(bead);
     g.add(accents(m, d.accents.gem, d.accents.color, "faceted", [-1, 0, 1].map((k) => ({ pos: v3(0, s * 0.38, k * s * 0.45), dia: s * 0.36 }))));
@@ -33,9 +42,19 @@ export function claspAt(kind: ClaspKind, d: Design, m: Mats, curve: THREE.Curve<
       const b = a.clone().addScaledVector(out, len);
       const tail = new THREE.Group();
       tail.add(chainAlong(new THREE.LineCurve3(a, b), d.options.chain, m));
-      const dia = 3.2, stone = accents(m, d.accents.gem, d.accents.color, "faceted", [{ pos: b.clone().addScaledVector(out, dia * 0.7), dia }]);
-      stone.userData.keep = true;
-      tail.add(stone, jumpRing(m, 0.7, 0.25, b.clone().addScaledVector(out, 0.2)));
+      const across = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), out).normalize();
+      const tip = b.clone().addScaledVector(out, 2.6), small: { pos: THREE.Vector3; dia: number }[] = [];
+      for (const k of [1, -1]) {
+        const top = b.clone().addScaledVector(across, k * 1.6);
+        tail.add(tubeBetween(m, top, tip, 0.45));
+        for (const t of [0.3, 0.7]) small.push({ pos: top.clone().lerp(tip, t).add(new THREE.Vector3(0, 0.35, 0)), dia: 0.9 });
+      }
+      tail.add(tubeBetween(m, b.clone().addScaledVector(across, 1.6), b.clone().addScaledVector(across, -1.6), 0.3));
+      const rounds = [{ pos: tip.clone().addScaledVector(out, 1.6), dia: 2.2 }, { pos: tip.clone().addScaledVector(out, 4.2), dia: 2.6 }];
+      tail.add(tubeBetween(m, tip, rounds[1].pos, 0.3));
+      const set = accents(m, d.accents.gem, d.accents.color, "faceted", [...small, ...rounds]);
+      set.userData.keep = true;
+      tail.add(set);
       tail.applyMatrix4(inv);
       g.add(tail);
     }
