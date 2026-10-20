@@ -48,7 +48,7 @@ export const freeformTool: Anthropic.Tool = {
             widthMm: { type: "number" }, finish: { type: "string", enum: ["plain", "milgrain", "rope"] },
             holes: { type: "array", items: { type: "string" } }, thicknessMm: { type: "number" }, domeMm: { type: "number" },
             pave: { type: "object", properties: { ...look, sizeMm: { type: "number" } } }, edge: { type: "string", enum: ["plain", "milgrain"] },
-            at: pt, lengthMm: { type: "number" }, rotation: { type: "number" }, setting: { type: "string", enum: ["claw", "bezel"] },
+            at: pt, lengthMm: { type: "number" }, rotation: { type: "number" }, setting: { type: "string", enum: ["claw", "three-claw", "bezel"], description: "three-claw for a small round drop held by three prongs" },
             a: pt, b: pt, free: { type: "boolean", description: "link only: true for jump rings so the drop swings freely (briolettes); false for a solid bail that holds it still" },
             repeat,
           },

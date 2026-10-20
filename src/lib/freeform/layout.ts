@@ -10,7 +10,7 @@ export type Look = { gem: CenterStone["gem"]; color: string; cut: CenterStone["c
 // it straight down, a pear's point lowest). `big` stones are set on their own (claws or a bezel); the rest are set
 // in rows or pavé.
 // `group` says which part (and which copy of it) a piece came from, so checks can name what is loose.
-export type LaidStone = Look & { x: number; y: number; h: number; L: number; W: number; angle: number; big: boolean; setting: "claw" | "bezel" | "row"; group: string };
+export type LaidStone = Look & { x: number; y: number; h: number; L: number; W: number; angle: number; big: boolean; setting: "claw" | "three-claw" | "bezel" | "row"; group: string };
 export type LaidWire = { pts: THREE.Vector3[]; r: number; finish: "plain" | "milgrain" | "rope"; rail?: boolean; group: string };
 export type LaidPlate = { outline: THREE.Vector2[]; holes: THREE.Vector2[][]; thickness: number; dome: number; milgrain: boolean; group: string };
 export type LaidLink = { a: THREE.Vector3; b: THREE.Vector3; free?: boolean; group: string };

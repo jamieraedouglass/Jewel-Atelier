@@ -84,9 +84,9 @@ exports[`geometry snapshots > drop Briolette fringe drop 1`] = `
       14.27,
     ],
     "focusSize": 35.68,
-    "hash": "21a93883",
-    "instances": 452,
-    "meshes": 180,
+    "hash": "d6a5abf3",
+    "instances": 596,
+    "meshes": 324,
     "nonFinite": 0,
     "size": [
       42.68,
@@ -94,7 +94,7 @@ exports[`geometry snapshots > drop Briolette fringe drop 1`] = `
       28.54,
     ],
     "upright": false,
-    "vertices": 135408,
+    "vertices": 162336,
   },
   "worn": null,
 }
@@ -409,9 +409,9 @@ exports[`geometry snapshots > drop Pear with briolette fringe 1`] = `
       11.58,
     ],
     "focusSize": 28.95,
-    "hash": "9353a213",
-    "instances": 150,
-    "meshes": 150,
+    "hash": "edb69c01",
+    "instances": 262,
+    "meshes": 262,
     "nonFinite": 0,
     "size": [
       30.29,
@@ -419,7 +419,7 @@ exports[`geometry snapshots > drop Pear with briolette fringe 1`] = `
       23.16,
     ],
     "upright": false,
-    "vertices": 40032,
+    "vertices": 60976,
   },
   "worn": null,
 }
@@ -2416,9 +2416,9 @@ exports[`geometry snapshots > showcase Five-row briolette fringe necklace 1`] = 
       74.53,
     ],
     "focusSize": 80,
-    "hash": "c2b2fb07",
-    "instances": 5314,
-    "meshes": 525,
+    "hash": "4eff69e1",
+    "instances": 6314,
+    "meshes": 1525,
     "nonFinite": 0,
     "size": [
       153.89,
@@ -2426,7 +2426,7 @@ exports[`geometry snapshots > showcase Five-row briolette fringe necklace 1`] = 
       183.91,
     ],
     "upright": false,
-    "vertices": 1427120,
+    "vertices": 1614120,
   },
   "worn": {
     "focus": [
@@ -2435,9 +2435,9 @@ exports[`geometry snapshots > showcase Five-row briolette fringe necklace 1`] = 
       54.09,
     ],
     "focusSize": 80,
-    "hash": "5a302bf7",
-    "instances": 5314,
-    "meshes": 525,
+    "hash": "ca1373ad",
+    "instances": 6314,
+    "meshes": 1525,
     "nonFinite": 0,
     "size": [
       202.73,
@@ -2445,7 +2445,7 @@ exports[`geometry snapshots > showcase Five-row briolette fringe necklace 1`] = 
       132.55,
     ],
     "upright": false,
-    "vertices": 1427120,
+    "vertices": 1614120,
   },
 }
 `;
@@ -5232,9 +5232,9 @@ exports[`geometry snapshots > style necklace/briolette-fringe 1`] = `
       74.53,
     ],
     "focusSize": 80,
-    "hash": "c2b2fb07",
-    "instances": 5314,
-    "meshes": 525,
+    "hash": "4eff69e1",
+    "instances": 6314,
+    "meshes": 1525,
     "nonFinite": 0,
     "size": [
       153.89,
@@ -5242,7 +5242,7 @@ exports[`geometry snapshots > style necklace/briolette-fringe 1`] = `
       183.91,
     ],
     "upright": false,
-    "vertices": 1427120,
+    "vertices": 1614120,
   },
   "worn": {
     "focus": [
@@ -5251,9 +5251,9 @@ exports[`geometry snapshots > style necklace/briolette-fringe 1`] = `
       54.09,
     ],
     "focusSize": 80,
-    "hash": "5a302bf7",
-    "instances": 5314,
-    "meshes": 525,
+    "hash": "ca1373ad",
+    "instances": 6314,
+    "meshes": 1525,
     "nonFinite": 0,
     "size": [
       202.73,
@@ -5261,7 +5261,7 @@ exports[`geometry snapshots > style necklace/briolette-fringe 1`] = `
       132.55,
     ],
     "upright": false,
-    "vertices": 1427120,
+    "vertices": 1614120,
   },
 }
 `;

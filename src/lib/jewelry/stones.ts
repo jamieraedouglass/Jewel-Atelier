@@ -140,9 +140,11 @@ export function tube(m: Mats, pts: THREE.Vector3[], r: number, closed = false, m
   return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, closed), closed ? 120 : 24, r, 10, closed), mat ?? m.metal);
 }
 
-export function setStone(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1): THREE.Group {
+// prongs sets a claw setting's number of claws evenly round the stone (three for a small round drop) instead of the
+// usual placement for its shape.
+export function setStone(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1, prongs?: number): THREE.Group {
   if (c.none) return new THREE.Group();
-  const inner = setStoneRaw(c, style, m, scale);
+  const inner = setStoneRaw(c, style, m, scale, prongs);
   if (!c.rotation) return inner;
   inner.rotation.y = THREE.MathUtils.degToRad(c.rotation);
   const outer = new THREE.Group();
@@ -150,7 +152,7 @@ export function setStone(c: CenterStone, style: Design["setting"]["style"], m: M
   return outer;
 }
 
-export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1): THREE.Group {
+export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m: Mats, scale = 1, prongs?: number): THREE.Group {
   const g = stoneMesh(c, m, scale);
   g.userData.part = "center";
   const L = c.lengthMm * scale, W = c.widthMm * scale;
@@ -174,9 +176,20 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
   }
   if (BEAD_GEMS.has(c.gem) && c.cut !== "cabochon") return g;
   if (c.cut === "briolette") {
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.35, W * 0.16), 12, 8), m.metal);
-    cap.position.z = L / 2; g.add(cap);
-    const capR = Math.max(0.35, W * 0.16), ringR = Math.max(0.35, W * 0.14);
+    // A V-shaped cap over the tip: from a small collar at the top, two arms run down the shoulders on the front and on
+    // the back, lying on the stone and ending in a bead, with the ring it hangs from above the collar.
+    const capR = Math.max(0.3, W * 0.11), ringR = Math.max(0.35, W * 0.14), arm = Math.max(0.16, W * 0.045);
+    const collar = new THREE.Mesh(new THREE.SphereGeometry(capR, 12, 8), m.metal);
+    collar.position.z = L / 2; g.add(collar);
+    const rx = W / 2, rz = L / 2, z1 = L / 2 - Math.min(L * 0.3, W * 0.55);
+    const onStone = (x: number, z: number, side: number) => v3(x, side * (Math.sqrt(Math.max(0, 1 - (x / rx) ** 2 - (z / rz) ** 2)) * rx + arm * 0.6), z);
+    for (const side of [1, -1]) for (const sx of [1, -1]) {
+      const x1 = sx * rx * Math.sqrt(Math.max(0, 1 - (z1 / rz) ** 2)) * 0.8;
+      const pts = Array.from({ length: 9 }, (_, i) => { const t = i / 8; return onStone(x1 * t, L / 2 - (L / 2 - z1) * t, side); });
+      g.add(tube(m, pts, arm));
+      const bead = new THREE.Mesh(new THREE.SphereGeometry(arm * 1.5, 10, 8), m.metal);
+      bead.position.copy(pts[8]); g.add(bead);
+    }
     const loopR = new THREE.Mesh(new THREE.TorusGeometry(ringR, 0.12, 8, 16), m.metal);
     loopR.position.z = L / 2 + capR + ringR * 0.6; loopR.rotation.y = Math.PI / 2; g.add(loopR);
     return g;
@@ -192,7 +205,7 @@ export function setStoneRaw(c: CenterStone, style: Design["setting"]["style"], m
   }
   const ringY = -Math.min(belly, 2) * 0.35;
   g.add(tube(m, loop(0.92, ringY), wire * 0.9, true));
-  const degs = clawDegrees(c.shape, L, W, s);
+  const degs = prongs ? Array.from({ length: prongs }, (_, i) => 90 + (i * 360) / prongs) : clawDegrees(c.shape, L, W, s);
   const tipY = isCab ? Math.min(0.5, dome * 0.15) : Math.max(0.2, dome * 0.5);
   const r = s === "double-claw" ? wire * 0.8 : wire;
   for (const deg of degs) {

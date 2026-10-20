@@ -53,7 +53,7 @@ export default async function MyRings({ searchParams }: { searchParams: { status
                     <span className="small muted">{describeDesign(normalizeDesign(r.data))}</span>
                   </div>
                 </Link>
-                <div className="meta" style={{ display: "flex", gap: 8, paddingTop: 0 }}>
+                <div className="meta" style={{ display: "flex", gap: 8, paddingTop: 0, alignItems: "center", alignSelf: "end" }}>
                   <Link className="btn" href={`/d/${r.id}`}>View</Link>
                   <form action={copyDesign.bind(null, r.id)}><button className="btn">Copy</button></form>
                   <form action={deleteDesign.bind(null, r.id)}><button className="btn">Delete</button></form>

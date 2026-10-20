@@ -74,7 +74,7 @@ const StonePart = z.object({
   lengthMm: num(1, 40, 6),
   widthMm: num(1, 40, 6),
   rotation: num(-180, 180, 0),
-  setting: z.enum(["claw", "bezel"]).default("claw"),
+  setting: z.enum(["claw", "three-claw", "bezel"]).default("claw"),
   repeat: Repeat,
 });
 const LinkPart = z.object({

@@ -28,7 +28,7 @@ export function claspAt(kind: ClaspKind, d: Design, m: Mats, curve: THREE.Curve<
     g.updateMatrix();
     const inv = g.matrix.clone().invert();
     const out = outwardAt(curve, u), along = curve.getTangentAt(wrap(u));
-    for (const [side, len] of [[-1, 34], [1, 28]] as const) {
+    for (const [side, len] of [[-1, 18], [1, 14]] as const) {
       const a = curve.getPointAt(u).addScaledVector(along, side * s * 0.5);
       const b = a.clone().addScaledVector(out, len);
       const tail = new THREE.Group();

@@ -163,7 +163,7 @@ function stonesMesh(f: Frame, stones: LaidStone[], d: Design, m: Mats) {
     const pos = f.at(st.x, st.y, st.h), quat = stoneTurn(f, st);
     if (st.big) {
       const c: CenterStone = { ...d.center, ...NO_CHARACTER, gem: st.gem, color: st.color, cut: st.cut, shape: st.shape, lengthMm: st.L, widthMm: st.W, domeMm: st.cut === "cabochon" ? st.W * 0.4 : Math.min(st.L, st.W) * 0.16, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
-      const s = setStone(c, st.setting === "bezel" ? "bezel" : "four-claw", m);
+      const s = setStone(c, st.setting === "bezel" ? "bezel" : "four-claw", m, 1, st.setting === "three-claw" ? 3 : undefined);
       s.position.copy(pos); s.quaternion.copy(quat);
       g.add(s);
       continue;
