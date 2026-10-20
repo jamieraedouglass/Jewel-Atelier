@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FreeformSchema, chooseStyle, defaultDesign, DesignSchema } from "@/lib/design";
-import { layoutFreeform } from "@/lib/freeform/layout";
+import { layoutFreeform, neckSpan } from "@/lib/freeform/layout";
 import { checkLayout } from "@/lib/freeform/check";
 import { toFreeform } from "@/lib/ai/freeform";
 import { buildPiece } from "@/lib/jewelryModel";
@@ -98,5 +98,19 @@ describe("freeform designs", () => {
     const issues = checkLayout(f, layoutFreeform(f), "necklace");
     expect(issues).toHaveLength(1);
     expect(issues[0]).toMatch(/not joined/);
+  });
+
+  it("lets a band laid along the neckline replace it across the front, the chain running only round the back", () => {
+    const band = FreeformSchema.parse({ mirror: true, neckline: { kind: "chain" }, paths: [{ id: "b", points: [[0, -4], [30, -4], [30, 4], [0, 4]], closed: true }], parts: [
+      { kind: "plate", path: "b" },
+    ] });
+    // To the band's end (its rim takes it a little past the drawn outline).
+    const span = neckSpan(layoutFreeform(band));
+    expect(span).toBeGreaterThan(29);
+    expect(span).toBeLessThan(33);
+    // A pendant hung below the neckline leaves it whole.
+    expect(neckSpan(layoutFreeform(designOf("necklace").freeform))).toBe(0);
+    const d = DesignSchema.parse({ ...designOf("necklace"), freeform: band, options: { ...designOf("necklace").options, clasp: "slider", chain: "heavy" } });
+    expect(buildPiece(d).group.children.length).toBeGreaterThan(0);
   });
 });

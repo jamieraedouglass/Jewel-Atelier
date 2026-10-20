@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import {
-  STYLES, TYPE_LABEL, caratFromDims, characterNotes, describeDesign, shownPhenomenon, gemLabel, indianRingSize, isSolidBracelet, label, metalName, uses,
+  STYLES, TYPE_LABEL, caratFromDims, resolveClasp, characterNotes, describeDesign, shownPhenomenon, gemLabel, indianRingSize, isSolidBracelet, label, metalName, uses,
   type CenterStone, type Design,
 } from "../design";
 import { sizeText } from "./links";
 import { buildPiece } from "../jewelryModel";
 import { disposeGroup } from "../ringModel";
-import { type LaidStone, layoutFreeform } from "../freeform/layout";
+import { type LaidStone, layoutFreeform, neckSpan } from "../freeform/layout";
 
 export function metalDensity(d: Pick<Design, "metal" | "purity">) {
   if (d.metal === "platinum") return 21.4;
@@ -134,8 +134,15 @@ export function buildSpec(d: Design): Spec {
     }
     const n = d.freeform.neckline;
     if (d.type === "necklace" && n.kind === "stones") {
-      const count = Math.round((d.options.lengthIn * 25.4 * 0.97) / (n.sizeMm + 0.18)) * n.rows;
+      // Round the neck, less the front a design laid along the neckline takes the place of.
+      const count = Math.round((d.options.lengthIn * 25.4 * 0.97 - 2 * neckSpan(layoutFreeform(d.freeform))) / (n.sizeMm + 0.18)) * n.rows;
       line("Neckline stones (≈ count)", count, { gem: n.gem, cut: n.cut, shape: n.shape, lengthMm: n.sizeMm, widthMm: n.sizeMm, carat: null });
+    }
+    // A slider carries three small stones, and each chain end hanging from it finishes with a stone.
+    if (d.type === "necklace" && n.kind !== "none" && resolveClasp(d.style, d.options.clasp) === "slider") {
+      const look = { gem: d.accents.gem, cut: "faceted" as const, shape: "round" as const, carat: null };
+      line("Slider stones", 3, { ...look, lengthMm: 1.1, widthMm: 1.1 });
+      line("Chain-end stones", 2, { ...look, lengthMm: 3.2, widthMm: 3.2 });
     }
   } else for (const { count, diaMm } of smallStones(piece.group)) {
     const each = caratFromDims(d.accents.gem, "faceted", "round", diaMm, diaMm);

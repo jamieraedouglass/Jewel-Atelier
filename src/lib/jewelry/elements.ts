@@ -196,7 +196,7 @@ export function fringe(d: Design, m: Mats, anchors: { pos: THREE.Vector3; dir: T
   return g;
 }
 
-const LINK = { cable: { len: 2.6, wire: 0.42 }, fine: { len: 1.5, wire: 0.22 }, box: { len: 1.8, wire: 0.38 }, rope: { len: 1.6, wire: 0.55 } };
+const LINK = { cable: { len: 2.6, wire: 0.42 }, fine: { len: 1.5, wire: 0.22 }, box: { len: 1.8, wire: 0.38 }, rope: { len: 1.6, wire: 0.55 }, heavy: { len: 4.2, wire: 0.8 } };
 
 export function chainAlong(curve: THREE.Curve<THREE.Vector3>, style: keyof typeof LINK, m: Mats, from = 0, to = 1) {
   const { len, wire } = LINK[style];

@@ -87,8 +87,10 @@ export function festoon(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, f
 
 // A line of stones all the way round the neck (or to a clasp at the back), on a gold rail just under their settings
 // that ties them, the clasp and anything hung from the line into one piece.
+// skipMm leaves the front that long either side of the centre clear, for a piece whose own band runs along the neck
+// there: the rows then start at its ends, with a bar across the rows at each end to join them.
 export function stoneNeckline(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, front: number,
-  look: Pick<CenterStone, "gem" | "color" | "cut" | "shape" | "widthMm">, editKey: string, style: string, rows = 1) {
+  look: Pick<CenterStone, "gem" | "color" | "cut" | "shape" | "widthMm">, editKey: string, style: string, rows = 1, skipMm = 0) {
   const g = new THREE.Group();
   const top = d.accents.sizeCt;
   const rounds: Design = { ...d, accents: { ...d.accents, gem: look.gem, color: look.color, cut: look.cut === "rose-cut" || look.cut === "polki" ? look.cut : "faceted", shapes: [look.shape], sizes: [look.widthMm / estimateDims(look.gem, look.cut, look.shape, top).widthMm], turns: [], orientation: "along", layout: "line" } };
@@ -96,17 +98,31 @@ export function stoneNeckline(d: Design, m: Mats, curve: THREE.Curve<THREE.Vecto
   // Further rows run beside the first, further from the neck, each on its own rail; the clasp spans them all.
   const pitch = look.widthMm + 0.3;
   const shifted = (k: number) => k ? new THREE.CatmullRomCurve3(Array.from({ length: 240 }, (_, i) => curve.getPointAt(i / 240).addScaledVector(outwardAt(curve, i / 240), k * pitch)), true) : curve;
-  const run = (k: number) => kind === "hidden"
-    ? patternRun(rounds, m, shifted(k), front, front + 1, { editKey: k ? `${editKey}${k}` : editKey, gap: 0.18, closed: true })
-    : patternRun(rounds, m, shifted(k), front - 0.485, front + 0.485, { editKey: k ? `${editKey}${k}` : editKey, gap: 0.18 });
-  const line = run(0);
-  g.add(line.group);
+  const skip = skipMm / curve.getLength();
+  const runs = (k: number) => {
+    const key = k ? `${editKey}${k}` : editKey;
+    if (skip) return [patternRun(rounds, m, shifted(k), front + skip, front + 0.485, { editKey: key, gap: 0.18 }), patternRun(rounds, m, shifted(k), front - 0.485, front - skip, { editKey: `${key}b`, gap: 0.18 })];
+    return [kind === "hidden"
+      ? patternRun(rounds, m, shifted(k), front, front + 1, { editKey: key, gap: 0.18, closed: true })
+      : patternRun(rounds, m, shifted(k), front - 0.485, front + 0.485, { editKey: key, gap: 0.18 })];
+  };
+  const first = runs(0), line = first[0];
+  for (const r of first) g.add(r.group);
   const railR = Math.max(0.35, line.maxW * 0.05), railY = -railR * 0.6;
+  // The rail under a row: all the way round, or round the back from one end of the clear front to the other.
+  const railPath = (c: THREE.Curve<THREE.Vector3>) => skip
+    ? new THREE.CatmullRomCurve3(Array.from({ length: 241 }, (_, i) => c.getPointAt(wrap(front + skip + (i / 240) * (1 - 2 * skip)))), false)
+    : c;
   for (let k = 0; k < rows; k++) {
-    if (k) g.add(run(k).group);
-    const rail = new THREE.Mesh(new THREE.TubeGeometry(shifted(k), 400, railR, 8, true), m.metal);
+    if (k) for (const r of runs(k)) g.add(r.group);
+    const rail = new THREE.Mesh(new THREE.TubeGeometry(railPath(shifted(k)), 400, railR, 8, !skip), m.metal);
     rail.position.y = railY;
     g.add(rail);
+  }
+  if (skip && rows > 1) for (const u of [wrap(front + skip), wrap(front - skip)]) {
+    const bar = tube(m, [shifted(0).getPointAt(u), shifted(rows - 1).getPointAt(u)], railR * 1.4);
+    bar.position.y = railY;
+    g.add(bar);
   }
   if (kind !== "hidden" && kind !== "none") g.add(claspAt(kind, d, m, curve, wrap(front + 0.5), line.maxW));
   return { group: g, line, railR, railY };

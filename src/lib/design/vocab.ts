@@ -26,7 +26,7 @@ export const NECKLACE_LENGTHS: { in: number; name: string }[] = [
   { in: 24, name: "Matinee" }, { in: 28, name: "Rani haar" }, { in: 32, name: "Opera" }, { in: 36, name: "Long opera" },
 ];
 export const BAND_FINISHES = ["polished", "knife-edge", "textured"] as const;
-export const CHAIN_STYLES = ["cable", "fine", "box", "rope"] as const;
+export const CHAIN_STYLES = ["cable", "fine", "box", "rope", "heavy"] as const;
 
 export type Gem = (typeof GEMS)[number];
 

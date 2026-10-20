@@ -215,7 +215,7 @@ export const DesignSchema = z
         hoopShape: z.enum(["round", "oval", "paperclip"]).default("round"),
         linkStyle: z.enum(["x", "chevron"]).default("x"),
         hang: z.enum(["on-chain", "in-chain", "below", "drop"]).default("on-chain"),
-        clasp: z.enum(["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"]).default("auto"),
+        clasp: z.enum(["auto", "box", "jewelled", "slider", "hidden", "lobster", "spring-ring", "toggle"]).default("auto"),
         flowerPlace: z.enum(["finger", "band"]).default("finger"),
         pairSpacing: z.enum(["apart", "touching"]).default("apart"),
         decoDome: z.number().min(0).max(1).default(0),

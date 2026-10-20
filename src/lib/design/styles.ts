@@ -149,7 +149,7 @@ export const accentsOff = (d: Design) => !d.accents.enabled && accentsOptional(d
 export const SOLID_BRACELETS = new Set(["bangle", "kada", "cuff", "open-bangle"]);
 export const isSolidBracelet = (d: Pick<Design, "type" | "style">) => d.type === "bracelet" && SOLID_BRACELETS.has(d.style);
 
-const CLASPS = ["auto", "box", "jewelled", "hidden", "lobster", "spring-ring", "toggle"] as const;
+const CLASPS = ["auto", "box", "jewelled", "slider", "hidden", "lobster", "spring-ring", "toggle"] as const;
 export type ClaspChoice = (typeof CLASPS)[number];
 const STONE_LINES = new Set(["line", "pearl-strand", "tennis", "beaded", "festoon", "freeform"]);
 export const claspChoices = (style: string): readonly ClaspChoice[] =>

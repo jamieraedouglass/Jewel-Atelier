@@ -3,7 +3,7 @@
 import { BANGLE_SIZES, CHAIN_STYLES, NECKLACE_LENGTHS, SETTINGS, type ClaspChoice, type Design, type Use, claspChoices, isSolidBracelet, label, blockedOptions } from "@/lib/design";
 
 const CLASP_LABEL: Record<ClaspChoice, string> = {
-  auto: "Usual for this piece", box: "Box clasp", jewelled: "Jewelled box (the design runs onto it)", hidden: "Hidden (stones unbroken)",
+  auto: "Usual for this piece", box: "Box clasp", jewelled: "Jewelled box (the design runs onto it)", slider: "Slider (pull it up to tighten; the chain ends hang with a stone each)", hidden: "Hidden (stones unbroken)",
   lobster: "Lobster claw", "spring-ring": "Spring ring", toggle: "Toggle",
 };
 import { Chips, Range, Toggle, sectionStyle, type SectionProps } from "./fields";

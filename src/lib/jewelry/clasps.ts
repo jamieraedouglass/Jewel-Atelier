@@ -3,8 +3,8 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import type { ClaspChoice, Design } from "../design";
 import { v3 } from "./common";
 import { type Mats } from "./materials";
-import { accents, jumpRing } from "./elements";
-import { yawAt } from "./curves";
+import { accents, chainAlong, jumpRing } from "./elements";
+import { outwardAt, wrap, yawAt } from "./curves";
 
 type ClaspKind = Exclude<ClaspChoice, "auto" | "hidden">;
 
@@ -19,7 +19,27 @@ export function claspAt(kind: ClaspKind, d: Design, m: Mats, curve: THREE.Curve<
   const torus = (R: number, r: number, arc = Math.PI * 2) => new THREE.Mesh(new THREE.TorusGeometry(R, r, 10, 32, arc), m.metal);
   const capsule = (r: number, len: number) => new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 14), m.metal);
 
-  if (kind === "box" || kind === "jewelled") {
+  if (kind === "slider") {
+    // A slider: a jewelled bead the chain runs through, pushed up to tighten the piece against the throat. Both ends
+    // of the chain come out of it and hang down the back, each finished with a stone in a claw cup.
+    const bead = new THREE.Mesh(new RoundedBoxGeometry(s * 1.1, s * 0.75, s * 1.6, 3, s * 0.25), m.satin);
+    g.add(bead);
+    g.add(accents(m, d.accents.gem, d.accents.color, "faceted", [-1, 0, 1].map((k) => ({ pos: v3(0, s * 0.38, k * s * 0.45), dia: s * 0.36 }))));
+    g.updateMatrix();
+    const inv = g.matrix.clone().invert();
+    const out = outwardAt(curve, u), along = curve.getTangentAt(wrap(u));
+    for (const [side, len] of [[-1, 34], [1, 28]] as const) {
+      const a = curve.getPointAt(u).addScaledVector(along, side * s * 0.5);
+      const b = a.clone().addScaledVector(out, len);
+      const tail = new THREE.Group();
+      tail.add(chainAlong(new THREE.LineCurve3(a, b), d.options.chain, m));
+      const dia = 3.2, stone = accents(m, d.accents.gem, d.accents.color, "faceted", [{ pos: b.clone().addScaledVector(out, dia * 0.7), dia }]);
+      stone.userData.keep = true;
+      tail.add(stone, jumpRing(m, 0.7, 0.25, b.clone().addScaledVector(out, 0.2)));
+      tail.applyMatrix4(inv);
+      g.add(tail);
+    }
+  } else if (kind === "box" || kind === "jewelled") {
     const box = new THREE.Mesh(new RoundedBoxGeometry(s * 0.95, s * 0.6, s * 1.7, 3, s * 0.18), m.satin);
     g.add(box);
     const lever = capsule(s * 0.07, s * 0.3); lever.rotation.x = Math.PI / 2; lever.position.set(0, s * 0.3, -s * 0.95); g.add(lever);

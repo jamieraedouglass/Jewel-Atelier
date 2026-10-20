@@ -1,14 +1,15 @@
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { type CenterStone, type Design, NO_CHARACTER, SHAPE_RATIO, ringInnerDiameter } from "../design";
+import { type CenterStone, type Design, NO_CHARACTER, SHAPE_RATIO, resolveClasp, ringInnerDiameter } from "../design";
 import { type Piece, Y, v3 } from "../jewelry/common";
 import { type Mats } from "../jewelry/materials";
 import { type Item, accents, balls, chainAlong } from "../jewelry/elements";
 import { setStone, tube } from "../jewelry/stones";
 import { loopCurve, outwardAt, wrap } from "../jewelry/curves";
 import { stoneNeckline } from "../jewelry/festoon";
+import { claspAt } from "../jewelry/clasps";
 import { bandSection, shankGeo } from "../ringModel";
-import { type Layout, type LaidStone, layoutFreeform, plateTop } from "./layout";
+import { type Layout, type LaidStone, layoutFreeform, neckSpan, plateTop } from "./layout";
 
 // Builds a freeform design in 3D: the flat layout is carried onto the body (round the neckline, hanging from the
 // ear, or wrapped over the top of a ring), and made of the app's usual settings, wire, chain and metal.
@@ -20,6 +21,12 @@ type Frame = {
 };
 
 const earFrame: Frame = { at: (x, y, h) => v3(x, h, y), axes: () => ({ X: v3(1, 0, 0), Yd: v3(0, 0, 1), up: Y.clone() }) };
+
+// The neckline round the back only, from skipMm one side of the centre front to skipMm the other side.
+function backOf(curve: THREE.Curve<THREE.Vector3>, front: number, skipMm: number) {
+  const skip = skipMm / curve.getLength();
+  return new THREE.CatmullRomCurve3(Array.from({ length: 241 }, (_, i) => curve.getPointAt(wrap(front + skip + (i / 240) * (1 - 2 * skip)))), false);
+}
 
 function neckFrame(curve: THREE.Curve<THREE.Vector3>, front: number): Frame {
   const total = curve.getLength();
@@ -271,12 +278,19 @@ export function freeformPiece(d: Design, m: Mats): Piece {
   }
   // Necklaces (and anything else worn on a loop): the drawing hangs from the centre front of the neckline.
   const { curve, front } = loopCurve(d.options.lengthIn * 25.4, 0.85, 0.12);
+  // A drawing laid along the neckline replaces it across the front, the neckline joining its ends a little inside them.
+  const span = neckSpan(lay), skipMm = span ? Math.max(0, span - 0.4) : 0;
   if (f.neckline.kind === "stones") {
-    group.add(stoneNeckline(d, m, curve, front, { ...f.neckline, widthMm: f.neckline.sizeMm }, "freeformNeck", "freeform", f.neckline.rows).group);
+    group.add(stoneNeckline(d, m, curve, front, { ...f.neckline, widthMm: f.neckline.sizeMm }, "freeformNeck", "freeform", f.neckline.rows, skipMm).group);
+  } else if (f.neckline.kind === "chain" && span) {
+    // The chain runs round the back from one end of the band to the other, fastening at the back.
+    group.add(chainAlong(backOf(curve, front, skipMm), d.options.chain, m));
+    const kind = resolveClasp("freeform", d.options.clasp);
+    if (kind !== "hidden" && kind !== "none") group.add(claspAt(kind, d, m, curve, wrap(front + 0.5), 3));
   } else if (f.neckline.kind === "chain") group.add(chainAlong(curve, d.options.chain, m));
   const frame = neckFrame(curve, front);
   const piece = buildLayout(frame, lay, d, m);
-  if (f.neckline.kind !== "none") piece.add(neckPosts(frame, lay, f.neckline, m));
+  if (f.neckline.kind !== "none" && !span) piece.add(neckPosts(frame, lay, f.neckline, m));
   group.add(piece);
   const p = framed(piece, false);
   return { group, focus: p.focus, focusSize: p.focusSize, upright: false };

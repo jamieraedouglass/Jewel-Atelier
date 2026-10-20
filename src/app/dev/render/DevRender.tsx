@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { View } from "@/components/canvas/types";
-import { SHOWCASE, applyPatchLenient, chooseStyle, defaultDesign, showcaseDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
+import { DesignSchema, SHOWCASE, applyPatchLenient, chooseStyle, defaultDesign, showcaseDesign, type Design, type DesignPatch, type PieceType } from "@/lib/design";
 
 const RingCanvas = dynamic(() => import("@/components/RingCanvas"), { ssr: false });
 const FreeformSketch = dynamic(() => import("@/components/FreeformSketch"), { ssr: false });
@@ -25,6 +25,9 @@ export default function DevRender() {
     // ?showcase=<name> opens that showcase piece, so a preview link can be shared and reloaded.
     const name = q.get("showcase"), s = name ? SHOWCASE.find((x) => x.name.toLowerCase() === name.toLowerCase()) : null;
     if (s) setDesign(showcaseDesign(s));
+    // ?load=<file in public/> opens a saved design JSON, to look at a design before it is saved anywhere.
+    const file = q.get("load");
+    if (file) fetch(`/${file}`).then((r) => r.json()).then((d) => setDesign(DesignSchema.parse(d))).catch(() => {});
   }, []);
   useEffect(() => {
     window.__design = design;

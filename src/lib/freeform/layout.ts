@@ -221,6 +221,15 @@ function mirrored(lay: Omit<Layout, "bounds">): Omit<Layout, "bounds"> {
   return out;
 }
 
+// A necklace drawn across the neckline (a band running along it, reaching above it as well as below) takes the place of
+// that stretch of the neckline, so the neckline's stones or chain run only from the drawing's ends round to the clasp.
+// How far either side of the centre the drawing covers along the neckline, in mm; 0 for a drawing hung below it.
+export function neckSpan(lay: Layout) {
+  if (lay.bounds.minY > -2) return 0;
+  const near = [...lay.wires.flatMap((w) => w.pts), ...lay.plates.flatMap((p) => p.outline), ...lay.stones].filter((q) => Math.abs(q.y) < 1.5);
+  return near.length ? Math.max(...near.map((q) => Math.abs(q.x))) : 0;
+}
+
 export function layoutFreeform(f: Freeform): Layout {
   const curves = new Map(f.paths.map((p) => [p.id, { curve: pathCurve(p.points, p.closed, p.sharp), closed: p.closed }]));
   let all: Omit<Layout, "bounds"> = { stones: [], wires: [], plates: [], links: [] };
