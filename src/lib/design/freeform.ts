@@ -10,7 +10,7 @@ import { CUTS, GEMS, SHAPES } from "./vocab";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const num = (min: number, max: number, def: number) => z.number().min(min).max(max).default(def);
-const point = z.tuple([z.number().min(-160).max(160), z.number().min(-160).max(160)]).or(z.tuple([z.number().min(-160).max(160), z.number().min(-160).max(160), z.number().min(-20).max(20)]));
+const point = z.tuple([z.number().min(-600).max(600), z.number().min(-600).max(600)]).or(z.tuple([z.number().min(-600).max(600), z.number().min(-600).max(600), z.number().min(-20).max(20)]));
 const ref = z.string().min(1).max(24);
 
 const Look = {
@@ -19,8 +19,15 @@ const Look = {
   cut: z.enum(CUTS).default("faceted"),
   shape: z.enum(SHAPES).default("round"),
 };
-// A part can be repeated round a point (a rosette of petals, a star of rays).
-const Repeat = z.object({ count: z.number().int().min(2).max(24), around: point.default([0, 0]) }).optional();
+// A part can be repeated round a point (a rosette of petals, a star of rays), or, given a step, in a line (the links
+// of a band, a row of motifs), each copy `scale` times the last so a band can graduate towards the back. A line of
+// copies shrinks about `around` (give every part of one motif the same point, so the motif shrinks as one).
+const Repeat = z.object({
+  count: z.number().int().min(2).max(24),
+  around: point.optional(),
+  step: z.tuple([z.number().min(-80).max(80), z.number().min(-80).max(80)]).optional(),
+  scale: num(0.7, 1.3, 1),
+}).optional();
 
 export const FreeformPathSchema = z.object({
   id: ref,
@@ -80,7 +87,8 @@ export const FreeformSchema = z.object({
   notes: z.string().max(1200).default(""),
   mirror: z.boolean().default(true),
   // Necklaces: what goes round the neck. Earrings: how it's worn.
-  neckline: z.object({ kind: z.enum(["chain", "stones"]).default("chain"), ...Look, sizeMm: num(1, 8, 2.4), rows: z.number().int().min(1).max(3).default(1) }).default({}),
+  // "none": the drawing itself goes all the way round (a choker or collar whose pattern runs to the clasp).
+  neckline: z.object({ kind: z.enum(["chain", "stones", "none"]).default("chain"), ...Look, sizeMm: num(1, 8, 2.4), rows: z.number().int().min(1).max(3).default(1) }).default({}),
   top: z.enum(["post", "hook"]).default("post"),
   paths: z.array(FreeformPathSchema).max(40).default([
     { id: "garland", points: [[0, 6], [8, 9], [15, 4]], closed: false },

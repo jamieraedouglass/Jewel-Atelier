@@ -80,4 +80,23 @@ describe("freeform designs", () => {
     expect(r.bodies?.filter((b) => b.mm3 > r.bodies![0].mm3 * 0.05)).toHaveLength(1);
     expect(r.unseated).toEqual([]);
   }, 120000);
+
+  it("repeats a motif along a line, graduating it and its spacing together", () => {
+    const f = FreeformSchema.parse({ mirror: false, neckline: { kind: "none" }, paths: [], parts: [
+      { kind: "stone", at: [10, 0], shape: "hexagon", lengthMm: 6, widthMm: 5, rotation: 90, repeat: { count: 3, step: [10, 0], scale: 0.9, around: [10, 0] } },
+    ] });
+    const st = layoutFreeform(f).stones;
+    expect(st.map((s) => +s.x.toFixed(2))).toEqual([10, 20, 29]);
+    expect(st.map((s) => +s.L.toFixed(2))).toEqual([6, 5.4, 4.86]);
+  });
+
+  it("checks a band that goes all the way round for parts that don't join it", () => {
+    const f = FreeformSchema.parse({ mirror: false, neckline: { kind: "none" }, paths: [{ id: "band", points: [[0, 0], [60, 0]] }], parts: [
+      { kind: "row", path: "band", shape: "round", sizeMm: 2 },
+      { kind: "stone", at: [30, 30], shape: "round", lengthMm: 3, widthMm: 3 },
+    ] });
+    const issues = checkLayout(f, layoutFreeform(f), "necklace");
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatch(/not joined/);
+  });
 });

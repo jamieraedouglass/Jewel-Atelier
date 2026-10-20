@@ -157,6 +157,30 @@ function plate(part: Extract<FreeformPart, { kind: "plate" }>, outline: THREE.Cu
 }
 
 // Copies of a part's pieces turned round a point.
+// Copies of a part's pieces in a line, each moved on by `step` and `scale` times the size of the one before (the
+// spacing shrinks with it), so a band of motifs can graduate towards the back.
+function stepped(lay: Omit<Layout, "bounds">, count: number, step: [number, number], scale: number, anchor?: readonly number[]): Omit<Layout, "bounds"> {
+  const xs = [...lay.stones.map((s) => s.x), ...lay.wires.flatMap((w) => w.pts.map((p) => p.x)), ...lay.plates.flatMap((p) => p.outline.map((q) => q.x)), ...lay.links.flatMap((l) => [l.a.x, l.b.x])];
+  const ys = [...lay.stones.map((s) => s.y), ...lay.wires.flatMap((w) => w.pts.map((p) => p.y)), ...lay.plates.flatMap((p) => p.outline.map((q) => q.y)), ...lay.links.flatMap((l) => [l.a.y, l.b.y])];
+  if (!xs.length) return lay;
+  const cx = anchor ? anchor[0] : (Math.min(...xs) + Math.max(...xs)) / 2, cy = anchor ? anchor[1] : (Math.min(...ys) + Math.max(...ys)) / 2;
+  const out: Omit<Layout, "bounds"> = { stones: [], wires: [], plates: [], links: [] };
+  let ox = 0, oy = 0;
+  for (let k = 0; k < count; k++) {
+    const f = Math.pow(scale, k);
+    const at = (x: number, y: number) => [cx + ox + (x - cx) * f, cy + oy + (y - cy) * f];
+    const p3 = (p: THREE.Vector3) => { const [x, y] = at(p.x, p.y); return v3(x, y, p.z * f); };
+    const p2 = (p: THREE.Vector2) => { const [x, y] = at(p.x, p.y); return new THREE.Vector2(x, y); };
+    const g = (x: { group: string }) => `${x.group}.${k}`;
+    out.stones.push(...lay.stones.map((st) => { const [x, y] = at(st.x, st.y); return { ...st, x, y, h: st.h * f, L: st.L * f, W: st.W * f, group: g(st) }; }));
+    out.wires.push(...lay.wires.map((w) => ({ ...w, pts: w.pts.map(p3), r: w.r * f, group: g(w) })));
+    out.plates.push(...lay.plates.map((p) => ({ ...p, outline: p.outline.map(p2), holes: p.holes.map((h) => h.map(p2)), dome: p.dome * f, group: g(p) })));
+    out.links.push(...lay.links.map((l) => ({ a: p3(l.a), b: p3(l.b), group: g(l) })));
+    ox += step[0] * f; oy += step[1] * f;
+  }
+  return out;
+}
+
 function turned(lay: Omit<Layout, "bounds">, count: number, around: [number, number]): Omit<Layout, "bounds"> {
   const out: Omit<Layout, "bounds"> = { stones: [], wires: [], plates: [], links: [] };
   for (let k = 0; k < count; k++) {
@@ -215,7 +239,9 @@ export function layoutFreeform(f: Freeform): Layout {
     }
     const g = String(f.parts.indexOf(part));
     for (const x of [...lay.stones, ...lay.wires, ...lay.plates, ...lay.links]) x.group = g;
-    if (part.repeat) lay = turned(lay, part.repeat.count, [part.repeat.around[0], part.repeat.around[1]]);
+    if (part.repeat) lay = part.repeat.step
+      ? stepped(lay, part.repeat.count, part.repeat.step, part.repeat.scale, part.repeat.around)
+      : turned(lay, part.repeat.count, [part.repeat.around?.[0] ?? 0, part.repeat.around?.[1] ?? 0]);
     all = { stones: [...all.stones, ...lay.stones], wires: [...all.wires, ...lay.wires], plates: [...all.plates, ...lay.plates], links: [...all.links, ...lay.links] };
   }
   // Stones set on a plate sit on its surface, a little into it so their settings are part of it; the rail under a row

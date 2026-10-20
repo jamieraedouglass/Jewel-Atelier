@@ -272,10 +272,10 @@ export function freeformPiece(d: Design, m: Mats): Piece {
   const { curve, front } = loopCurve(d.options.lengthIn * 25.4, 0.85, 0.12);
   if (f.neckline.kind === "stones") {
     group.add(stoneNeckline(d, m, curve, front, { ...f.neckline, widthMm: f.neckline.sizeMm }, "freeformNeck", "freeform", f.neckline.rows).group);
-  } else group.add(chainAlong(curve, d.options.chain, m));
+  } else if (f.neckline.kind === "chain") group.add(chainAlong(curve, d.options.chain, m));
   const frame = neckFrame(curve, front);
   const piece = buildLayout(frame, lay, d, m);
-  piece.add(neckPosts(frame, lay, f.neckline, m));
+  if (f.neckline.kind !== "none") piece.add(neckPosts(frame, lay, f.neckline, m));
   group.add(piece);
   const p = framed(piece, false);
   return { group, focus: p.focus, focusSize: p.focusSize, upright: false };

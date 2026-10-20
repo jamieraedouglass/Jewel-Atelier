@@ -104,7 +104,13 @@ export function checkLayout(f: Freeform, lay: Layout, type: string, bandMm = 2.5
   // Anything lying on a plate is held by it.
   els.forEach((e, i) => { if (!e.area) return; els.forEach((o, j) => { if (j !== i && find(i) !== find(j) && o.pts.some((p) => inside(p, e.area!.outline) && !e.area!.holes.some((h) => inside(p, h)))) join(i, j); }); });
   const worn = wornFrom(type, bandMm, f);
-  const held = new Set(els.map((e, i) => (e.pts.some(worn) ? find(i) : -1)).filter((r) => r >= 0));
+  // A band that goes all the way round holds itself: every part must join its main body (the largest joined group).
+  const sizes = new Map<number, number>();
+  els.forEach((e, i) => sizes.set(find(i), (sizes.get(find(i)) ?? 0) + e.pts.length));
+  const main = [...sizes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const held = type === "necklace" && f.neckline.kind === "none"
+    ? new Set(main === undefined ? [] : [main])
+    : new Set(els.map((e, i) => (e.pts.some(worn) ? find(i) : -1)).filter((r) => r >= 0));
   const loose = els.filter((_, i) => !held.has(find(i)));
   const wornName = type === "ring" ? "the band" : type === "earrings" ? "the post at (0, 0)" : "the neckline at y = 0";
   if (!held.size) issues.push(`Nothing reaches ${wornName}, so the piece has nothing to hang from. Add a link or move the top of the design to it.`);

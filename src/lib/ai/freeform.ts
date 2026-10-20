@@ -14,7 +14,12 @@ const look = {
   shape: { type: "string", enum: [...SHAPES] },
 };
 const pt = { type: "array", items: { type: "number" }, minItems: 2, maxItems: 3, description: "[x, y] or [x, y, h] in mm" };
-const repeat = { type: "object", description: "Copies of this part turned round a point: a rosette of petals, a star of rays.", properties: { count: { type: "integer", minimum: 2, maximum: 24 }, around: pt }, required: ["count", "around"] };
+const repeat = {
+  type: "object",
+  description: "Copies of this part: turned round a point (`around`: a rosette of petals, a star of rays), or, with `step`, in a line (the repeating links or motifs of a band), each copy `scale` times the size of the last (e.g. 0.97 to graduate towards the back); give every part of one motif the same `around` (the motif's centre) so it shrinks as one.",
+  properties: { count: { type: "integer", minimum: 2, maximum: 24 }, around: pt, step: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2, description: "[dx, dy] mm from one copy to the next" }, scale: { type: "number" } },
+  required: ["count"],
+};
 
 export const freeformTool: Anthropic.Tool = {
   name: "design_freeform",
@@ -25,7 +30,7 @@ export const freeformTool: Anthropic.Tool = {
       name: { type: "string" },
       notes: { type: "string", description: "Two or three sentences for the workshop: what the piece is, how it would be made, and anything simplified from the brief or photos. Describe the piece, not yourself (no \"I\")." },
       mirror: { type: "boolean", description: "true for a symmetric design: draw only the right half (x >= 0) and anything on the centre line; it is copied to the left." },
-      neckline: { type: "object", description: "Necklaces only: what goes round the neck (a line of stones can be 1–3 rows).", properties: { kind: { type: "string", enum: ["chain", "stones"] }, ...look, sizeMm: { type: "number" }, rows: { type: "integer", minimum: 1, maximum: 3 } } },
+      neckline: { type: "object", description: "Necklaces only: what goes round the neck (a line of stones can be 1–3 rows), or none when the design's own band runs all the way round to the clasp.", properties: { kind: { type: "string", enum: ["chain", "stones", "none"] }, ...look, sizeMm: { type: "number" }, rows: { type: "integer", minimum: 1, maximum: 3 } } },
       top: { type: "string", enum: ["post", "hook"], description: "Earrings only." },
       paths: {
         type: "array", maxItems: 40,
@@ -90,7 +95,8 @@ PARTS:
 - stone: one stone at a point, set on its own (claw or bezel): lengthMm × widthMm, rotation in degrees (0 = its length hangs straight
   down; a pear's point lowest).
 - link: a bail or a short chain from a to b, for something that hangs (a drop, a pendant).
-- repeat: on any part, copies turned round a point (petals, rays, a rosette).
+- repeat: on any part, copies turned round a point (petals, rays, a rosette), or with step, in a line: draw one link or motif of a
+  band (its stone, its frame, its bars) once and repeat each of its parts with the same count, step and scale.
 
 RULES THAT MAKE IT BUILDABLE (the workshop will cast it):
 - Everything must be joined into one piece: every row, plate, wire and stone must touch another part (or the neckline / post / band),
@@ -124,9 +130,13 @@ function tidy(o: Record<string, unknown>) {
   for (const [k, [lo, hi]] of Object.entries(LIMITS)) if (typeof out[k] === "number") out[k] = Math.min(hi, Math.max(lo, out[k] as number));
   if (out.kind !== "stone" && typeof out.widthMm === "number") out.widthMm = Math.min(4, out.widthMm as number);
   if (out.kind === "row" && typeof out.rows === "number") out.rows = Math.round(out.rows as number);
-  const pointish = (p: unknown) => Array.isArray(p) && p.length >= 2 && p.slice(0, 3).every((v) => typeof v === "number") ? p.slice(0, 3).map((v, i) => Math.min(i === 2 ? 20 : 160, Math.max(i === 2 ? -20 : -160, v as number))) : p;
+  const pointish = (p: unknown) => Array.isArray(p) && p.length >= 2 && p.slice(0, 3).every((v) => typeof v === "number") ? p.slice(0, 3).map((v, i) => Math.min(i === 2 ? 20 : 600, Math.max(i === 2 ? -20 : -600, v as number))) : p;
   for (const k of ["at", "a", "b"]) if (k in out) out[k] = pointish(out[k]);
-  if (out.repeat && typeof out.repeat === "object") { const r = out.repeat as Record<string, unknown>; out.repeat = { count: Math.min(24, Math.max(2, Math.round(Number(r.count) || 2))), around: pointish(r.around ?? [0, 0]) }; }
+  if (out.repeat && typeof out.repeat === "object") {
+    const r = out.repeat as Record<string, unknown>;
+    const step = Array.isArray(r.step) && r.step.length >= 2 ? (r.step as unknown[]).slice(0, 2).map((v) => Math.min(80, Math.max(-80, Number(v) || 0))) : undefined;
+    out.repeat = { count: Math.min(24, Math.max(2, Math.round(Number(r.count) || 2))), ...(r.around ? { around: pointish(r.around) } : {}), ...(step ? { step, scale: Math.min(1.3, Math.max(0.7, Number(r.scale) || 1)) } : {}) };
+  }
   if (out.pave && typeof out.pave === "object") { const p = out.pave as Record<string, unknown>; if (typeof p.sizeMm === "number") p.sizeMm = Math.min(4, Math.max(0.7, p.sizeMm)); }
   return out;
 }
@@ -135,7 +145,7 @@ export function toFreeform(input: unknown): Freeform | null {
   const raw = (input ?? {}) as Record<string, unknown>;
   const paths = (Array.isArray(raw.paths) ? raw.paths : []).slice(0, 40).map((p) => {
     const q = (p ?? {}) as Record<string, unknown>;
-    const points = (Array.isArray(q.points) ? q.points : []).filter((x) => Array.isArray(x) && x.length >= 2).slice(0, 48).map((x) => (x as number[]).slice(0, 3).map((v, i) => Math.min(i === 2 ? 20 : 160, Math.max(i === 2 ? -20 : -160, Number(v) || 0))));
+    const points = (Array.isArray(q.points) ? q.points : []).filter((x) => Array.isArray(x) && x.length >= 2).slice(0, 48).map((x) => (x as number[]).slice(0, 3).map((v, i) => Math.min(i === 2 ? 20 : 600, Math.max(i === 2 ? -20 : -600, Number(v) || 0))));
     return FreeformPathSchema.safeParse({ id: String(q.id ?? "").slice(0, 24), points, closed: !!q.closed });
   }).filter((r) => r.success).map((r) => r.data!);
   const ids = new Set(paths.map((p) => p.id));

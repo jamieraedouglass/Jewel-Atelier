@@ -64,7 +64,7 @@ export default function FreeformSketch({ freeform, type, bandMm = 2.5, onEdit }:
       <svg ref={svg} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} style={{ width: "100%", height: "auto", display: "block", touchAction: drag ? "none" : "auto" }}
         role="img" aria-label={`Sketch of ${freeform.name}`} onPointerMove={move} onPointerUp={() => setDrag(null)} onPointerLeave={() => setDrag(null)}>
         {/* What it's worn from. */}
-        {type === "necklace" && (freeform.neckline.kind === "stones"
+        {type === "necklace" && freeform.neckline.kind !== "none" && (freeform.neckline.kind === "stones"
           ? Array.from({ length: freeform.neckline.rows }, (_, row) => {
               const sz = freeform.neckline.sizeMm, step = sz + 0.18, y = row * (sz + 0.3), n = Math.ceil(vb.w / step);
               return Array.from({ length: n }, (_, i) => <circle key={`n${row}-${i}`} cx={vb.x + (i + 0.5) * step} cy={y} r={sz / 2} fill={freeform.neckline.color} fillOpacity={0.8} stroke="var(--fg)" strokeOpacity={0.5} strokeWidth={k * 0.6} />);
