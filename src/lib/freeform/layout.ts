@@ -173,11 +173,13 @@ function turned(lay: Omit<Layout, "bounds">, count: number, around: [number, num
   return out;
 }
 
-// The left half: everything drawn on the right copied across the centre line. Anything that already reaches across
-// it (a centred plate, a stone on the line) stays as it is, once.
+// The left half: everything drawn on the right copied across the centre line. Anything centred on the line (a centred
+// plate, a stone on the line) stays as it is, once.
 function mirrored(lay: Omit<Layout, "bounds">): Omit<Layout, "bounds"> {
   const flip3 = (p: THREE.Vector3) => v3(-p.x, p.y, p.z), flip2 = (p: THREE.Vector2) => new THREE.Vector2(-p.x, p.y);
-  const right = (xs: number[], half = 0) => Math.min(...xs) - half > -0.3 && Math.max(...xs) > 0.3;
+  // A part drawn mostly on the right is copied, even when it reaches a little past the centre line to join its twin;
+  // only a part centred on the line (reaching about as far left as right) is already whole.
+  const right = (xs: number[]) => { const lo = Math.min(...xs), hi = Math.max(...xs); return hi > 0.3 && lo > -Math.max(0.3, hi * 0.25); };
   const out: Omit<Layout, "bounds"> = { stones: [...lay.stones], wires: [...lay.wires], plates: [...lay.plates], links: [...lay.links] };
   for (const st of lay.stones) {
     // Half the stone's reach across: a stone sitting on the line would overlap its own copy.
@@ -221,7 +223,7 @@ export function layoutFreeform(f: Freeform): Layout {
   const plateUnder = (x: number, y: number) => all.plates.find((p) => inside(new THREE.Vector2(x, y), p.outline) && !p.holes.some((h) => inside(new THREE.Vector2(x, y), h)));
   for (const st of all.stones) {
     const under = plateUnder(st.x, st.y);
-    if (under) st.h = Math.max(st.h, plateTop(under, st.x, st.y) - (st.big ? 0 : 0.35));
+    if (under) st.h = Math.max(st.h, plateTop(under, st.x, st.y) - (st.big ? 0 : Math.min(0.35, st.W * 0.1)));
   }
   for (const w of all.wires) if (w.rail) for (const p of w.pts) { const under = plateUnder(p.x, p.y); if (under) p.z = Math.max(p.z, plateTop(under, p.x, p.y) - 0.35); }
   // Pavé leaves room for any larger stone set on the same plate.
