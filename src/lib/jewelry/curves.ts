@@ -19,7 +19,8 @@ export function loopCurve(lengthMm: number, aspect: number, point: number) {
       const t = (i / 96) * Math.PI * 2;
       const x = Math.cos(t) * k * aspect;
       let z = Math.sin(t) * k * loopFlatten;
-      if (z > 0) z += point * k * Math.pow(Math.max(0, 1 - Math.abs(x) / (k * aspect)), 2);
+      // The dip to a point at the front flattens with the loop, so a piece shown flatter as worn doesn't keep a V.
+      if (z > 0) z += point * k * loopFlatten * Math.pow(Math.max(0, 1 - Math.abs(x) / (k * aspect)), 2);
       pts.push(v3(x, 0, z));
     }
     return new THREE.CatmullRomCurve3(pts, true, "centripetal");

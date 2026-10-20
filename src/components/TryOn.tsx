@@ -15,15 +15,16 @@ const REFS = [
 export type TryOnExtra = { title: string; cutout: Cutout };
 type Props = {
   cutout: Cutout; front?: Cutout | null; right?: Cutout | null; title: string; onClose: () => void; recut?: (flatten: number) => Cutout | null;
+  curve0?: number;
   extras?: TryOnExtra[];
 };
 type Layer = { pos: { x: number; y: number }; angle: number; flip: boolean; on: boolean };
 type Pt = { x: number; y: number };
 
-export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut, extras = [] }: Props) {
+export default function TryOn({ cutout: whole, front: front0 = null, right = null, title, onClose, recut, extras = [], curve0 = 0.45 }: Props) {
   const [showFront, setShowFront] = useState(!!front0);
   const [ear, setEar] = useState<"left" | "right">("left");
-  const [curve, setCurve] = useState(0.45);
+  const [curve, setCurve] = useState(curve0);
   const [front, setFront] = useState<Cutout | null>(front0);
   const recutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (recutTimer.current) clearTimeout(recutTimer.current); }, []);

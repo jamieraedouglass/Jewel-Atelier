@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { describeDesign, type Design } from "@/lib/design";
+import { describeDesign, wornCurve, type Design } from "@/lib/design";
 import { describeChanges, type Allow } from "@/lib/studio/links";
 import type { Pricing } from "@/lib/studio/pricing";
 import type { ChatMessage } from "@/lib/chat";
@@ -71,11 +71,11 @@ export default function ClientStudio({ studioName, clientName, note, allow, piec
 
   async function captureSet(all: boolean) {
     const handle = () => canvas.current;
-    const shot = (d: Design) => (LOOPS.has(d.type) ? handle()?.cutout?.("front", "left", 0.45) : handle()?.cutout?.("whole")) ?? null;
+    const shot = (d: Design) => (LOOPS.has(d.type) ? handle()?.cutout?.("front", "left", wornCurve(d)) : handle()?.cutout?.("whole")) ?? null;
     if (!all || pieces.length < 2) {
       const main = handle()?.cutout?.("whole");
       if (!main) { setStatus("Give the 3D view a moment to load, then try again."); return; }
-      setTryOn({ main, title: piece.name, front: LOOPS.has(design.type) ? handle()?.cutout?.("front", "left", 0.45) ?? null : null, extras: [] });
+      setTryOn({ main, title: piece.name, front: LOOPS.has(design.type) ? handle()?.cutout?.("front", "left", wornCurve(design)) ?? null : null, extras: [] });
       void backend.event(piece.designId, "tried-on").catch(() => {});
       return;
     }

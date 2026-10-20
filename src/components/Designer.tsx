@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { listVersions } from "@/app/actions";
-import { TYPES, TYPE_LABEL, chooseStyle, describeDesign, type Design } from "@/lib/design";
+import { TYPES, TYPE_LABEL, chooseStyle, describeDesign, wornCurve, type Design } from "@/lib/design";
 import { VIEW_LABEL, type Cutout, type Measure, type Pick, type RingCanvasHandle, type View } from "./canvas/types";
 import TryOn from "./TryOn";
 import QuickEdit from "./QuickEdit";
@@ -71,7 +71,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
     const d0 = designRef.current;
     const loop = ["bracelet", "necklace", "anklet"].includes(d0.type);
     const whole = canvas.current?.cutout?.("whole");
-    const front = loop ? canvas.current?.cutout?.("front", "left", 0.45) ?? null : null;
+    const front = loop ? canvas.current?.cutout?.("front", "left", wornCurve(d0)) ?? null : null;
     const right = d0.type === "earrings" ? canvas.current?.cutout?.("whole", "right") ?? null : null;
     if (whole) { setSpin(false); setTryOn({ whole, front, right }); } else flash("Couldn't capture the piece. Try again in a moment.");
   }
@@ -104,7 +104,7 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
           </div>
         )}
         {started && <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} quality={quality} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
-        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} onClose={() => setTryOn(null)}
+        {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} curve0={wornCurve(design)} onClose={() => setTryOn(null)}
           recut={(flatten) => canvas.current?.cutout?.("front", "left", flatten) ?? null} />}
         <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
         {pick && !spin && <QuickEdit pick={pick} design={pair.editing} onChange={pair.change} onMore={showSection} onClose={() => setPick(null)} />}
