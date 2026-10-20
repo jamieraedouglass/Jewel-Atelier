@@ -34,7 +34,7 @@ export const freeformTool: Anthropic.Tool = {
       top: { type: "string", enum: ["post", "hook"], description: "Earrings only." },
       paths: {
         type: "array", maxItems: 40,
-        items: { type: "object", properties: { id: { type: "string" }, points: { type: "array", items: pt, minItems: 2, maxItems: 48 }, closed: { type: "boolean" } }, required: ["id", "points"] },
+        items: { type: "object", properties: { id: { type: "string" }, points: { type: "array", items: pt, minItems: 2, maxItems: 48 }, closed: { type: "boolean" }, sharp: { type: "boolean", description: "true for straight lines with crisp corners (geometric gold work: chevrons, hexagons, bars); false for a smooth curve" } }, required: ["id", "points"] },
       },
       parts: {
         type: "array", maxItems: 60,
@@ -49,7 +49,7 @@ export const freeformTool: Anthropic.Tool = {
             holes: { type: "array", items: { type: "string" } }, thicknessMm: { type: "number" }, domeMm: { type: "number" },
             pave: { type: "object", properties: { ...look, sizeMm: { type: "number" } } }, edge: { type: "string", enum: ["plain", "milgrain"] },
             at: pt, lengthMm: { type: "number" }, rotation: { type: "number" }, setting: { type: "string", enum: ["claw", "bezel"] },
-            a: pt, b: pt,
+            a: pt, b: pt, free: { type: "boolean", description: "link only: true for jump rings so the drop swings freely (briolettes); false for a solid bail that holds it still" },
             repeat,
           },
           required: ["kind"],
@@ -83,6 +83,8 @@ THE DRAWING: x across (0 is the centre line, + to the right in the drawing), y d
 default 0). Points are [x, y] or [x, y, h].
 
 LINES (paths): named smooth curves through points (2–48 points; the curve passes through each point). closed: true for loops and outlines.
+sharp: true makes straight lines with crisp corners instead, for geometric gold work (chevrons, hexagonal frames, stepped bars):
+a gold channel holding a row of stones is a sharp closed plate outline with a row along its centre line.
 Use enough points to get the shape: a swag needs at least 3, a leaf outline 6–10, a circle 8.
 
 PARTS:
@@ -94,7 +96,8 @@ PARTS:
   pave: covers it in small stones; edge milgrain.
 - stone: one stone at a point, set on its own (claw or bezel): lengthMm × widthMm, rotation in degrees (0 = its length hangs straight
   down; a pear's point lowest).
-- link: a bail or a short chain from a to b, for something that hangs (a drop, a pendant).
+- link: a bail or a short chain from a to b, for something that hangs (a drop, a pendant). free: true makes it jump rings so the
+  drop swings (as briolettes do); a stone set rigidly against the piece needs no link at all, just touching it.
 - repeat: on any part, copies turned round a point (petals, rays, a rosette), or with step, in a line: draw one link or motif of a
   band (its stone, its frame, its bars) once and repeat each of its parts with the same count, step and scale.
 
@@ -146,7 +149,7 @@ export function toFreeform(input: unknown): Freeform | null {
   const paths = (Array.isArray(raw.paths) ? raw.paths : []).slice(0, 40).map((p) => {
     const q = (p ?? {}) as Record<string, unknown>;
     const points = (Array.isArray(q.points) ? q.points : []).filter((x) => Array.isArray(x) && x.length >= 2).slice(0, 48).map((x) => (x as number[]).slice(0, 3).map((v, i) => Math.min(i === 2 ? 20 : 600, Math.max(i === 2 ? -20 : -600, Number(v) || 0))));
-    return FreeformPathSchema.safeParse({ id: String(q.id ?? "").slice(0, 24), points, closed: !!q.closed });
+    return FreeformPathSchema.safeParse({ id: String(q.id ?? "").slice(0, 24), points, closed: !!q.closed, sharp: !!q.sharp });
   }).filter((r) => r.success).map((r) => r.data!);
   const ids = new Set(paths.map((p) => p.id));
   const parts = (Array.isArray(raw.parts) ? raw.parts : []).slice(0, 60).map((p) => FreeformPartSchema.safeParse(tidy((p ?? {}) as Record<string, unknown>)))

@@ -33,6 +33,8 @@ export const FreeformPathSchema = z.object({
   id: ref,
   points: z.array(point).min(2).max(48),
   closed: z.boolean().default(false),
+  // Straight lines between the points with crisp corners (geometric gold work), instead of a smooth curve through them.
+  sharp: z.boolean().default(false),
 });
 
 const RowPart = z.object({
@@ -78,6 +80,8 @@ const StonePart = z.object({
 const LinkPart = z.object({
   kind: z.literal("link"),
   a: point, b: point,
+  // free: jump rings, so what hangs from it swings (a briolette drop); otherwise a solid bail, held still.
+  free: z.boolean().default(false),
   repeat: Repeat,
 });
 export const FreeformPartSchema = z.discriminatedUnion("kind", [RowPart, WirePart, PlatePart, StonePart, LinkPart]);

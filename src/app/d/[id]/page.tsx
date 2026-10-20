@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { copyDesign } from "@/app/actions";
 import RingViewer from "@/components/RingViewer";
+import FactSheet from "@/components/FactSheet";
 import { describeDesign, normalizeDesign } from "@/lib/design";
 import { createClient } from "@/lib/supabase/server";
 import { BRAND } from "@/lib/brand";
@@ -34,6 +35,7 @@ export default async function SharedDesign({ params }: { params: { id: string } 
         <p className="muted" style={{ margin: 0 }}>{describeDesign(d.design)}</p>
       </div>
       <RingViewer design={d.design} />
+      <FactSheet design={d.design} />
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {mine ? (
           <Link href={`/design/${d.id}`} className="btn primary">Edit this design</Link>

@@ -77,6 +77,7 @@ function smallStones(group: THREE.Object3D): { count: number; diaMm: number }[] 
 
 const ct = (c: Pick<CenterStone, "gem" | "cut" | "shape" | "lengthMm" | "widthMm" | "carat">) => c.carat ?? caratFromDims(c.gem, c.cut, c.shape, c.lengthMm, c.widthMm);
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const r1 = (n: number) => Math.round(n * 10) / 10;
 const cutName = (c: Pick<CenterStone, "cut" | "shape">) => (c.cut === "faceted" ? `${label(c.shape).toLowerCase()} cut` : `${label(c.shape).toLowerCase()} ${c.cut}`);
 
 export type Spec = {
@@ -108,15 +109,28 @@ export function buildSpec(d: Design): Spec {
   const density = metalDensity(d);
   const weightG = metalWeight(piece.group, density);
   if (d.style === "freeform") {
-    // A unique piece lists its stones from its own layout: each gem, cut, shape and size, counted exactly.
-    const tally = new Map<string, { s: LaidStone; count: number }>();
+    // A unique piece lists its stones from its own layout, counted exactly: each single stone of the design on its own
+    // line (with its copies), and the stones set in rows or pavé together by gem, cut and shape, with their size range.
+    const tally = new Map<string, { s: LaidStone; count: number; ct: number; big: [number, number]; small: [number, number] }>();
     for (const s of layoutFreeform(d.freeform).stones) {
-      const L = Math.round(s.L * 10) / 10, W = Math.round(s.W * 10) / 10, key = `${s.gem}|${s.cut}|${s.shape}|${L}|${W}|${s.big}`;
-      const t = tally.get(key) ?? tally.set(key, { s: { ...s, L, W }, count: 0 }).get(key)!;
+      // Small single stones (drops, connectors) are listed together by cut, like set stones; larger ones each on their own.
+      const key = s.big && Math.max(s.L, s.W) >= 3.5 ? `part${Number.parseInt(s.group, 10)}` : `${s.gem}|${s.cut}|${s.shape}|${s.big ? "single" : "set"}`;
+      const t = tally.get(key) ?? tally.set(key, { s, count: 0, ct: 0, big: [s.L, s.W], small: [s.L, s.W] }).get(key)!;
       t.count++;
+      t.ct += caratFromDims(s.gem, s.cut, s.shape, s.L, s.W);
+      if (s.L * s.W > t.big[0] * t.big[1]) t.big = [s.L, s.W];
+      if (s.L * s.W < t.small[0] * t.small[1]) t.small = [s.L, s.W];
     }
-    for (const { s, count } of [...tally.values()].sort((a, b) => b.s.L * b.s.W - a.s.L * a.s.W)) {
-      line(s.big ? "Stone" : "Set stones", count * pair, { gem: s.gem, cut: s.cut, shape: s.shape, lengthMm: s.L, widthMm: s.W, carat: null });
+    const mm = ([L, W]: [number, number]) => (Math.abs(L - W) < 0.05 ? `${r1(L)}` : `${r1(L)} × ${r1(W)}`);
+    for (const t of [...tally.values()].sort((a, b) => Number(b.s.big) - Number(a.s.big) || b.big[0] * b.big[1] - a.big[0] * a.big[1])) {
+      const one = Math.abs(t.big[0] - t.small[0]) < 0.06 && Math.abs(t.big[1] - t.small[1]) < 0.06;
+      stones.push({
+        what: `${!t.s.big ? "Set stones" : Math.max(t.big[0], t.big[1]) < 3.5 ? "Small stones" : "Stone"}: ${gemLabel(t.s.gem)} · ${cutName(t.s)}`,
+        count: t.count * pair,
+        size: one ? `${mm(t.big)} mm` : `${mm(t.big)} down to ${mm(t.small)} mm`,
+        eachCt: one ? r2(t.ct / t.count) : null,
+        totalCt: r2(t.ct * pair),
+      });
     }
     const n = d.freeform.neckline;
     if (d.type === "necklace" && n.kind === "stones") {

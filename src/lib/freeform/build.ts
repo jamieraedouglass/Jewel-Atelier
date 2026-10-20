@@ -174,7 +174,8 @@ function stonesMesh(f: Frame, stones: LaidStone[], d: Design, m: Mats) {
 
 function linkMesh(f: Frame, l: Layout["links"][number], m: Mats) {
   const a = f.at(l.a.x, l.a.y, l.a.z), b = f.at(l.b.x, l.b.y, l.b.z);
-  // A short link is a solid bail; a longer drop hangs on a fine chain.
+  // A free link is jump rings, so the drop on it swings; a held one is a solid bail (a long one hangs on fine chain).
+  if (l.free) return chainAlong(new THREE.LineCurve3(a, b), "fine", m);
   if (a.distanceTo(b) > 8) return chainAlong(new THREE.LineCurve3(a, b), "cable", m);
   return tube(m, [a, b], 0.45);
 }

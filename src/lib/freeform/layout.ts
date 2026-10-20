@@ -13,16 +13,21 @@ export type Look = { gem: CenterStone["gem"]; color: string; cut: CenterStone["c
 export type LaidStone = Look & { x: number; y: number; h: number; L: number; W: number; angle: number; big: boolean; setting: "claw" | "bezel" | "row"; group: string };
 export type LaidWire = { pts: THREE.Vector3[]; r: number; finish: "plain" | "milgrain" | "rope"; rail?: boolean; group: string };
 export type LaidPlate = { outline: THREE.Vector2[]; holes: THREE.Vector2[][]; thickness: number; dome: number; milgrain: boolean; group: string };
-export type LaidLink = { a: THREE.Vector3; b: THREE.Vector3; group: string };
+export type LaidLink = { a: THREE.Vector3; b: THREE.Vector3; free?: boolean; group: string };
 export type Layout = { stones: LaidStone[]; wires: LaidWire[]; plates: LaidPlate[]; links: LaidLink[]; bounds: { minX: number; maxX: number; minY: number; maxY: number } };
 
 const ratio = (shape: CenterStone["shape"]) => SHAPE_RATIO[shape] ?? 1;
 const v3 = (x: number, y: number, h = 0) => new THREE.Vector3(x, y, h);
 
 // A smooth line through a path's points (stored as x, y, h in a Vector3), sampled evenly.
-export function pathCurve(points: Freeform["paths"][number]["points"], closed: boolean) {
+export function pathCurve(points: Freeform["paths"][number]["points"], closed: boolean, sharp = false) {
   const pts = points.map((p) => v3(p[0], p[1], p[2] ?? 0));
   if (pts.length === 2 && !closed) return new THREE.LineCurve3(pts[0], pts[1]) as THREE.Curve<THREE.Vector3>;
+  if (sharp) {
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) path.add(new THREE.LineCurve3(pts[i], pts[(i + 1) % pts.length]));
+    return path as THREE.Curve<THREE.Vector3>;
+  }
   return new THREE.CatmullRomCurve3(pts, closed, "centripetal") as THREE.Curve<THREE.Vector3>;
 }
 
@@ -217,7 +222,7 @@ function mirrored(lay: Omit<Layout, "bounds">): Omit<Layout, "bounds"> {
 }
 
 export function layoutFreeform(f: Freeform): Layout {
-  const curves = new Map(f.paths.map((p) => [p.id, { curve: pathCurve(p.points, p.closed), closed: p.closed }]));
+  const curves = new Map(f.paths.map((p) => [p.id, { curve: pathCurve(p.points, p.closed, p.sharp), closed: p.closed }]));
   let all: Omit<Layout, "bounds"> = { stones: [], wires: [], plates: [], links: [] };
   for (const part of f.parts) {
     let lay: Omit<Layout, "bounds"> = { stones: [], wires: [], plates: [], links: [] };
@@ -235,7 +240,7 @@ export function layoutFreeform(f: Freeform): Layout {
     } else if (part.kind === "stone") {
       lay.stones.push({ gem: part.gem, color: part.color, cut: part.cut, shape: part.shape, x: part.at[0], y: part.at[1], h: part.at[2] ?? 0, L: part.lengthMm, W: part.widthMm, angle: Math.PI / 2 + (part.rotation * Math.PI) / 180, big: true, setting: part.setting, group: "" });
     } else {
-      lay.links.push({ a: v3(part.a[0], part.a[1], part.a[2] ?? 0), b: v3(part.b[0], part.b[1], part.b[2] ?? 0), group: "" });
+      lay.links.push({ a: v3(part.a[0], part.a[1], part.a[2] ?? 0), b: v3(part.b[0], part.b[1], part.b[2] ?? 0), free: part.free, group: "" });
     }
     const g = String(f.parts.indexOf(part));
     for (const x of [...lay.stones, ...lay.wires, ...lay.plates, ...lay.links]) x.group = g;
