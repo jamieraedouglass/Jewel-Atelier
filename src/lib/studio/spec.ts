@@ -5,6 +5,7 @@ import {
 } from "../design";
 import { sizeText } from "./links";
 import { buildPiece } from "../jewelryModel";
+import { rivieraSizes } from "../jewelry/necklace";
 import { disposeGroup } from "../ringModel";
 import { type LaidStone, layoutFreeform, neckSpan } from "../freeform/layout";
 
@@ -96,7 +97,13 @@ export function buildSpec(d: Design): Spec {
     stones.push({ what: `${what}: ${c.label || gemLabel(c.gem)} · ${cutName(c)}`, count, size: `${sizeText(c)} mm`, eachCt: each, totalCt: r2(each * count) });
     void estimated;
   };
-  if (uses(d, "center") && !d.center.none) line(d.type === "ring" ? "Centre stone" : "Main stone", pair, d.center);
+  if (d.type === "necklace" && d.style === "riviera" && !d.center.none) {
+    // A riviera is all graduated stones: counted and weighed one by one, from the largest in the middle to the ends.
+    const sizes = rivieraSizes(d), top = Math.max(...sizes), low = Math.min(...sizes);
+    const total = sizes.reduce((a, s) => a + ct({ ...d.center, carat: null, lengthMm: d.center.lengthMm * s, widthMm: d.center.widthMm * s }), 0);
+    const at = (s: number) => sizeText({ ...d.center, lengthMm: d.center.lengthMm * s, widthMm: d.center.widthMm * s });
+    stones.push({ what: `Graduated stones: ${d.center.label || gemLabel(d.center.gem)} · ${cutName(d.center)}`, count: sizes.length, size: `${at(top)} down to ${at(low)} mm`, eachCt: null, totalCt: r2(total) });
+  } else if (uses(d, "center") && !d.center.none) line(d.type === "ring" ? "Centre stone" : "Main stone", pair, d.center);
   for (const e of d.extraStones) if (uses(d, "extraStones")) line(d.type === "ring" ? "Second stone" : "Stone", pair, { ...e, carat: null });
   if (uses(d, "drop")) d.drop.parts.forEach((part, i) => {
     const twin = part.pair ? 2 : 1;

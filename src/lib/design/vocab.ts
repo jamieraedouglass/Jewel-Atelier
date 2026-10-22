@@ -4,16 +4,16 @@ export const GEMS = [
 ] as const;
 export const SHAPES = [
   "round", "oval", "cushion", "pear", "marquise", "heart", "emerald", "asscher", "princess", "radiant", "baguette",
-  "octagon", "hexagon", "trillion", "kite", "shield", "half-moon", "old-mine",
+  "octagon", "hexagon", "trillion", "kite", "shield", "half-moon", "old-mine", "old-european",
 ] as const;
 export const STEP_SHAPES = new Set<string>(["emerald", "asscher", "baguette", "octagon", "hexagon", "kite", "shield", "half-moon"]);
 export const SHAPE_RATIO: Record<(typeof SHAPES)[number], number> = {
   round: 1, oval: 1.3, cushion: 1.1, pear: 1.5, marquise: 2, heart: 1, emerald: 1.4, asscher: 1, princess: 1, radiant: 1.25,
-  baguette: 2.5, octagon: 1, hexagon: 1.15, trillion: 1, kite: 1.5, shield: 1.1, "half-moon": 0.55, "old-mine": 1.05,
+  baguette: 2.5, octagon: 1, hexagon: 1.15, trillion: 1, kite: 1.5, shield: 1.1, "half-moon": 0.55, "old-mine": 1.05, "old-european": 1,
 };
 export const SHAPE_FILL: Record<(typeof SHAPES)[number], number> = {
   round: 0.5, oval: 0.52, cushion: 0.58, pear: 0.48, marquise: 0.44, heart: 0.5, emerald: 0.64, asscher: 0.66, princess: 0.7,
-  radiant: 0.66, baguette: 0.75, octagon: 0.64, hexagon: 0.62, trillion: 0.38, kite: 0.45, shield: 0.55, "half-moon": 0.5, "old-mine": 0.58,
+  radiant: 0.66, baguette: 0.75, octagon: 0.64, hexagon: 0.62, trillion: 0.38, kite: 0.45, shield: 0.55, "half-moon": 0.5, "old-mine": 0.58, "old-european": 0.5,
 };
 export const CUTS = ["faceted", "cabochon", "rose-cut", "polki", "briolette", "bead", "carved"] as const;
 export const SIDE_KINDS = ["none", "half-moon", "trapezoid", "baguette", "round", "oval", "pear"] as const;

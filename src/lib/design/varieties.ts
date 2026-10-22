@@ -2,7 +2,13 @@ import type { Gem } from "./vocab";
 
 export type Variety = { id: string; name: string; blurb: string; color: string; clarity: number; glow: number };
 
+// A Golconda diamond's colour: the one white that's drawn limpid, as these type IIa stones look.
+export const GOLCONDA = "#f8fafd";
+
 export const GEM_VARIETIES: Partial<Record<Gem, Variety[]>> = {
+  diamond: [
+    { id: "golconda", name: "Golconda (type IIa)", blurb: "Exceptionally pure and limpid; a soft, watery glow rather than rainbow fire", color: GOLCONDA, clarity: 1, glow: 0.15 },
+  ],
   emerald: [
     { id: "colombian", name: "Colombian", blurb: "Pure, vivid green with a touch of blue; lively, almost glowing", color: "#0a9a5c", clarity: 0.5, glow: 0.35 },
     { id: "zambian", name: "Zambian", blurb: "Deeper, cooler bluish green; clean and dark", color: "#0b6a57", clarity: 0.6, glow: 0.05 },

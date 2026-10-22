@@ -6,7 +6,7 @@ import { Chips, GemSelect, Range, Toggle, colorInputStyle, sectionStyle, type Se
 import ColourGrade from "./ColourGrade";
 
 type Accents = Design["accents"];
-const SAME_EVERY_WAY = new Set(["round", "old-mine"]);
+const SAME_EVERY_WAY = new Set(["round", "old-mine", "old-european"]);
 type Pattern = Pick<Accents, "shapes" | "turns" | "twins" | "sizes">;
 const pattern = (shapes: Accents["shapes"], turns: number[] = [], twins: boolean[] = [], sizes: number[] = []): Pattern => ({ shapes, turns, twins, sizes });
 

@@ -1,6 +1,6 @@
 import { geometryCache } from "../cache";
 import * as THREE from "three";
-import { BEAD_GEMS, type CenterStone, type Design, type Gem } from "../design";
+import { BEAD_GEMS, type CenterStone, type Design, type Gem, GOLCONDA } from "../design";
 import { type OutlineFn, cabochonGeo, carvedGeo, centerFacetedGeo, clawDegrees, facetedGeo, outlineFn } from "../ringModel";
 import { COLORLESS, v3 } from "./common";
 import { type Mats } from "./materials";
@@ -132,6 +132,7 @@ function stoneBody(c: CenterStone, m: Mats, scale = 1): THREE.Group {
   const tint = c.cut === "polki" ? (colorless ? 0xfff0c8 : new THREE.Color(c.color).lerp(new THREE.Color(0xffe0a0), 0.25)) : warm ? warm : colorless ? 0xf2f5ff : new THREE.Color(c.color).lerp(new THREE.Color(0xffffff), 0.15);
   const mirror = new THREE.Mesh(geo, m.mirror(tint, c.cut === "polki" ? 2.4 : 3.6));
   if (warm) mirror.userData.tint = `#${warm.getHexString()}`;
+  if (c.gem === "diamond" && c.color.toLowerCase() === GOLCONDA) mirror.userData.limpid = true;
   g.add(mirror, new THREE.Mesh(geo, colorless ? m.skin : m.stone(c, W)));
   return g;
 }

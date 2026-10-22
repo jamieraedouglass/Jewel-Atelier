@@ -6,7 +6,7 @@ const METAL_BASE: Record<Design["metal"], { color: number; roughness: number }> 
   "rose-gold": { color: 0xe7ac90, roughness: 0.22 },
   "white-gold": { color: 0xd6d5d1, roughness: 0.24 },
   platinum: { color: 0xcdd0d4, roughness: 0.2 },
-  "oxidised-silver": { color: 0x8e8a84, roughness: 0.46 },
+  "oxidised-silver": { color: 0x3b3936, roughness: 0.5 },
 };
 export function metalTone(d: Pick<Design, "metal" | "purity">) {
   const base = METAL_BASE[d.metal];

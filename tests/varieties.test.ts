@@ -33,7 +33,8 @@ describe("colour grades", () => {
     const v = varietiesOf("emerald")[0];
     expect(matchingVariety("emerald", { color: v.color.toUpperCase(), glow: v.glow })?.id).toBe(v.id);
     expect(matchingVariety("emerald", { color: "#000000", glow: 0 })).toBeUndefined();
-    expect(varietiesOf("diamond")).toEqual([]);
+    expect(varietiesOf("diamond").map((x) => x.id)).toEqual(["golconda"]);
+    expect(varietiesOf("onyx")).toEqual([]);
   });
 
   it("choosing a gem clears a grade's glow", () => {

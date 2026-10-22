@@ -38,7 +38,7 @@ function ombreAt(stops: string[], t: number) {
   return `#${c.getHexString()}`;
 }
 
-const SPINE = new Set(["round", "old-mine"]);
+const SPINE = new Set(["round", "old-mine", "old-european"]);
 
 export function patternRun(d: Design, m: Mats, curve: THREE.Curve<THREE.Vector3>, from: number, to: number, opts: RunOpts = {}): { group: THREE.Group; maxW: number; count: number; path?: THREE.Curve<THREE.Vector3> } {
   if (d.accents.layout === "wave") {

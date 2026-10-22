@@ -7,7 +7,8 @@ export type OutlineFn = (t: number) => Pt;
 export function outlineFn(shape: Design["center"]["shape"], L: number, W: number): OutlineFn {
   const a = W / 2, b = L / 2;
   switch (shape) {
-    case "round": {
+    case "round":
+    case "old-european": {
       const r = Math.max(a, b);
       return (t) => [Math.cos(t * 2 * Math.PI) * r, Math.sin(t * 2 * Math.PI) * r];
     }
@@ -229,6 +230,15 @@ export function centerFacetedGeo(shape: Design["center"]["shape"], fn: OutlineFn
     return out;
   };
   const pav = W * 0.43;
+  // An old European cut: a small table on a high crown, broad facets, a deep pavilion ending in a small flat culet
+  // (the "open culet" seen as a dot through the table).
+  if (shape === "old-european") {
+    const hi = crown * 1.35;
+    return facetedGeo(ring, new THREE.Vector3(), [
+      { s: 0.46, y: hi }, { s: 0.74, y: hi * 0.62, twist: 0.5 }, { s: 1, y: 0.05 }, { s: 1, y: -0.05 },
+      { s: 0.56, y: -pav * 0.62, twist: 0.5 }, { s: 0.13, y: -pav * 1.02 },
+    ], hi, -pav * 1.03);
+  }
   const tiers: Tier[] = step
     ? [{ s: 0.6, y: crown }, { s: 0.72, y: crown * 0.82 }, { s: 0.86, y: crown * 0.5 }, { s: 1, y: 0.05 }, { s: 1, y: -0.05 }, { s: 0.82, y: -pav * 0.35 }, { s: 0.6, y: -pav * 0.65 }, { s: 0.36, y: -pav * 0.9 }]
     : [{ s: 0.56, y: crown }, { s: 0.8, y: crown * 0.55, twist: 0.5 }, { s: 1, y: 0.04 }, { s: 1, y: -0.04 }, { s: 0.55, y: -pav * 0.55, twist: 0.5 }, { s: 0.18, y: -pav * 0.92 }];

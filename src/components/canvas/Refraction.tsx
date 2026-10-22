@@ -79,10 +79,10 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       mat.envMap = studioCube;
       mat.bvh = bvh;
       mat.color = tint;
-      const shallow = !!mesh.userData.shallow;
+      const shallow = !!mesh.userData.shallow, limpid = !!mesh.userData.limpid;
       mat.bounces = shallow ? 1 : inst ? 2 : colorless ? 3 : 2;
       mat.ior = shallow ? 1.9 : colorless ? 2.42 : 1.72;
-      mat.aberrationStrength = colorless ? 0.022 : 0.006;
+      mat.aberrationStrength = limpid ? 0.004 : colorless ? 0.032 : 0.006;
       mat.fresnel = 1;
       mat.resolution = new THREE.Vector2(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());
       mat.correctMips = false;
@@ -93,7 +93,15 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       // seen through its steps read as deeper colour rather than black; the facets' light still plays over that glow.
       const through = shallow
         ? "pow(max(diffuseColor.rgb, vec3(0.0)), vec3(2.4)) * 0.3 + pow(max(textureGradient(envMap, reflect(viewDirection, normalize(normal)), directionCamPerfect).rgb, vec3(0.0)), vec3(2.0)) * 1.1"
-        : colorless ? "diffuseColor.rgb" : "diffuseColor.rgb * 0.8 + color * 0.4";
+        : limpid
+          // A Golconda (type IIa) diamond is limpid: like clear water, a soft even glow with almost no rainbow fire and
+          // gentle contrast, rather than a modern diamond's flashing sparkle.
+          ? "pow(max(vec3(dot(diffuseColor.rgb, vec3(0.3333))), vec3(0.0)), vec3(1.9)) * 1.05 + pow(max(textureGradient(envMap, reflect(viewDirection, normalize(normal)), directionCamPerfect).rgb, vec3(0.0)), vec3(2.2)) * 0.55"
+          : colorless
+          // A diamond's sparkle is contrast: facets that catch a light flash bright while their neighbours fall dark,
+          // so the light coming through is pushed apart (darks darker, brights brighter) rather than left an even white.
+          ? "pow(max(diffuseColor.rgb, vec3(0.0)), vec3(2.8)) * 2.1"
+          : "diffuseColor.rgb * 0.8 + color * 0.4";
       mat.fragmentShader = mat.fragmentShader.replace(
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         `vec3 outC = mix(${through}, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);`,

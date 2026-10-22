@@ -54,7 +54,7 @@ export const metalName = (d: { metal: (typeof METALS)[number]; purity: { karat: 
 
 export const roundDiameter = (gem: Gem, ct: number) => 6.5 * Math.cbrt((ct * 3.52) / DENSITY[gem]);
 
-export const label = (s: string) => s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+export const label = (s: string) => (s === "old-european" ? "Old European" : s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase()));
 
 export const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
@@ -62,7 +62,7 @@ export const lengthForShape = (widthMm: number, shape: (typeof SHAPES)[number], 
 
 export const stoneRatio = (s: { lengthMm: number; widthMm: number }) => Math.round((s.lengthMm / s.widthMm) * 100) / 100;
 
-export const canReproportion = (shape: (typeof SHAPES)[number]) => shape !== "round" && shape !== "old-mine";
+export const canReproportion = (shape: (typeof SHAPES)[number]) => shape !== "round" && shape !== "old-mine" && shape !== "old-european";
 
 export function reproportion(c: Pick<CenterStone, "gem" | "cut" | "shape" | "carat" | "lengthMm" | "widthMm" | "domeMm">, ratio: number) {
   const r = clamp(ratio, 0.5, 3);

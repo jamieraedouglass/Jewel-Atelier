@@ -239,7 +239,7 @@ export function necklacePiece(d: Design, m: Mats): Piece {
     }
     case "riviera": {
       const total = curve.getLength(), count = o.count;
-      const sizes = Array.from({ length: count }, (_, i) => { const k = Math.abs(i - (count - 1) / 2) / ((count - 1) / 2 || 1); return (1 - 0.55 * Math.pow(k, 1.3)) * (d.stoneEdits.find((e) => e.key === `riviera${i}`)?.scale ?? 1); });
+      const sizes = rivieraSizes(d);
       const span = sizes.reduce((a, s) => a + (c.widthMm * s + 0.35), 0);
       let u = front - span / 2 / total;
       for (let i = 0; i < count; i++) {
@@ -441,3 +441,13 @@ export function necklacePiece(d: Design, m: Mats): Piece {
 }
 
 const CHAIN_STYLES_WITH_CLASP = new Set(["bar", "pendant", "drop-pendant", "three-stone-pendant", "station"]);
+
+// A riviera's stones from the centre front out, each as a fraction of the centre stone's size: largest in the middle,
+// graduating to a little under half at the ends, times any size the jeweller set for that stone.
+export function rivieraSizes(d: Pick<Design, "options" | "stoneEdits">) {
+  const count = d.options.count;
+  return Array.from({ length: count }, (_, i) => {
+    const k = Math.abs(i - (count - 1) / 2) / ((count - 1) / 2 || 1);
+    return (1 - 0.55 * Math.pow(k, 1.3)) * (d.stoneEdits.find((e) => e.key === `riviera${i}`)?.scale ?? 1);
+  });
+}
