@@ -71,7 +71,7 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       const twin = mesh.parent.children.find((c) => c !== mesh && (c as THREE.Mesh).geometry === mesh.geometry) as THREE.Mesh | undefined;
       const body = twin?.material as THREE.MeshPhysicalMaterial | undefined;
       const colorless = !body || body.opacity < 0.5;
-      const tint = colorless ? new THREE.Color(mesh.userData.tint ?? 0xffffff) : glowTint(body!.color.clone().lerp(new THREE.Color(1, 1, 1), 0.08), body!.userData.glow ?? 0);
+      const tint = colorless ? new THREE.Color(mesh.userData.tint ?? 0xffffff) : glowTint(body!.color.clone(), body!.userData.glow ?? 0);
       const bvh = acquireBvh(mesh.geometry);
       bvhKeys.push(mesh.geometry.uuid);
       const mat = new (MeshRefractionMaterial as unknown as new () => RefractMat)();
@@ -93,7 +93,7 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       // seen through its steps read as deeper colour rather than black; the facets' light still plays over that glow.
       const through = shallow
         ? "pow(max(diffuseColor.rgb, vec3(0.0)), vec3(2.4)) * 0.3 + pow(max(textureGradient(envMap, reflect(viewDirection, normalize(normal)), directionCamPerfect).rgb, vec3(0.0)), vec3(2.0)) * 1.1"
-        : colorless ? "diffuseColor.rgb" : "diffuseColor.rgb * 0.8 + color * color * 0.55";
+        : colorless ? "diffuseColor.rgb" : "diffuseColor.rgb * 0.8 + color * 0.4";
       mat.fragmentShader = mat.fragmentShader.replace(
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         `vec3 outC = mix(${through}, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);`,
