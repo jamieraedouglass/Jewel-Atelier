@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { type CenterStone, type Design, NO_CHARACTER, SHAPE_RATIO, resolveClasp, ringInnerDiameter } from "../design";
+import { type CenterStone, type Design, NO_CHARACTER, SHAPE_RATIO, resolveClasp, ringInnerDiameter, varietiesOf } from "../design";
 import { type Piece, Y, v3 } from "../jewelry/common";
 import { type Mats } from "../jewelry/materials";
 import { type Item, accents, balls, chainAlong } from "../jewelry/elements";
@@ -162,7 +162,10 @@ function stonesMesh(f: Frame, stones: LaidStone[], d: Design, m: Mats) {
   for (const st of stones) {
     const pos = f.at(st.x, st.y, st.h), quat = stoneTurn(f, st);
     if (st.big) {
-      const c: CenterStone = { ...d.center, ...NO_CHARACTER, gem: st.gem, color: st.color, cut: st.cut, shape: st.shape, lengthMm: st.L, widthMm: st.W, domeMm: st.cut === "cabochon" ? st.W * 0.4 : Math.min(st.L, st.W) * 0.16, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
+      // A coloured stone in one of its gem's named colours (a Colombian emerald, a Burmese ruby) takes that variety's
+      // clarity and glow too, so it looks like that stone rather than a diamond tinted green or red.
+      const v = varietiesOf(st.gem).find((x) => x.color.toLowerCase() === st.color.toLowerCase());
+      const c: CenterStone = { ...d.center, ...NO_CHARACTER, ...(v ? { clarity: v.clarity, glow: v.glow } : {}), gem: st.gem, color: st.color, cut: st.cut, shape: st.shape, lengthMm: st.L, widthMm: st.W, domeMm: st.cut === "cabochon" ? st.W * 0.4 : Math.min(st.L, st.W) * 0.16, carat: null, label: "", photoPath: null, none: false, rotation: 0 };
       const s = setStone(c, st.setting === "bezel" ? "bezel" : "four-claw", m, 1, st.setting === "three-claw" ? 3 : undefined);
       s.position.copy(pos); s.quaternion.copy(quat);
       g.add(s);

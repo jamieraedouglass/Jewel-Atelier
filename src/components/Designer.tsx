@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { listVersions } from "@/app/actions";
-import { TYPES, TYPE_LABEL, chooseStyle, describeDesign, wornCurve, type Design } from "@/lib/design";
+import { TYPES, TYPE_LABEL, chooseStyle, describeDesign, lookOf, wornCurve, type Design } from "@/lib/design";
 import { VIEW_LABEL, type Cutout, type Measure, type Pick, type RingCanvasHandle, type View } from "./canvas/types";
 import TryOn from "./TryOn";
 import QuickEdit from "./QuickEdit";
@@ -66,6 +66,8 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
   }
 
   const [measure, setMeasure] = useState<Measure | null>(null);
+  // Which of the design's other looks is on show (-1: the design itself, which is what gets edited).
+  const [look, setLook] = useState(-1);
   const [tryOn, setTryOn] = useState<{ whole: Cutout; front: Cutout | null; right: Cutout | null } | null>(null);
   function openTryOn() {
     const d0 = designRef.current;
@@ -103,10 +105,17 @@ export default function Designer({ initial, id: initialId, userId, isPublic: ini
             <button type="button" className="btn primary" onClick={() => { setTab("photo"); }}>Start from a photo</button>
           </div>
         )}
-        {started && <RingCanvas handle={canvas} design={design} view={view} autoRotate={spin} quality={quality} onPick={onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
+        {started && <RingCanvas handle={canvas} design={look >= 0 ? lookOf(design, look) : design} view={view} autoRotate={spin} quality={quality} onPick={look >= 0 ? undefined : onPick} onMiss={() => setPick(null)} onMeasure={setMeasure} />}
+        {started && design.looks.length > 0 && (
+          <div className="chips stage-looks" role="tablist" aria-label="Looks">
+            {["Original", ...design.looks.map((l) => l.name)].map((name, k) => (
+              <button key={name} type="button" role="tab" className="chip" aria-selected={look === k - 1} onClick={() => { setLook(k - 1); setPick(null); }}>{name}</button>
+            ))}
+          </div>
+        )}
         {tryOn && <TryOn cutout={tryOn.whole} front={tryOn.front} right={tryOn.right} title={design.name} curve0={wornCurve(design)} onClose={() => setTryOn(null)}
           recut={(flatten) => canvas.current?.cutout?.("front", "left", flatten) ?? null} />}
-        <p className="stage-hint">{spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
+        <p className="stage-hint">{look >= 0 ? "Showing another look; choose Original to edit" : spin ? "Pause the spin to click a part and edit it" : "Click any part of the piece to edit it"}</p>
         {pick && !spin && <QuickEdit pick={pick} design={pair.editing} onChange={pair.change} onMore={showSection} onClose={() => setPick(null)} />}
         <div className="stage-ui" style={started ? undefined : { display: "none" }}>
           <div>

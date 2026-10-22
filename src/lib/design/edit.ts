@@ -22,6 +22,12 @@ export function normalizeDesign(input: unknown): Design {
   return r.data ? buildable(r.data) : defaultDesign();
 }
 
+// One of a design's other looks, as a whole design to show (its own looks left off).
+export function lookOf(design: Design, i: number): Design {
+  const look = design.looks[i];
+  return look ? applyPatch({ ...design, looks: [] }, look.patch as DesignPatch) : design;
+}
+
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 export type DesignPatch = DeepPartial<Design>;
 

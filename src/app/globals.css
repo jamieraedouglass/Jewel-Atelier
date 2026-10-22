@@ -116,6 +116,7 @@ input[type="range"] { width: 100%; accent-color: var(--fg); }
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 .quick select { width: 100%; }
+.stage-looks { position: absolute; top: 40px; left: 16px; z-index: 2; }
 .stage-hint { position: absolute; top: 14px; left: 16px; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; pointer-events: none; }
 .flash-section { animation: flash 1.4s ease-out; border-radius: 12px; }
 @keyframes flash { from { box-shadow: 0 0 0 2px var(--accent); } to { box-shadow: 0 0 0 2px transparent; } }

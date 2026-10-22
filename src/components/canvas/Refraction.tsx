@@ -89,9 +89,11 @@ export function Refraction({ piece, enabled }: { piece: Piece; enabled: boolean 
       // A shallow stone (rose cut) is clear: looking through it you mostly see what's behind, so little of the light
       // coming through is kept. What gives a rose cut its look is each of its few big facets mirroring a different part
       // of the room, some catching the lights and some dark, so that reflection, contrast stretched, carries it.
+      // A coloured stone glows in its own colour all through, as light scatters inside it, so the dark parts of the room
+      // seen through its steps read as deeper colour rather than black; the facets' light still plays over that glow.
       const through = shallow
         ? "pow(max(diffuseColor.rgb, vec3(0.0)), vec3(2.4)) * 0.3 + pow(max(textureGradient(envMap, reflect(viewDirection, normalize(normal)), directionCamPerfect).rgb, vec3(0.0)), vec3(2.0)) * 1.1"
-        : "diffuseColor.rgb";
+        : colorless ? "diffuseColor.rgb" : "diffuseColor.rgb * 0.8 + color * color * 0.55";
       mat.fragmentShader = mat.fragmentShader.replace(
         "gl_FragColor = vec4(mix(diffuseColor.rgb, vec3(1.0), nFresnel), diffuseColor.a);",
         `vec3 outC = mix(${through}, vec3(1.0), nFresnel); if (any(isnan(outC)) || any(isinf(outC))) outC = color * 0.85; gl_FragColor = vec4(clamp(outC, 0.0, 4.0), diffuseColor.a);`,

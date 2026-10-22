@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { copyDesign } from "@/app/actions";
 import RingViewer from "@/components/RingViewer";
 import FactSheet from "@/components/FactSheet";
-import { describeDesign, normalizeDesign } from "@/lib/design";
+import { describeDesign, lookOf, normalizeDesign } from "@/lib/design";
+import LookTabs from "@/components/LookTabs";
 import { createClient } from "@/lib/supabase/server";
 import { BRAND } from "@/lib/brand";
 
@@ -34,8 +35,10 @@ export default async function SharedDesign({ params }: { params: { id: string } 
         <h1 style={{ fontSize: 40 }}>{d.name}</h1>
         <p className="muted" style={{ margin: 0 }}>{describeDesign(d.design)}</p>
       </div>
-      <RingViewer design={d.design} />
-      <FactSheet design={d.design} />
+      <LookTabs tabs={[d.design, ...d.design.looks.map((_, i) => lookOf(d.design, i))].map((v, i) => ({
+        name: i ? d.design.looks[i - 1].name : d.design.looks.length ? "Original" : d.name,
+        body: <><RingViewer design={v} /><FactSheet design={v} /></>,
+      }))} />
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {mine ? (
           <Link href={`/design/${d.id}`} className="btn primary">Edit this design</Link>

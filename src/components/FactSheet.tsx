@@ -9,6 +9,10 @@ export default function FactSheet({ design }: { design: Design }) {
   const stones = spec.stones;
   const count = stones.reduce((a, s) => a + s.count, 0);
   const carats = Math.round(stones.reduce((a, s) => a + (s.totalCt ?? 0), 0) * 100) / 100;
+  // With a coloured stone in the piece, the count is of all its stones, and the diamonds' weight is given on its own too.
+  const diamonds = stones.filter((s) => s.what.includes("Diamond"));
+  const allDiamonds = diamonds.length === stones.length;
+  const diamondCt = Math.round(diamonds.reduce((a, s) => a + (s.totalCt ?? 0), 0) * 100) / 100;
   const cell = { padding: "8px 10px", borderBottom: "1px solid var(--line)", textAlign: "left" as const, verticalAlign: "top" as const };
   const head = { ...cell, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--muted)", fontWeight: 500 };
   return (
@@ -19,8 +23,9 @@ export default function FactSheet({ design }: { design: Design }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         {[
-          ["Diamonds", `${count.toLocaleString()} stones`],
+          [allDiamonds ? "Diamonds" : "Stones", `${count.toLocaleString()} stones`],
           ["Total weight", `≈ ${carats} ct`],
+          ...(allDiamonds || !diamonds.length ? [] : [["Diamond weight", `≈ ${diamondCt} ct`]]),
           ["Metal", spec.metal.name],
           ["Metal weight", `≈ ${spec.metal.weightG} g`],
         ].map(([k, v]) => (

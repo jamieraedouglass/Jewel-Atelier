@@ -192,6 +192,9 @@ export const DesignSchema = z
     }).default({}),
     ringSize: z.number().min(3).max(13).default(6.5),
     extraStones: z.array(ExtraStoneSchema).max(6).default([]),
+    // Other looks of the same piece to flip between (the same choker with an emerald centre, say): each a name and the
+    // changes that make it, applied over the design when its tab is chosen.
+    looks: z.array(z.object({ name: z.string().min(1).max(60), patch: z.record(z.string(), z.unknown()) })).max(6).default([]),
     stoneEdits: z.array(z.object({
       key: z.string().max(40),
       gem: z.enum(GEMS).optional(), color: hex.optional(), cut: z.enum(CUTS).optional(), shape: z.enum(SHAPES).optional(),
